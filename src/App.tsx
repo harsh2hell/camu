@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { CamuLoginPage } from './components/CamuLoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
 import { SmartTimetable } from './components/SmartTimetable';
 import { LeaveODManager } from './components/LeaveODManager';
@@ -10,11 +11,49 @@ import { DefaultersView } from './components/DefaultersView';
 import { FeeReceiptsView } from './components/FeeReceiptsView';
 import { GradebookView } from './components/GradebookView';
 import { HostelGatePassView } from './components/HostelGatePassView';
+import { authApi, type UserSession } from './api/auth';
 
 export function App() {
+  const [session, setSession] = useState<UserSession | null>(null);
   const [currentRole, setCurrentRole] = useState<'STUDENT' | 'FACULTY'>('STUDENT');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [isInitializing, setIsInitializing] = useState(true);
 
+  // Check saved session on mount
+  useEffect(() => {
+    const existing = authApi.getCurrentSession();
+    if (existing) {
+      setSession(existing);
+      setCurrentRole(existing.role === 'FACULTY' ? 'FACULTY' : 'STUDENT');
+    }
+    setIsInitializing(false);
+  }, []);
+
+  const handleLoginSuccess = (newSession: UserSession) => {
+    setSession(newSession);
+    setCurrentRole(newSession.role === 'FACULTY' ? 'FACULTY' : 'STUDENT');
+    setActiveTab(newSession.role === 'FACULTY' ? 'faculty-attendance' : 'dashboard');
+  };
+
+  const handleLogout = () => {
+    authApi.logout();
+    setSession(null);
+  };
+
+  if (isInitializing) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
+        <div style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600 }}>Loading DBS Global University Portal...</div>
+      </div>
+    );
+  }
+
+  // 1. If not authenticated, show authentic Camu Login Screen
+  if (!session) {
+    return <CamuLoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // 2. If authenticated, show full University Campus Portal
   return (
     <div className="app-layout">
       {/* Universal Top Navigation */}
@@ -23,6 +62,8 @@ export function App() {
         onRoleChange={(role) => setCurrentRole(role)}
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
+        userSession={session}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -55,10 +96,10 @@ export function App() {
           <div className="footer-left">
             <span className="footer-brand">DBS GLOBAL UNIVERSITY</span>
             <span className="footer-divider">&bull;</span>
-            <span className="footer-campus">Dehradun Campus Portal &bull; Camu-Next Initiative</span>
+            <span className="footer-campus">Dehradun Campus Portal &bull; Camu-Next Suite</span>
           </div>
           <div className="footer-right">
-            <span>Built by University Student Dev Team &bull; Powered by Modern Web & PostgreSQL</span>
+            <span>Logged in as <strong>{session.name}</strong> ({session.role}) &bull; <button onClick={handleLogout} style={{ color: '#ef4444', textDecoration: 'underline', fontWeight: 600 }}>Sign Out</button></span>
           </div>
         </div>
       </footer>

@@ -1,13 +1,15 @@
-import React from 'react';
+import { useState } from 'react';
 import { 
   GraduationCap, 
   Bell, 
   UserCheck, 
   ShieldCheck, 
   Sun, 
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
+import type { UserSession } from '../api/auth';
 
 interface NavbarProps {
   currentRole: 'STUDENT' | 'FACULTY';
@@ -15,6 +17,8 @@ interface NavbarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   unreadCount?: number;
+  userSession?: UserSession | null;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -23,8 +27,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onTabChange,
   unreadCount = 3,
+  userSession,
+  onLogout,
 }) => {
-  const [isLightMode, setIsLightMode] = React.useState(false);
+  const [isLightMode, setIsLightMode] = useState(false);
 
   const toggleTheme = () => {
     const next = !isLightMode;
@@ -189,13 +195,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="user-meta">
               <div className="user-name">
-                {currentRole === 'STUDENT' ? CURRENT_STUDENT.name : 'Dr. Rajesh Sharma'}
+                {userSession ? userSession.name : currentRole === 'STUDENT' ? CURRENT_STUDENT.name : 'Dr. Rajesh Sharma'}
               </div>
               <div className="user-tag">
-                {currentRole === 'STUDENT' ? CURRENT_STUDENT.rollNo : 'HOD • CSE Dept'}
+                {userSession?.rollNo || (currentRole === 'STUDENT' ? CURRENT_STUDENT.rollNo : 'HOD • CSE Dept')}
               </div>
             </div>
           </div>
+
+          {/* Logout Button */}
+          {onLogout && (
+            <button 
+              className="icon-btn logout-btn" 
+              onClick={onLogout}
+              title="Sign Out of DBS Portal"
+              aria-label="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </div>
 
