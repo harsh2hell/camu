@@ -10,25 +10,34 @@ import {
   User, 
   KeyRound, 
   MapPin,
-  Clock
+  Clock,
+  ExternalLink,
+  Laptop
 } from 'lucide-react';
 import { authApi, type UserSession } from '../api/auth';
 
 interface CamuLoginPageProps {
+  portalMode: 'student' | 'teacher';
+  onTogglePortal: (mode: 'student' | 'teacher') => void;
   onLoginSuccess: (session: UserSession) => void;
 }
 
-export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) => {
-  const [activeRole, setActiveRole] = useState<'STUDENT' | 'FACULTY'>('STUDENT');
+export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ 
+  portalMode, 
+  onTogglePortal, 
+  onLoginSuccess 
+}) => {
+  const isStudent = portalMode === 'student';
+
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState(isStudent ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
+  const [password, setPassword] = useState(isStudent ? 'DBS@2026' : 'Faculty@DBS');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Registration / PIN Activation
+  // Registration / PIN Activation (Student only)
   const [regFullName, setRegFullName] = useState('');
   const [regRollNo, setRegRollNo] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -38,7 +47,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) {
-      setErrorMessage('Please enter your Roll Number or University Email.');
+      setErrorMessage(isStudent ? 'Please enter your Roll Number or Student Email.' : 'Please enter your Faculty Employee Code.');
       return;
     }
     setIsLoading(true);
@@ -46,7 +55,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
 
     try {
       const session = await authApi.login(username, password);
-      onLoginSuccess(session);
+      // Ensure role matches the portal mode
+      const adjustedSession: UserSession = {
+        ...session,
+        role: isStudent ? 'STUDENT' : 'FACULTY',
+      };
+      onLoginSuccess(adjustedSession);
     } catch (err: any) {
       setErrorMessage(err.message || 'Authentication failed. Please verify your credentials.');
     } finally {
@@ -58,7 +72,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
     setIsLoading(true);
     try {
       const session = await authApi.loginWithGoogle();
-      onLoginSuccess(session);
+      onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
     } catch (err: any) {
       setErrorMessage('Google SSO failed. Please try again.');
     } finally {
@@ -70,7 +84,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
     setIsLoading(true);
     try {
       const session = await authApi.loginWithMicrosoft();
-      onLoginSuccess(session);
+      onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
     } catch (err: any) {
       setErrorMessage('Microsoft 365 SSO failed. Please try again.');
     } finally {
@@ -103,23 +117,38 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
     }
   };
 
-  const fillQuickStudent = () => {
-    setActiveRole('STUDENT');
-    setUsername('harsh.23cse@dbs.edu.in');
-    setPassword('DBS@2026');
-    setErrorMessage(null);
-  };
-
-  const fillQuickFaculty = () => {
-    setActiveRole('FACULTY');
-    setUsername('rajesh.sharma@dbs.edu.in');
-    setPassword('Faculty@DBS');
-    setErrorMessage(null);
-  };
-
   return (
     <div className="dbs-auth-layout">
-      {/* LEFT COLUMN: Campus Life, Identity & Live Showcase */}
+      {/* Top Domain Switcher Ribbon */}
+      <div className="domain-switcher-bar">
+        <div className="current-subdomain-pill">
+          <span className="live-dot-subdomain"></span>
+          <span className="domain-text">
+            {isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}
+          </span>
+          <span className="domain-scope-label">
+            {isStudent ? 'Official Student & Parent Portal' : 'Faculty & Academic Administration Portal'}
+          </span>
+        </div>
+
+        <button 
+          type="button" 
+          className="switch-portal-action-btn"
+          onClick={() => {
+            const nextMode = isStudent ? 'teacher' : 'student';
+            onTogglePortal(nextMode);
+            setUsername(nextMode === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
+            setPassword(nextMode === 'student' ? 'DBS@2026' : 'Faculty@DBS');
+            setIsRegisterMode(false);
+            setErrorMessage(null);
+          }}
+        >
+          <span>Go to <strong>{isStudent ? 'teacher.dgu.in' : 'student.dgu.in'}</strong></span>
+          <ExternalLink size={13} />
+        </button>
+      </div>
+
+      {/* LEFT COLUMN: Campus Showcase */}
       <div className="auth-showcase-panel">
         <div 
           className="showcase-bg-image"
@@ -131,71 +160,112 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           {/* Top Brand Tag */}
           <div className="showcase-top-badge">
             <div className="crest-emblem">
-              <GraduationCap size={22} className="crest-gold" />
+              <GraduationCap size={24} className="crest-gold" />
             </div>
             <div>
               <div className="showcase-uni-title">DBS GLOBAL UNIVERSITY</div>
-              <div className="showcase-uni-sub">Dehradun, Uttarakhand &bull; Estd. by Govt. of Uttarakhand</div>
+              <div className="showcase-uni-sub">
+                {isStudent ? 'Student & Parent Academic Suite' : 'Faculty & Academic Administration Suite'}
+              </div>
             </div>
           </div>
 
           {/* Central Hero Statement */}
           <div className="showcase-hero-body">
             <span className="live-term-pill">
-              <span className="pulse-dot"></span> Odd Semester 2026-27 &bull; Live Academic Term
+              <span className="pulse-dot"></span> 
+              {isStudent ? 'student.dgu.in • Student Access' : 'teacher.dgu.in • Faculty Access'}
             </span>
+            
             <h1 className="showcase-heading">
-              Empowering Minds, Shaping Global Leaders.
+              {isStudent 
+                ? 'Your Campus Life, Attendance & Academics at Your Fingertips.' 
+                : 'Accelerate Classroom Attendance, Grading & Academic Governance.'}
             </h1>
+            
             <p className="showcase-description">
-              Access your personalized student ledger, dynamic timetable, continuous assessment marks, on-duty approvals, and campus services in one high-speed platform.
+              {isStudent 
+                ? 'Log in to track your 75% attendance criteria, real-time timetable, exam grades, digital gate pass, and campus dues in a unified modern portal.' 
+                : 'Dedicated portal for DBS professors and HODs: 1-click lecture attendance roll call, 75% defaulter warnings, internal assessment grading, and on-duty leave approvals.'}
             </p>
 
-            {/* University Feature Highlights Grid */}
+            {/* Feature Highlights Grid */}
             <div className="showcase-features-grid">
-              <div className="showcase-feature-card">
-                <BookOpen size={20} className="feature-icon" />
-                <div>
-                  <div className="feature-title">Academic ERP & LMS</div>
-                  <div className="feature-desc">75% attendance audit & syllabi</div>
-                </div>
-              </div>
-
-              <div className="showcase-feature-card">
-                <Calendar size={20} className="feature-icon" />
-                <div>
-                  <div className="feature-title">Dynamic Schedules</div>
-                  <div className="feature-desc">Live lecture & room allocations</div>
-                </div>
-              </div>
-
-              <div className="showcase-feature-card">
-                <ShieldCheck size={20} className="feature-icon" />
-                <div>
-                  <div className="feature-title">Digital Gate Pass</div>
-                  <div className="feature-desc">Encrypted campus exit QR passes</div>
-                </div>
-              </div>
-
-              <div className="showcase-feature-card">
-                <Sparkles size={20} className="feature-icon" />
-                <div>
-                  <div className="feature-title">Zero-Latency Sync</div>
-                  <div className="feature-desc">Sub-100ms real-time data access</div>
-                </div>
-              </div>
+              {isStudent ? (
+                <>
+                  <div className="showcase-feature-card">
+                    <BookOpen size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">75% Attendance Predictor</div>
+                      <div className="feature-desc">Know how many classes you can skip/attend</div>
+                    </div>
+                  </div>
+                  <div className="showcase-feature-card">
+                    <Calendar size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">Live Dynamic Timetable</div>
+                      <div className="feature-desc">Room LT-201 allocations & schedules</div>
+                    </div>
+                  </div>
+                  <div className="showcase-feature-card">
+                    <ShieldCheck size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">Encrypted Hostel Gate Pass</div>
+                      <div className="feature-desc">Live security QR codes with curfew timer</div>
+                    </div>
+                  </div>
+                  <div className="showcase-feature-card">
+                    <Sparkles size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">Instant Fee Clearances</div>
+                      <div className="feature-desc">1-click receipts & exam No-Dues</div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="showcase-feature-card">
+                    <Laptop size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">1-Click Attendance</div>
+                      <div className="feature-desc">Mark entire batch present in 2 seconds</div>
+                    </div>
+                  </div>
+                  <div className="showcase-feature-card">
+                    <ShieldCheck size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">75% Defaulter Monitor</div>
+                      <div className="feature-desc">Automated SMS/Email debarment warnings</div>
+                    </div>
+                  </div>
+                  <div className="showcase-feature-card">
+                    <BookOpen size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">Continuous Internal Eval</div>
+                      <div className="feature-desc">Sessional 1, Mid-term & IA2 marks entry</div>
+                    </div>
+                  </div>
+                  <div className="showcase-feature-card">
+                    <Calendar size={20} className="feature-icon" />
+                    <div>
+                      <div className="feature-title">OD & Leave Approvals</div>
+                      <div className="feature-desc">Instant verification of hackathons & sports</div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Bottom Campus Location & Weather Info */}
+          {/* Bottom Campus Location */}
           <div className="showcase-footer-strip">
             <div className="footer-info-item">
               <MapPin size={15} />
-              <span>Selaqui Campus, Chakrata Road, Dehradun</span>
+              <span>Selaqui Campus, Chakrata Road, Dehradun (UK)</span>
             </div>
             <div className="footer-info-item">
               <Clock size={15} />
-              <span>Campus Security: Active 24/7</span>
+              <span>DBS IT Systems: Online 99.98%</span>
             </div>
           </div>
         </div>
@@ -206,50 +276,24 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         <div className="auth-form-wrapper">
           {/* Form Header */}
           <div className="auth-form-header">
-            <div className="portal-mini-brand">
-              <div className="mini-crest">
-                <GraduationCap size={20} />
-              </div>
-              <span className="mini-brand-text">DBS PORTAL</span>
+            <div className="subdomain-indicator-badge">
+              <span className="dot-active"></span>
+              <strong>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</strong>
             </div>
 
             <h2 className="auth-main-title">
-              {isRegisterMode ? 'Activate Student Account' : 'Welcome Back'}
+              {isRegisterMode 
+                ? 'Activate Student Account' 
+                : isStudent ? 'Student Sign In' : 'Faculty & Staff Sign In'}
             </h2>
             <p className="auth-subtitle">
               {isRegisterMode 
                 ? 'Enter your Registrar PIN to initialize your university digital account.' 
-                : 'Sign in to access your DBS Global University academic workspace.'}
+                : isStudent 
+                  ? 'Access your personal student ledger, timetable, and attendance.' 
+                  : 'Faculty authentication for Dr. Rajesh Sharma and teaching staff.'}
             </p>
           </div>
-
-          {/* Role Selector Tabs (Student vs Faculty) */}
-          {!isRegisterMode && (
-            <div className="role-selector-bar">
-              <button
-                type="button"
-                className={`role-tab-btn ${activeRole === 'STUDENT' ? 'role-tab-active' : ''}`}
-                onClick={() => {
-                  setActiveRole('STUDENT');
-                  setErrorMessage(null);
-                }}
-              >
-                <User size={15} />
-                <span>Student / Parent</span>
-              </button>
-              <button
-                type="button"
-                className={`role-tab-btn ${activeRole === 'FACULTY' ? 'role-tab-active' : ''}`}
-                onClick={() => {
-                  setActiveRole('FACULTY');
-                  setErrorMessage(null);
-                }}
-              >
-                <ShieldCheck size={15} />
-                <span>Faculty / Staff</span>
-              </button>
-            </div>
-          )}
 
           {/* Error Banner */}
           {errorMessage && (
@@ -259,18 +303,18 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           )}
 
           {!isRegisterMode ? (
-            /* Standard Login Form */
+            /* Login Form */
             <form onSubmit={handleLogin} className="auth-form-fields">
               <div className="input-group">
                 <label className="input-label">
-                  {activeRole === 'STUDENT' ? 'Student Roll Number or Email' : 'Faculty Employee Code or Email'}
+                  {isStudent ? 'Student Roll Number or Email' : 'Faculty Employee Code or Email'}
                 </label>
                 <div className="input-container">
                   <User size={18} className="field-icon" />
                   <input
                     type="text"
                     className="text-input"
-                    placeholder={activeRole === 'STUDENT' ? 'e.g. DBS/23/CSE/042 or harsh@dbs.edu.in' : 'e.g. DBS-FAC-108 or faculty@dbs.edu.in'}
+                    placeholder={isStudent ? 'e.g. DBS/23/CSE/042 or harsh.23cse@dbs.edu.in' : 'e.g. DBS-FAC-108 or rajesh.sharma@dbs.edu.in'}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
@@ -284,7 +328,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
                   <button 
                     type="button" 
                     className="forgot-pw-btn"
-                    onClick={() => alert('Password recovery link has been dispatched to your official DBS email.')}
+                    onClick={() => alert(`Password recovery link dispatched to your registered DBS ${isStudent ? 'Student' : 'Faculty'} email.`)}
                   >
                     Forgot Password?
                   </button>
@@ -317,7 +361,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
                     checked={rememberMe} 
                     onChange={(e) => setRememberMe(e.target.checked)} 
                   />
-                  <span>Keep me signed in on this device</span>
+                  <span>Keep me signed in on this workstation</span>
                 </label>
               </div>
 
@@ -327,13 +371,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
                 className="auth-submit-btn"
                 disabled={isLoading}
               >
-                {isLoading ? 'Verifying Credentials...' : `Sign In as ${activeRole === 'STUDENT' ? 'Student' : 'Faculty'}`}
+                {isLoading ? 'Verifying Credentials...' : `Sign In to ${isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}`}
               </button>
 
               {/* Single Sign-On Divider */}
               <div className="auth-or-divider">
                 <span className="or-line"></span>
-                <span className="or-text">OR CONTINUE WITH</span>
+                <span className="or-text">OR SIGN IN WITH UNIVERSITY SSO</span>
                 <span className="or-line"></span>
               </div>
 
@@ -370,33 +414,40 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
                 </button>
               </div>
 
-              {/* Bottom Registration Switch */}
-              <div className="auth-bottom-switch">
-                <span>First time here? </span>
-                <button 
-                  type="button" 
-                  className="switch-link-btn"
-                  onClick={() => setIsRegisterMode(true)}
-                >
-                  Activate with University PIN
-                </button>
-              </div>
-
-              {/* Quick-Fill Demo Chips */}
-              <div className="quick-demo-wrapper">
-                <span className="demo-label">Dev Test Login:</span>
-                <div className="demo-buttons">
-                  <button type="button" className="demo-chip" onClick={fillQuickStudent}>
-                    Student (Harsh)
-                  </button>
-                  <button type="button" className="demo-chip" onClick={fillQuickFaculty}>
-                    Faculty (Dr. Sharma)
+              {/* Bottom Switcher */}
+              {isStudent && (
+                <div className="auth-bottom-switch">
+                  <span>First time student? </span>
+                  <button 
+                    type="button" 
+                    className="switch-link-btn"
+                    onClick={() => setIsRegisterMode(true)}
+                  >
+                    Activate with Registrar PIN
                   </button>
                 </div>
+              )}
+
+              {/* Subdomain Switch Callout */}
+              <div className="subdomain-switch-footer-box">
+                <span>Looking for the {isStudent ? 'Faculty & Staff' : 'Student'} Portal?</span>
+                <button
+                  type="button"
+                  className="switch-inline-link"
+                  onClick={() => {
+                    const next = isStudent ? 'teacher' : 'student';
+                    onTogglePortal(next);
+                    setUsername(next === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
+                    setPassword(next === 'student' ? 'DBS@2026' : 'Faculty@DBS');
+                    setErrorMessage(null);
+                  }}
+                >
+                  Switch to {isStudent ? 'teacher.dgu.in' : 'student.dgu.in'} &rarr;
+                </button>
               </div>
             </form>
           ) : (
-            /* First Time Student PIN Activation Form */
+            /* Student PIN Activation */
             <form onSubmit={handleRegister} className="auth-form-fields">
               <div className="input-group">
                 <label className="input-label">Full Name</label>
@@ -441,7 +492,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
               </div>
 
               <div className="input-group">
-                <label className="input-label">Registrar Camu PIN (6-Digit Code)</label>
+                <label className="input-label">Registrar PIN (6-Digit Code)</label>
                 <div className="input-container">
                   <input
                     type="text"
@@ -473,7 +524,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
                 className="auth-submit-btn"
                 disabled={isLoading}
               >
-                {isLoading ? 'Activating...' : 'Verify PIN & Enter Portal'}
+                {isLoading ? 'Activating...' : 'Verify PIN & Enter student.dgu.in'}
               </button>
 
               <div className="auth-bottom-switch" style={{ marginTop: '16px' }}>
@@ -483,7 +534,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
                   className="switch-link-btn"
                   onClick={() => setIsRegisterMode(false)}
                 >
-                  Back to Sign In
+                  Back to Student Sign In
                 </button>
               </div>
             </form>
@@ -491,13 +542,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
 
           {/* Form Footer */}
           <div className="auth-card-footer">
-            <span>&copy; {new Date().getFullYear()} DBS Global University. All rights reserved.</span>
+            <span>&copy; {new Date().getFullYear()} DBS Global University &bull; {isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
             <div className="footer-links-row">
-              <a href="#help" onClick={(e) => { e.preventDefault(); alert('IT Helpdesk: it.support@dbs.edu.in | +91-135-2699100'); }}>Support</a>
+              <a href="#help" onClick={(e) => { e.preventDefault(); alert('IT Helpdesk: it.support@dbs.edu.in'); }}>IT Support</a>
               <span>&bull;</span>
-              <a href="#privacy" onClick={(e) => { e.preventDefault(); alert('DBS Global University Data Privacy Policy 2026'); }}>Privacy</a>
+              <a href="#privacy" onClick={(e) => { e.preventDefault(); alert('DBS Data Privacy Standards 2026'); }}>Privacy</a>
               <span>&bull;</span>
-              <a href="#terms" onClick={(e) => { e.preventDefault(); alert('Official Academic IT Usage Terms'); }}>Terms</a>
+              <a href="#terms" onClick={(e) => { e.preventDefault(); alert('Academic IT Terms of Service'); }}>Terms</a>
             </div>
           </div>
         </div>
@@ -505,6 +556,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
 
       <style>{`
         .dbs-auth-layout {
+          position: relative;
           display: grid;
           grid-template-columns: 1.15fr 0.95fr;
           min-height: 100vh;
@@ -514,13 +566,85 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
+        /* Top Subdomain Switcher Ribbon */
+        .domain-switcher-bar {
+          position: absolute;
+          top: 14px;
+          left: 20px;
+          right: 20px;
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          pointer-events: none;
+        }
+
+        .current-subdomain-pill {
+          pointer-events: auto;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(15, 23, 42, 0.85);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          padding: 6px 14px;
+          border-radius: 9999px;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        }
+
+        .live-dot-subdomain {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: ${isStudent ? '#38bdf8' : '#f59e0b'};
+          box-shadow: 0 0 8px ${isStudent ? '#38bdf8' : '#f59e0b'};
+        }
+
+        .domain-text {
+          font-size: 0.85rem;
+          font-weight: 800;
+          color: #ffffff;
+          letter-spacing: 0.02em;
+        }
+
+        .domain-scope-label {
+          font-size: 0.72rem;
+          color: #94a3b8;
+          padding-left: 6px;
+          border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .switch-portal-action-btn {
+          pointer-events: auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: #ffffff;
+          border: 1.5px solid #cbd5e1;
+          color: #1e293b;
+          padding: 7px 16px;
+          border-radius: 9999px;
+          font-size: 0.78rem;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+          transition: all 0.15s ease;
+        }
+
+        .switch-portal-action-btn:hover {
+          background: #f8fafc;
+          border-color: #2563eb;
+          color: #2563eb;
+          transform: translateY(-1px);
+        }
+
         /* Showcase Panel (Left) */
         .auth-showcase-panel {
           position: relative;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          padding: 44px 56px;
+          padding: 64px 56px 44px;
           color: #ffffff;
           overflow: hidden;
         }
@@ -531,24 +655,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
-          transform: scale(1.02);
-          transition: transform 12s ease;
           z-index: 1;
-        }
-
-        .dbs-auth-layout:hover .showcase-bg-image {
-          transform: scale(1.05);
         }
 
         .showcase-gradient-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(
-            135deg, 
-            rgba(6, 11, 25, 0.92) 0%, 
-            rgba(15, 28, 65, 0.82) 50%,
-            rgba(20, 10, 40, 0.88) 100%
-          );
+          background: ${isStudent 
+            ? 'linear-gradient(135deg, rgba(6, 11, 25, 0.94) 0%, rgba(15, 28, 65, 0.84) 50%, rgba(10, 25, 45, 0.9) 100%)' 
+            : 'linear-gradient(135deg, rgba(20, 10, 30, 0.94) 0%, rgba(45, 20, 50, 0.85) 50%, rgba(15, 15, 35, 0.92) 100%)'};
           z-index: 2;
         }
 
@@ -568,9 +683,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         }
 
         .crest-emblem {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
+          width: 46px;
+          height: 46px;
+          border-radius: 12px;
           background: linear-gradient(135deg, #1e293b, #0f172a);
           border: 1.5px solid rgba(245, 158, 11, 0.5);
           display: flex;
@@ -584,7 +699,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         }
 
         .showcase-uni-title {
-          font-size: 1.05rem;
+          font-size: 1.1rem;
           font-weight: 800;
           letter-spacing: 0.05em;
           color: #ffffff;
@@ -593,13 +708,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         .showcase-uni-sub {
           font-size: 0.75rem;
           color: #cbd5e1;
-          font-weight: 400;
         }
 
         .showcase-hero-body {
           margin: auto 0;
           max-width: 580px;
-          padding: 30px 0;
+          padding: 20px 0;
         }
 
         .live-term-pill {
@@ -632,7 +746,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         }
 
         .showcase-heading {
-          font-size: 2.35rem;
+          font-size: 2.3rem;
           font-weight: 800;
           line-height: 1.25;
           letter-spacing: -0.02em;
@@ -644,7 +758,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           font-size: 0.95rem;
           line-height: 1.6;
           color: #cbd5e1;
-          margin-bottom: 32px;
+          margin-bottom: 30px;
         }
 
         .showcase-features-grid {
@@ -665,7 +779,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         }
 
         .feature-icon {
-          color: #38bdf8;
+          color: ${isStudent ? '#38bdf8' : '#fbbf24'};
           margin-top: 2px;
           flex-shrink: 0;
         }
@@ -705,7 +819,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 40px;
+          padding: 70px 40px 40px;
           background: #f8fafc;
           overflow-y: auto;
         }
@@ -720,28 +834,24 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           border: 1px solid #e2e8f0;
         }
 
-        .portal-mini-brand {
+        .subdomain-indicator-badge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: #f1f5f9;
-          border: 1px solid #cbd5e1;
+          background: ${isStudent ? 'rgba(59, 130, 246, 0.1)' : 'rgba(245, 158, 11, 0.1)'};
+          color: ${isStudent ? '#1d4ed8' : '#b45309'};
+          border: 1px solid ${isStudent ? 'rgba(59, 130, 246, 0.25)' : 'rgba(245, 158, 11, 0.25)'};
           padding: 4px 10px;
           border-radius: 9999px;
-          margin-bottom: 14px;
+          font-size: 0.78rem;
+          margin-bottom: 12px;
         }
 
-        .mini-crest {
-          color: #2563eb;
-          display: flex;
-          align-items: center;
-        }
-
-        .mini-brand-text {
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          color: #1e293b;
+        .dot-active {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: currentColor;
         }
 
         .auth-main-title {
@@ -757,45 +867,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           color: #64748b;
           line-height: 1.4;
           margin-bottom: 22px;
-        }
-
-        /* Role Selector Tabs */
-        .role-selector-bar {
-          display: flex;
-          background: #f1f5f9;
-          padding: 4px;
-          border-radius: 10px;
-          gap: 4px;
-          margin-bottom: 20px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .role-tab-btn {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          padding: 8px 12px;
-          font-size: 0.825rem;
-          font-weight: 600;
-          border-radius: 7px;
-          color: #64748b;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .role-tab-btn:hover {
-          color: #0f172a;
-        }
-
-        .role-tab-active {
-          background: #ffffff;
-          color: #1d4ed8 !important;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-          font-weight: 700;
         }
 
         .auth-alert-box {
@@ -842,10 +913,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           padding: 0;
         }
 
-        .forgot-pw-btn:hover {
-          text-decoration: underline;
-        }
-
         .input-container {
           position: relative;
           display: flex;
@@ -873,8 +940,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         }
 
         .text-input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+          border-color: ${isStudent ? '#2563eb' : '#d97706'};
+          box-shadow: 0 0 0 3px ${isStudent ? 'rgba(37, 99, 235, 0.12)' : 'rgba(217, 119, 6, 0.12)'};
         }
 
         .password-eye-btn {
@@ -889,10 +956,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           padding: 0;
         }
 
-        .password-eye-btn:hover {
-          color: #334155;
-        }
-
         .form-remember-row {
           display: flex;
           align-items: center;
@@ -905,33 +968,29 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           align-items: center;
           gap: 8px;
           cursor: pointer;
-          user-select: none;
         }
 
         .auth-submit-btn {
           width: 100%;
           height: 46px;
-          background: linear-gradient(135deg, #1d4ed8, #2563eb);
+          background: ${isStudent 
+            ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' 
+            : 'linear-gradient(135deg, #b45309, #d97706)'};
           color: #ffffff;
           border: none;
           border-radius: 9px;
           font-size: 0.925rem;
           font-weight: 700;
           cursor: pointer;
-          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
-          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+          box-shadow: ${isStudent 
+            ? '0 4px 14px rgba(37, 99, 235, 0.28)' 
+            : '0 4px 14px rgba(217, 119, 6, 0.28)'};
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
           margin-top: 4px;
         }
 
         .auth-submit-btn:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
-          background: linear-gradient(135deg, #1e40af, #1d4ed8);
-        }
-
-        .auth-submit-btn:disabled {
-          opacity: 0.65;
-          cursor: not-allowed;
         }
 
         .auth-or-divider {
@@ -948,7 +1007,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
         }
 
         .or-text {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           color: #94a3b8;
           font-weight: 700;
           letter-spacing: 0.05em;
@@ -973,18 +1032,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           font-weight: 600;
           color: #334155;
           cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .sso-btn:hover:not(:disabled) {
-          background: #f8fafc;
-          border-color: #94a3b8;
         }
 
         .sso-svg {
           width: 17px;
           height: 17px;
-          flex-shrink: 0;
         }
 
         .auth-bottom-switch {
@@ -1000,51 +1052,32 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           background: none;
           border: none;
           cursor: pointer;
-          padding: 0;
         }
 
-        .switch-link-btn:hover {
-          text-decoration: underline;
-        }
-
-        .quick-demo-wrapper {
+        .subdomain-switch-footer-box {
           margin-top: 14px;
-          padding-top: 14px;
-          border-top: 1px dashed #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .demo-label {
-          font-size: 0.72rem;
-          color: #94a3b8;
-          font-weight: 600;
-        }
-
-        .demo-buttons {
-          display: flex;
-          gap: 6px;
-        }
-
-        .demo-chip {
-          padding: 4px 10px;
+          padding: 12px;
           background: #f1f5f9;
-          border: 1px solid #cbd5e1;
-          border-radius: 5px;
-          font-size: 0.72rem;
-          font-weight: 600;
-          color: #2563eb;
-          cursor: pointer;
-          transition: all 0.12s ease;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.78rem;
+          color: #64748b;
         }
 
-        .demo-chip:hover {
-          background: #2563eb;
-          color: #ffffff;
-          border-color: #2563eb;
+        .switch-inline-link {
+          color: ${isStudent ? '#b45309' : '#1d4ed8'};
+          font-weight: 700;
+          background: none;
+          border: none;
+          cursor: pointer;
+        }
+
+        .switch-inline-link:hover {
+          text-decoration: underline;
         }
 
         .auth-card-footer {
@@ -1071,11 +1104,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           text-decoration: none;
         }
 
-        .footer-links-row a:hover {
-          color: #2563eb;
-        }
-
-        /* Responsive */
         @media (max-width: 1024px) {
           .dbs-auth-layout {
             grid-template-columns: 1fr;
@@ -1083,8 +1111,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ onLoginSuccess }) 
           .auth-showcase-panel {
             display: none;
           }
+          .domain-switcher-bar {
+            position: static;
+            padding: 16px 20px 0;
+          }
           .auth-form-panel {
-            min-height: 100vh;
             padding: 20px;
           }
         }

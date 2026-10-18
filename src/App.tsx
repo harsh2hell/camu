@@ -14,6 +14,12 @@ import { HostelGatePassView } from './components/HostelGatePassView';
 import { authApi, type UserSession } from './api/auth';
 
 export function App() {
+  const [portalMode, setPortalMode] = useState<'student' | 'teacher'>(() => {
+    const query = new URLSearchParams(window.location.search).get('portal');
+    if (query === 'teacher' || query === 'faculty') return 'teacher';
+    return (localStorage.getItem('dbs_portal_mode') as 'student' | 'teacher') || 'student';
+  });
+
   const [session, setSession] = useState<UserSession | null>(null);
   const [currentRole, setCurrentRole] = useState<'STUDENT' | 'FACULTY'>('STUDENT');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -24,15 +30,25 @@ export function App() {
     const existing = authApi.getCurrentSession();
     if (existing) {
       setSession(existing);
-      setCurrentRole(existing.role === 'FACULTY' ? 'FACULTY' : 'STUDENT');
+      const role = existing.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
+      setCurrentRole(role);
+      setPortalMode(role === 'FACULTY' ? 'teacher' : 'student');
     }
     setIsInitializing(false);
   }, []);
 
+  const handlePortalChange = (mode: 'student' | 'teacher') => {
+    setPortalMode(mode);
+    localStorage.setItem('dbs_portal_mode', mode);
+  };
+
   const handleLoginSuccess = (newSession: UserSession) => {
     setSession(newSession);
-    setCurrentRole(newSession.role === 'FACULTY' ? 'FACULTY' : 'STUDENT');
-    setActiveTab(newSession.role === 'FACULTY' ? 'faculty-attendance' : 'dashboard');
+    const role = newSession.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
+    setCurrentRole(role);
+    setPortalMode(role === 'FACULTY' ? 'teacher' : 'student');
+    localStorage.setItem('dbs_portal_mode', role === 'FACULTY' ? 'teacher' : 'student');
+    setActiveTab(role === 'FACULTY' ? 'faculty-attendance' : 'dashboard');
   };
 
   const handleLogout = () => {
@@ -48,14 +64,45 @@ export function App() {
     );
   }
 
-  // 1. If not authenticated, show authentic Camu Login Screen
+  // 1. If not authenticated, show separate student.dgu.in / teacher.dgu.in Login Screen
   if (!session) {
-    return <CamuLoginPage onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <CamuLoginPage 
+        portalMode={portalMode}
+        onTogglePortal={handlePortalChange}
+        onLoginSuccess={handleLoginSuccess} 
+      />
+    );
   }
 
   // 2. If authenticated, show full University Campus Portal
   return (
     <div className="app-layout">
+      {/* Top Portal Banner */}
+      <div className="subdomain-top-banner">
+        <div className="banner-inner">
+          <div className="subdomain-badge-active">
+            <span className="dot-pulse"></span>
+            <strong>{currentRole === 'STUDENT' ? 'student.dgu.in' : 'teacher.dgu.in'}</strong>
+            <span className="badge-sep">&bull;</span>
+            <span>{currentRole === 'STUDENT' ? 'Student & Parent Portal' : 'Faculty & Staff Administration Gateway'}</span>
+          </div>
+
+          <div className="banner-actions">
+            <button 
+              className="switch-portal-btn-top"
+              onClick={() => {
+                const nextMode = portalMode === 'student' ? 'teacher' : 'student';
+                handleLogout();
+                handlePortalChange(nextMode);
+              }}
+            >
+              Switch to {portalMode === 'student' ? 'teacher.dgu.in' : 'student.dgu.in'} &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Universal Top Navigation */}
       <Navbar
         currentRole={currentRole}
@@ -96,10 +143,17 @@ export function App() {
           <div className="footer-left">
             <span className="footer-brand">DBS GLOBAL UNIVERSITY</span>
             <span className="footer-divider">&bull;</span>
-            <span className="footer-campus">Dehradun Campus Portal &bull; Camu-Next Suite</span>
+            <span className="footer-campus">
+              {currentRole === 'STUDENT' ? 'student.dgu.in' : 'teacher.dgu.in'} &bull; Dehradun Campus
+            </span>
           </div>
           <div className="footer-right">
-            <span>Logged in as <strong>{session.name}</strong> ({session.role}) &bull; <button onClick={handleLogout} style={{ color: '#ef4444', textDecoration: 'underline', fontWeight: 600 }}>Sign Out</button></span>
+            <span>
+              Signed in as <strong>{session.name}</strong> ({session.role}) &bull;{' '}
+              <button onClick={handleLogout} style={{ color: '#ef4444', textDecoration: 'underline', fontWeight: 600 }}>
+                Sign Out
+              </button>
+            </span>
           </div>
         </div>
       </footer>
@@ -109,6 +163,61 @@ export function App() {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
+        }
+
+        .subdomain-top-banner {
+          background: #0b1329;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 6px 20px;
+          font-size: 0.75rem;
+          color: #94a3b8;
+        }
+
+        .banner-inner {
+          max-width: 1320px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .subdomain-badge-active {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .subdomain-badge-active strong {
+          color: ${currentRole === 'STUDENT' ? '#38bdf8' : '#fbbf24'};
+        }
+
+        .dot-pulse {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: ${currentRole === 'STUDENT' ? '#38bdf8' : '#fbbf24'};
+          box-shadow: 0 0 6px ${currentRole === 'STUDENT' ? '#38bdf8' : '#fbbf24'};
+        }
+
+        .badge-sep {
+          color: #475569;
+        }
+
+        .switch-portal-btn-top {
+          background: none;
+          border: none;
+          color: #cbd5e1;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 0.75rem;
+          padding: 2px 6px;
+        }
+
+        .switch-portal-btn-top:hover {
+          color: #ffffff;
+          text-decoration: underline;
         }
 
         .main-content {
