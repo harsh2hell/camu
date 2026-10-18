@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Briefcase, ArrowRight, LifeBuoy, Mail, Copy, Check, X } from 'lucide-react';
+import { User, Award, ArrowRight, LifeBuoy, Mail, Copy, Check, X } from 'lucide-react';
 
 interface PortalChoicePageProps {
   onSelectPortal: (portal: 'student' | 'teacher') => void;
@@ -100,7 +100,7 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
   };
 
   const handleCopySupportEmail = () => {
-    navigator.clipboard.writeText('support@dbs.edu.in');
+    navigator.clipboard.writeText('support@dgu.ac.in');
     setCopiedEmail(true);
     setTimeout(() => setCopiedEmail(false), 2000);
   };
@@ -170,7 +170,7 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
               Select your designated academic portal to sign in.
             </p>
 
-            {/* 3. TWO SLEEK PORTAL CHOICE CARDS */}
+            {/* 3. TWO MINIMALIST PORTAL CHOICE CARDS */}
             <div className="choice-tiles-group">
               
               {/* Option 1: Student Portal */}
@@ -181,19 +181,14 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePortalClick('student'); }}
               >
-                <div className="tile-left-icon">
-                  <GraduationCap size={22} />
+                <div className="tile-left-icon student-icon-bg">
+                  <User size={20} />
                 </div>
                 <div className="tile-content">
-                  <div className="tile-title-row">
-                    <span className="tile-title">Student Portal</span>
-                    <span className="tile-badge badge-student">STUDENT &amp; PARENT</span>
-                  </div>
-                  <span className="tile-domain">student.autonex.studio</span>
-                  <p className="tile-desc">Attendance, LMS, timetable, exam grades &amp; gate pass</p>
+                  <span className="tile-title">I'm a Student</span>
                 </div>
                 <div className="tile-arrow-circle">
-                  <ArrowRight size={16} />
+                  <ArrowRight size={17} />
                 </div>
               </div>
 
@@ -206,18 +201,13 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePortalClick('teacher'); }}
               >
                 <div className="tile-left-icon faculty-icon-bg">
-                  <Briefcase size={22} />
+                  <Award size={20} />
                 </div>
                 <div className="tile-content">
-                  <div className="tile-title-row">
-                    <span className="tile-title">Faculty Gateway</span>
-                    <span className="tile-badge badge-faculty">FACULTY &amp; STAFF</span>
-                  </div>
-                  <span className="tile-domain">teacher.autonex.studio</span>
-                  <p className="tile-desc">Classroom attendance, OD approvals, and student analytics</p>
+                  <span className="tile-title">I'm a Faculty</span>
                 </div>
                 <div className="tile-arrow-circle">
-                  <ArrowRight size={16} />
+                  <ArrowRight size={17} />
                 </div>
               </div>
 
@@ -322,7 +312,7 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
               <div className="support-item">
                 <span className="support-item-label">Technical Support Email:</span>
                 <div className="support-email-row">
-                  <span className="support-email-text">support@dbs.edu.in</span>
+                  <span className="support-email-text">support@dgu.ac.in</span>
                   <button 
                     type="button" 
                     className="copy-email-btn"
@@ -336,7 +326,7 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
 
               <div className="support-item">
                 <span className="support-item-label">Registrar Academic Office:</span>
-                <span className="support-val-text">registrar@dbs.edu.in</span>
+                <span className="support-val-text">registrar@dgu.ac.in</span>
               </div>
 
               <div className="support-item">
@@ -350,11 +340,11 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
               </div>
 
               <a 
-                href="mailto:support@dbs.edu.in?subject=DBS%20Portal%20Access%20Support"
+                href="mailto:support@dgu.ac.in?subject=DBS%20Portal%20Access%20Support"
                 className="direct-mail-cta"
               >
                 <Mail size={16} />
-                <span>Open Mail Client to support@dbs.edu.in</span>
+                <span>Open Mail Client to support@dgu.ac.in</span>
               </a>
             </div>
           </div>
@@ -559,11 +549,11 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
           line-height: 1.35;
         }
 
-        /* TILES GROUP */
+        /* TILES GROUP - MINIMALIST DESIGN */
         .choice-tiles-group {
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
           text-align: left;
         }
 
@@ -571,105 +561,71 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
           display: flex;
           align-items: center;
           gap: 14px;
-          padding: 16px 18px;
-          border-radius: 16px;
+          padding: 14px 18px;
+          border-radius: 14px;
           border: 1.5px solid #e2e8f0;
           background: #ffffff;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-          position: relative;
         }
 
         .portal-choice-tile:hover {
           border-color: #390c46;
-          background: #fdfafc;
+          background: #faf5ff;
           transform: translateY(-2px);
-          box-shadow: 0 10px 24px -4px rgba(57, 12, 70, 0.12);
+          box-shadow: 0 8px 22px -4px rgba(57, 12, 70, 0.12);
         }
 
         .tile-left-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          background: #f5eff8;
-          color: #390c46;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          border: 1px solid rgba(57, 12, 70, 0.1);
-          transition: transform 0.2s ease, background 0.2s ease;
+          transition: all 0.2s ease;
         }
 
-        .portal-choice-tile:hover .tile-left-icon {
-          background: #390c46;
-          color: #ffffff;
-          transform: scale(1.05);
+        .student-icon-bg {
+          background: #f5eff8;
+          color: #390c46;
+          border: 1px solid rgba(57, 12, 70, 0.1);
         }
 
         .faculty-icon-bg {
           background: #f1f5f9;
           color: #1e293b;
-          border-color: #e2e8f0;
+          border: 1px solid #e2e8f0;
+        }
+
+        .portal-choice-tile:hover .student-icon-bg {
+          background: #390c46;
+          color: #ffffff;
+          transform: scale(1.05);
+        }
+
+        .portal-choice-tile:hover .faculty-icon-bg {
+          background: #390c46;
+          color: #ffffff;
+          border-color: #390c46;
+          transform: scale(1.05);
         }
 
         .tile-content {
           flex: 1;
-          min-width: 0;
-        }
-
-        .tile-title-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 2px;
         }
 
         .tile-title {
-          font-size: 0.98rem;
+          font-size: 1.05rem;
           font-weight: 700;
           color: #0f172a;
           letter-spacing: -0.01em;
+          font-family: inherit;
         }
 
-        .tile-badge {
-          font-size: 0.65rem;
-          font-weight: 700;
-          padding: 2px 7px;
-          border-radius: 4px;
-          letter-spacing: 0.03em;
-        }
-
-        .badge-student {
-          background: #fdf2f8;
-          color: #9d174d;
-          border: 1px solid #fbcfe8;
-        }
-
-        .badge-faculty {
-          background: #f8fafc;
-          color: #475569;
-          border: 1px solid #e2e8f0;
-        }
-
-        .tile-domain {
-          display: block;
-          font-size: 0.72rem;
-          font-weight: 600;
+        .portal-choice-tile:hover .tile-title {
           color: #390c46;
-          margin-bottom: 3px;
-          font-family: ui-monospace, monospace;
-        }
-
-        .tile-desc {
-          font-size: 0.75rem;
-          color: #64748b;
-          margin: 0;
-          line-height: 1.35;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         .tile-arrow-circle {

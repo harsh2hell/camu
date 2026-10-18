@@ -138,7 +138,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
     setIsLoading(true);
     try {
       const session = await authApi.loginWithGoogle();
-      localStorage.setItem('dbs_last_user_email', session.email || 'rajesh.sharma@dbs.edu.in');
+      localStorage.setItem('dbs_last_user_email', session.email || 'rajesh.sharma@dgu.ac.in');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
 
@@ -151,7 +151,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
   };
 
   const handleCopySupportEmail = () => {
-    navigator.clipboard.writeText('support@dbs.edu.in');
+    navigator.clipboard.writeText('support@dgu.ac.in');
     setCopiedEmail(true);
     setTimeout(() => setCopiedEmail(false), 2000);
   };
@@ -232,12 +232,12 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
             <h1 className="faculty-title">
               {isReturningUser 
                 ? (savedName ? `Welcome back, ${savedName.split(' ')[0]}!` : 'Welcome Back!')
-                : 'Faculty Gateway'}
+                : 'Faculty Login'}
             </h1>
             <p className="faculty-subtitle">
               {isReturningUser
                 ? 'Sign in to continue your academic session where you left off.'
-                : 'Sign in with your official university credentials (@dbs.edu.in).'}
+                : 'Sign in with your official university credentials (@dgu.ac.in).'}
             </p>
 
             {/* Error Alert */}
@@ -247,7 +247,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
               </div>
             )}
 
-            {/* 3. Single Clean SSO Button: Continue with Google Workspace */}
+            {/* 3. Single Clean SSO Button: Continue with DGU Workspace */}
             <div className="faculty-sso-group">
               <button 
                 type="button" 
@@ -261,7 +261,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
                   <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                 </svg>
-                <span>Continue with DBS Workspace</span>
+                <span>Continue with DGU Workspace</span>
               </button>
             </div>
 
@@ -292,7 +292,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
                   autoCapitalize="none"
                   autoCorrect="off"
                   className="faculty-text-input"
-                  placeholder={isReturningUser ? savedEmail : "faculty.name@dbs.edu.in"}
+                  placeholder={isReturningUser ? savedEmail : "faculty@dgu.ac.in"}
                   value={emailOrEmpId}
                   onChange={(e) => setEmailOrEmpId(e.target.value)}
                   required
@@ -314,7 +314,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
                   <input
                     type={showPassword ? 'text' : 'password'}
                     className="faculty-text-input"
-                    placeholder="Enter your faculty password"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -336,7 +336,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
                 className="faculty-submit-btn"
                 disabled={isLoading}
               >
-                {isLoading ? 'Authenticating...' : 'Sign in to Faculty Suite'}
+                {isLoading ? 'Authenticating...' : 'Continue'}
               </button>
             </form>
           </div>
@@ -426,7 +426,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
               <div className="support-item">
                 <span className="support-item-label">Technical Support Email:</span>
                 <div className="support-email-row">
-                  <span className="support-email-text">support@dbs.edu.in</span>
+                  <span className="support-email-text">support@dgu.ac.in</span>
                   <button 
                     type="button" 
                     className="copy-email-btn"
@@ -440,7 +440,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
 
               <div className="support-item">
                 <span className="support-item-label">Registrar Academic Office:</span>
-                <span className="support-val-text">registrar@dbs.edu.in</span>
+                <span className="support-val-text">registrar@dgu.ac.in</span>
               </div>
 
               <div className="support-item">
@@ -454,11 +454,11 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
               </div>
 
               <a 
-                href="mailto:support@dbs.edu.in?subject=DBS%20Portal%20Login%20Support"
+                href="mailto:support@dgu.ac.in?subject=DBS%20Portal%20Login%20Support"
                 className="direct-mail-cta"
               >
                 <Mail size={16} />
-                <span>Open Mail Client to support@dbs.edu.in</span>
+                <span>Open Mail Client to support@dgu.ac.in</span>
               </a>
             </div>
           </div>

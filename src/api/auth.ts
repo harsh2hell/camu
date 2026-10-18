@@ -30,7 +30,7 @@ export const authApi = {
         ? {
             id: 'FAC-108',
             name: 'Dr. Rajesh Sharma',
-            email: 'rajesh.sharma@dbs.edu.in',
+            email: 'rajesh.sharma@dgu.ac.in',
             role: 'FACULTY',
             department: 'Computer Science & Engineering',
             token: `DBS_AUTH_JWT_${Date.now()}_FACULTY`,
@@ -38,7 +38,7 @@ export const authApi = {
         : {
             id: 'STU-042',
             name: username.split('@')[0] ? username.split('@')[0].replace('.', ' ').toUpperCase() : CURRENT_STUDENT.name,
-            email: username.includes('@') ? username : `${username}@dbs.edu.in`,
+            email: username.includes('@') ? username : `${username}@dgu.ac.in`,
             role: 'STUDENT',
             rollNo: CURRENT_STUDENT.rollNo,
             department: 'B.Tech CSE',
@@ -56,13 +56,13 @@ export const authApi = {
   },
 
   async loginWithGoogle(): Promise<UserSession> {
-    // Google SSO simulation for DBS Global University Workspace (@dbs.edu.in)
-    return this.login('harsh.23cse@dbs.edu.in');
+    // Google SSO simulation for DBS Global University Workspace (@dgu.ac.in)
+    return this.login('harsh.23cse@dgu.ac.in');
   },
 
   async loginWithMicrosoft(): Promise<UserSession> {
     // Microsoft Office 365 SSO
-    return this.login('harsh.23cse@dbs.edu.in');
+    return this.login('harsh.23cse@dgu.ac.in');
   },
 
   async registerWithPin(data: {

@@ -168,7 +168,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     setIsLoading(true);
     try {
       const session = await authApi.loginWithGoogle();
-      localStorage.setItem('dbs_last_user_email', session.email || 'harsh.23cse@dbs.edu.in');
+      localStorage.setItem('dbs_last_user_email', session.email || 'harsh.23cse@dgu.ac.in');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
       onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
@@ -332,7 +332,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                       autoCapitalize="none"
                       autoCorrect="off"
                       className="freshy-text-input"
-                      placeholder={isReturningUser ? savedEmail : "name@dbs.edu.in"}
+                      placeholder={isReturningUser ? savedEmail : "name@dgu.ac.in"}
                       value={emailOrRoll}
                       onChange={(e) => setEmailOrRoll(e.target.value)}
                       required
@@ -425,7 +425,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                     type="email"
                     inputMode="email"
                     className="freshy-text-input"
-                    placeholder="student.23cse@dbs.edu.in"
+                    placeholder="student@dgu.ac.in"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     required
@@ -585,12 +585,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
               <div className="support-item">
                 <span className="support-item-label">Technical Support Email:</span>
                 <div className="support-email-row">
-                  <span className="support-email-text">support@dbs.edu.in</span>
+                  <span className="support-email-text">support@dgu.ac.in</span>
                   <button 
                     type="button" 
                     className="copy-email-btn"
                     onClick={() => {
-                      navigator.clipboard.writeText('support@dbs.edu.in');
+                      navigator.clipboard.writeText('support@dgu.ac.in');
                       setCopiedEmail(true);
                       setTimeout(() => setCopiedEmail(false), 2000);
                     }}
@@ -603,7 +603,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
               <div className="support-item">
                 <span className="support-item-label">Registrar Academic Office:</span>
-                <span className="support-val-text">registrar@dbs.edu.in</span>
+                <span className="support-val-text">registrar@dgu.ac.in</span>
               </div>
 
               <div className="support-item">
@@ -617,11 +617,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
               </div>
 
               <a 
-                href="mailto:support@dbs.edu.in?subject=DBS%20Student%20Portal%20Support"
+                href="mailto:support@dgu.ac.in?subject=DBS%20Student%20Portal%20Support"
                 className="direct-mail-cta"
               >
                 <Mail size={16} />
-                <span>Open Mail Client to support@dbs.edu.in</span>
+                <span>Open Mail Client to support@dgu.ac.in</span>
               </a>
             </div>
           </div>
