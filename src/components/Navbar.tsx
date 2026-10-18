@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import React from 'react';
 import { 
-  GraduationCap, 
   Bell, 
-  UserCheck, 
-  ShieldCheck, 
-  Sun, 
-  Moon,
-  LogOut
+  LogOut, 
+  CheckCircle2,
+  Calendar,
+  Award,
+  Receipt,
+  QrCode,
+  FileText,
+  BookOpen,
+  Sparkles
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
@@ -22,413 +25,419 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  currentRole,
-  onRoleChange,
   activeTab,
   onTabChange,
-  unreadCount = 3,
+  unreadCount = 2,
   userSession,
   onLogout,
 }) => {
-  const [isLightMode, setIsLightMode] = useState(false);
-
-  const toggleTheme = () => {
-    const next = !isLightMode;
-    setIsLightMode(next);
-    if (next) {
-      document.documentElement.setAttribute('data-theme', 'light');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-  };
+  const studentName = userSession?.name || CURRENT_STUDENT.name;
+  const studentRoll = userSession?.rollNo || CURRENT_STUDENT.rollNo;
+  const initials = studentName
+    .split(' ')
+    .map(n => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   return (
-    <header className="navbar-container glass-panel">
-      <div className="navbar-inner">
-        {/* University Brand */}
-        <div className="brand-group">
-          <div className="brand-crest">
-            <GraduationCap className="crest-icon" size={24} />
-          </div>
-          <div className="brand-text">
-            <div className="university-name">
-              <span className="accent-text">DBS</span> GLOBAL UNIVERSITY
-            </div>
-            <div className="portal-sub">Smart Campus ERP &bull; Camu-Next</div>
-          </div>
+    <header className="dbs-navbar">
+      <div className="dbs-navbar-inner">
+        {/* LEFT: Official Brand Logo & Portal Badge */}
+        <div className="dbs-navbar-brand">
+          <img 
+            src="/dbs_logo_dark.png" 
+            alt="DBS Global University" 
+            className="dbs-nav-logo"
+            onClick={() => onTabChange('dashboard')}
+          />
+          <span className="dbs-nav-portal-badge">
+            <span className="dbs-pulse-dot" />
+            STUDENT PORTAL
+          </span>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav className="nav-tabs" aria-label="Portal Navigation">
-          {currentRole === 'STUDENT' ? (
-            <>
-              <button
-                className={`tab-btn ${activeTab === 'dashboard' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('dashboard')}
-              >
-                Attendance
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'timetable' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('timetable')}
-              >
-                Schedule
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'grades' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('grades')}
-              >
-                Grades & SGPA
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'fees' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('fees')}
-              >
-                Fees & Receipts
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'gatepass' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('gatepass')}
-              >
-                Hostel Gate Pass
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'leaves' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('leaves')}
-              >
-                OD & Leaves
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'lms' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('lms')}
-              >
-                LMS
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'notices' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('notices')}
-              >
-                Noticeboard
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className={`tab-btn ${activeTab === 'faculty-attendance' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('faculty-attendance')}
-              >
-                1-Click Attendance
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'defaulters' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('defaulters')}
-              >
-                75% Defaulter Alert
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'od-approvals' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('od-approvals')}
-              >
-                OD Approvals
-              </button>
-            </>
-          )}
+        {/* CENTER: Clean Navigation Tabs */}
+        <nav className="dbs-nav-tabs" aria-label="Student Portal Navigation">
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'dashboard' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('dashboard')}
+          >
+            <CheckCircle2 size={16} className="tab-icon" />
+            <span>Attendance &amp; Home</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'timetable' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('timetable')}
+          >
+            <Calendar size={16} className="tab-icon" />
+            <span>Smart Timetable</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'grades' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('grades')}
+          >
+            <Award size={16} className="tab-icon" />
+            <span>Grades &amp; SGPA</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'fees' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('fees')}
+          >
+            <Receipt size={16} className="tab-icon" />
+            <span>Fee Receipts</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'leaves' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('leaves')}
+          >
+            <FileText size={16} className="tab-icon" />
+            <span>OD &amp; Leaves</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'lms' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('lms')}
+          >
+            <BookOpen size={16} className="tab-icon" />
+            <span>LMS &amp; Tasks</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dbs-tab-btn ${activeTab === 'gatepass' ? 'tab-active' : ''}`}
+            onClick={() => onTabChange('gatepass')}
+          >
+            <QrCode size={16} className="tab-icon" />
+            <span>Hostel Gate Pass</span>
+          </button>
         </nav>
 
-        {/* Right Utility Group */}
-        <div className="nav-actions">
-          {/* Quick Role Switcher (Demonstration Tool) */}
-          <div className="role-switch-container">
-            <span className="switch-label">Viewing As:</span>
-            <div className="role-pills">
-              <button
-                type="button"
-                className={`role-pill ${currentRole === 'STUDENT' ? 'pill-active' : ''}`}
-                onClick={() => {
-                  onRoleChange('STUDENT');
-                  onTabChange('dashboard');
-                }}
-              >
-                <UserCheck size={14} /> Student
-              </button>
-              <button
-                type="button"
-                className={`role-pill ${currentRole === 'FACULTY' ? 'pill-active' : ''}`}
-                onClick={() => {
-                  onRoleChange('FACULTY');
-                  onTabChange('faculty-attendance');
-                }}
-              >
-                <ShieldCheck size={14} /> Faculty
-              </button>
-            </div>
+        {/* RIGHT: Notifications & Profile Pill */}
+        <div className="dbs-navbar-actions">
+          {/* AI Helper Pill */}
+          <div className="dbs-ai-chip" title="DBS Smart Campus Intelligence active">
+            <Sparkles size={13} className="ai-sparkle" />
+            <span>AI Copilot</span>
           </div>
-
-          {/* Theme Toggle */}
-          <button
-            className="icon-btn"
-            onClick={toggleTheme}
-            aria-label="Toggle dark/light theme"
-            title="Toggle theme"
-          >
-            {isLightMode ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
 
           {/* Notifications */}
           <button 
-            className="icon-btn notif-btn" 
-            aria-label="View notifications"
+            type="button" 
+            className="dbs-icon-btn" 
+            aria-label="Campus Notices"
             onClick={() => onTabChange('notices')}
           >
             <Bell size={18} />
-            {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+            {unreadCount > 0 && <span className="dbs-notif-dot">{unreadCount}</span>}
           </button>
 
-          {/* User Profile Chip */}
-          <div className="user-chip">
-            <div className="user-avatar">
-              {currentRole === 'STUDENT' ? (
-                <img src={CURRENT_STUDENT.avatarUrl} alt="Avatar" />
-              ) : (
-                <div className="faculty-initials">RS</div>
-              )}
+          {/* User Profile Pill */}
+          <div className="dbs-user-pill">
+            <div className="dbs-avatar-circle">
+              {initials}
             </div>
-            <div className="user-meta">
-              <div className="user-name">
-                {userSession ? userSession.name : currentRole === 'STUDENT' ? CURRENT_STUDENT.name : 'Dr. Rajesh Sharma'}
-              </div>
-              <div className="user-tag">
-                {userSession?.rollNo || (currentRole === 'STUDENT' ? CURRENT_STUDENT.rollNo : 'HOD • CSE Dept')}
-              </div>
+            <div className="dbs-user-details">
+              <span className="dbs-user-name">{studentName}</span>
+              <span className="dbs-user-roll">{studentRoll}</span>
             </div>
           </div>
 
-          {/* Logout Button */}
+          {/* Log Out Button */}
           {onLogout && (
             <button 
-              className="icon-btn logout-btn" 
+              type="button" 
+              className="dbs-logout-btn" 
               onClick={onLogout}
-              title="Sign Out of DBS Portal"
-              aria-label="Sign Out"
+              title="Sign out of student portal"
             >
               <LogOut size={16} />
+              <span>Log out</span>
             </button>
           )}
         </div>
       </div>
 
       <style>{`
-        .navbar-container {
+        .dbs-navbar {
+          background: #ffffff;
+          border-bottom: 1.5px solid #e2e8f0;
+          box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.04);
           position: sticky;
-          top: 12px;
-          z-index: 100;
-          margin: 12px 20px;
-          padding: 8px 16px;
+          top: 0;
+          z-index: 50;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        .navbar-inner {
+        .dbs-navbar-inner {
+          max-width: 1320px;
+          margin: 0 auto;
+          height: 64px;
+          padding: 0 24px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          flex-wrap: wrap;
         }
 
-        .brand-group {
+        /* Brand & Logo */
+        .dbs-navbar-brand {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex-shrink: 0;
         }
 
-        .brand-crest {
-          width: 42px;
-          height: 42px;
-          border-radius: var(--radius-md);
-          background: linear-gradient(135deg, var(--navy-800), var(--blue-700));
-          border: 1px solid rgba(245, 158, 11, 0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--amber-400);
-          box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+        .dbs-nav-logo {
+          height: 34px;
+          width: auto;
+          cursor: pointer;
+          object-fit: contain;
+          transition: opacity 0.15s ease;
         }
 
-        .university-name {
-          font-family: var(--font-display);
-          font-size: 1.05rem;
-          font-weight: 800;
-          letter-spacing: 0.04em;
-          color: var(--text-primary);
+        .dbs-nav-logo:hover {
+          opacity: 0.9;
         }
 
-        .accent-text {
-          color: var(--amber-400);
-        }
-
-        .portal-sub {
-          font-size: 0.72rem;
-          color: var(--text-secondary);
-          font-weight: 500;
-        }
-
-        .nav-tabs {
-          display: flex;
+        .dbs-nav-portal-badge {
+          display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(0, 0, 0, 0.25);
-          padding: 4px;
-          border-radius: var(--radius-full);
-          border: 1px solid var(--border-subtle);
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          color: #562b63;
+          background: rgba(86, 43, 99, 0.08);
+          border: 1px solid rgba(86, 43, 99, 0.12);
+          padding: 3px 8px;
+          border-radius: 6px;
         }
 
-        .tab-btn {
-          padding: 6px 14px;
-          font-size: 0.825rem;
+        .dbs-pulse-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #059669;
+          box-shadow: 0 0 6px #059669;
+        }
+
+        /* Navigation Tabs */
+        .dbs-nav-tabs {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .dbs-nav-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        .dbs-tab-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border-radius: 10px;
+          font-size: 0.83rem;
           font-weight: 600;
-          border-radius: var(--radius-full);
-          color: var(--text-secondary);
-          transition: all var(--transition-fast);
+          color: #64748b;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.18s ease;
         }
 
-        .tab-btn:hover {
-          color: var(--text-primary);
+        .dbs-tab-btn:hover {
+          color: #0f172a;
+          background: #f1f5f9;
         }
 
-        .tab-active {
-          background: var(--blue-600);
-          color: white !important;
-          box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+        .dbs-tab-btn.tab-active {
+          color: #562b63;
+          background: rgba(86, 43, 99, 0.08);
+          font-weight: 700;
         }
 
-        .nav-actions {
+        .tab-icon {
+          flex-shrink: 0;
+          opacity: 0.85;
+        }
+
+        .dbs-tab-btn.tab-active .tab-icon {
+          opacity: 1;
+          color: #562b63;
+        }
+
+        /* Right Actions */
+        .dbs-navbar-actions {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex-shrink: 0;
         }
 
-        .role-switch-container {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.04);
-          padding: 3px 8px;
-          border-radius: var(--radius-full);
-          border: 1px solid var(--border-subtle);
-        }
-
-        .switch-label {
-          font-size: 0.72rem;
-          color: var(--text-muted);
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .role-pills {
-          display: flex;
-          gap: 4px;
-        }
-
-        .role-pill {
+        .dbs-ai-chip {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          padding: 4px 10px;
-          border-radius: var(--radius-full);
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 700;
-          color: var(--text-secondary);
-          transition: all var(--transition-fast);
+          color: #7f2672;
+          background: linear-gradient(135deg, rgba(86, 43, 99, 0.08) 0%, rgba(217, 70, 239, 0.12) 100%);
+          border: 1px solid rgba(127, 38, 114, 0.2);
+          padding: 4px 10px;
+          border-radius: 20px;
         }
 
-        .pill-active {
-          background: linear-gradient(135deg, var(--amber-500), var(--amber-600));
-          color: #0b1329;
-          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+        .ai-sparkle {
+          color: #d946ef;
         }
 
-        .icon-btn {
-          position: relative;
+        .dbs-icon-btn {
           width: 36px;
           height: 36px;
-          border-radius: var(--radius-md);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-subtle);
-          color: var(--text-secondary);
-          transition: all var(--transition-fast);
+          color: #475569;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.15s ease;
         }
 
-        .icon-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: var(--text-primary);
+        .dbs-icon-btn:hover {
+          background: #f1f5f9;
+          color: #0f172a;
         }
 
-        .notif-badge {
+        .dbs-notif-dot {
           position: absolute;
           top: -3px;
           right: -3px;
-          width: 17px;
-          height: 17px;
-          border-radius: var(--radius-full);
-          background: var(--rose-500);
-          color: white;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #ef4444;
+          color: #ffffff;
           font-size: 0.65rem;
-          font-weight: 800;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid #ffffff;
+        }
+
+        /* Profile Pill */
+        .dbs-user-pill {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 10px 4px 4px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 30px;
+        }
+
+        .dbs-avatar-circle {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: #562b63;
+          color: #ffffff;
+          font-size: 0.72rem;
+          font-weight: 700;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .user-chip {
+        .dbs-user-details {
           display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 4px 12px 4px 4px;
-          background: rgba(255, 255, 255, 0.04);
-          border-radius: var(--radius-full);
-          border: 1px solid var(--border-subtle);
+          flex-direction: column;
+          line-height: 1.15;
+          text-align: left;
         }
 
-        .user-avatar img, .faculty-initials {
-          width: 32px;
-          height: 32px;
-          border-radius: var(--radius-full);
-          object-fit: cover;
-        }
-
-        .faculty-initials {
-          background: var(--blue-700);
-          color: white;
+        .dbs-user-name {
+          font-size: 0.78rem;
           font-weight: 700;
-          font-size: 0.75rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          color: #0f172a;
         }
 
-        .user-meta {
-          line-height: 1.2;
-        }
-
-        .user-name {
-          font-size: 0.8rem;
-          font-weight: 700;
-        }
-
-        .user-tag {
+        .dbs-user-roll {
           font-size: 0.68rem;
-          color: var(--text-secondary);
+          color: #64748b;
+          font-family: ui-monospace, monospace;
         }
 
-        @media (max-width: 900px) {
-          .nav-tabs {
-            order: 3;
-            width: 100%;
-            justify-content: center;
-            overflow-x: auto;
+        .dbs-logout-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 34px;
+          padding: 0 12px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #64748b;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .dbs-logout-btn:hover {
+          color: #dc2626;
+          border-color: #fee2e2;
+          background: #fef2f2;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .dbs-user-details {
+            display: none;
+          }
+          .dbs-ai-chip {
+            display: none;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .dbs-navbar-inner {
+            padding: 0 12px;
+            height: 56px;
+          }
+          .dbs-nav-portal-badge {
+            display: none;
+          }
+          .dbs-tab-btn span {
+            display: none;
+          }
+          .dbs-tab-btn {
+            padding: 8px;
+          }
+          .dbs-logout-btn span {
+            display: none;
+          }
+          .dbs-logout-btn {
+            padding: 0 8px;
           }
         }
       `}</style>

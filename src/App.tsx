@@ -14,15 +14,34 @@ import { FeeReceiptsView } from './components/FeeReceiptsView';
 import { GradebookView } from './components/GradebookView';
 import { HostelGatePassView } from './components/HostelGatePassView';
 import { authApi, type UserSession } from './api/auth';
+import { ShieldAlert, ShieldCheck, Lock, LogOut, ArrowLeft } from 'lucide-react';
 
 type PortalView = 'choice' | 'student-login' | 'teacher-login';
+
+function isTeacherAttempt(): boolean {
+  const hostname = window.location.hostname.toLowerCase();
+  const pathname = window.location.pathname.toLowerCase();
+  const query = new URLSearchParams(window.location.search).get('portal');
+
+  return (
+    hostname.startsWith('teacher.') ||
+    hostname.startsWith('faculty.') ||
+    hostname === 'teacher.localhost' ||
+    pathname === '/teacher' ||
+    pathname === '/faculty' ||
+    pathname.startsWith('/teacher/') ||
+    pathname.startsWith('/faculty/') ||
+    query === 'teacher' ||
+    query === 'faculty'
+  );
+}
 
 function detectInitialView(): PortalView {
   const hostname = window.location.hostname.toLowerCase();
   const pathname = window.location.pathname.toLowerCase();
   const query = new URLSearchParams(window.location.search).get('portal');
 
-  // 1. Subdomain detection (e.g. student.autonex.studio, teacher.autonex.studio)
+  // Subdomain detection
   if (hostname.startsWith('student.') || hostname === 'student.localhost') {
     return 'student-login';
   }
@@ -30,7 +49,7 @@ function detectInitialView(): PortalView {
     return 'teacher-login';
   }
 
-  // 2. URL Pathname detection (e.g. /student, /teacher)
+  // Pathname detection
   if (pathname === '/student' || pathname.startsWith('/student/')) {
     return 'student-login';
   }
@@ -38,44 +57,89 @@ function detectInitialView(): PortalView {
     return 'teacher-login';
   }
 
-  // 3. Query Parameter detection (e.g. ?portal=student)
+  // Query parameter detection
   if (query === 'student') return 'student-login';
   if (query === 'teacher' || query === 'faculty') return 'teacher-login';
 
-  // 4. Default for root domain (autonex.studio, dgu-eight.vercel.app, localhost): Show Choice Page
+  // Default root domain (choice between Student and Faculty portal)
   return 'choice';
 }
 
 export function App() {
   const [portalView, setPortalView] = useState<PortalView>(detectInitialView);
-  const [portalMode, setPortalMode] = useState<'student' | 'teacher'>(() => {
-    const initial = detectInitialView();
-    return initial === 'teacher-login' ? 'teacher' : 'student';
-  });
-
   const [session, setSession] = useState<UserSession | null>(null);
   const [currentRole, setCurrentRole] = useState<'STUDENT' | 'FACULTY'>('STUDENT');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showSecurityChallenge, setShowSecurityChallenge] = useState(false);
 
-  // Check saved session on mount
+  // Check saved session & enforce route security on mount
   useEffect(() => {
     const existing = authApi.getCurrentSession();
+    const teacherRouteRequested = isTeacherAttempt();
+
     if (existing) {
-      setSession(existing);
-      const role = existing.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
-      setCurrentRole(role);
-      setPortalMode(role === 'FACULTY' ? 'teacher' : 'student');
-      setPortalView(role === 'FACULTY' ? 'teacher-login' : 'student-login');
+      if (existing.role === 'STUDENT') {
+        // Authenticated as Student
+        setSession(existing);
+        setCurrentRole('STUDENT');
+
+        if (teacherRouteRequested) {
+          // Security violation attempt: student typed teacher URL!
+          setShowSecurityChallenge(true);
+          setPortalView('student-login');
+        } else {
+          setPortalView('student-login');
+        }
+      } else if (existing.role === 'FACULTY') {
+        // Authenticated as Faculty
+        setSession(existing);
+        setCurrentRole('FACULTY');
+        setPortalView('teacher-login');
+        setActiveTab('faculty-attendance');
+      }
+    } else {
+      // Unauthenticated visitor
+      if (teacherRouteRequested) {
+        setPortalView('teacher-login');
+      } else {
+        setPortalView(detectInitialView());
+      }
     }
+
     setIsInitializing(false);
+  }, []);
+
+  // Listen to browser navigation / URL address bar changes for role security
+  useEffect(() => {
+    const handlePopState = () => {
+      const existing = authApi.getCurrentSession();
+      const teacherRoute = isTeacherAttempt();
+
+      if (teacherRoute) {
+        if (existing && existing.role === 'STUDENT') {
+          // Block student from entering teacher space
+          setShowSecurityChallenge(true);
+          window.history.replaceState({}, '', '/student');
+          return;
+        }
+        if (!existing) {
+          setPortalView('teacher-login');
+          return;
+        }
+      }
+
+      setPortalView(detectInitialView());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleSelectPortal = (target: 'student' | 'teacher') => {
     const currentHostname = window.location.hostname.toLowerCase();
     const isCustomDomain = currentHostname.includes('autonex.studio') || currentHostname.includes('dgu.');
 
-    // If live on a domain with subdomains configured
     if (isCustomDomain && !currentHostname.startsWith('student.') && !currentHostname.startsWith('teacher.')) {
       const baseDomain = currentHostname.replace(/^www\./, '');
       const sub = target === 'student' ? 'student.' : 'teacher.';
@@ -83,56 +147,72 @@ export function App() {
       return;
     }
 
-    // Client-side routing transition
     if (target === 'student') {
       setPortalView('student-login');
-      setPortalMode('student');
       window.history.pushState({}, '', '/student');
     } else {
       setPortalView('teacher-login');
-      setPortalMode('teacher');
       window.history.pushState({}, '', '/teacher');
     }
-  };
-
-  const handlePortalChange = (mode: 'student' | 'teacher') => {
-    setPortalMode(mode);
-    setPortalView(mode === 'student' ? 'student-login' : 'teacher-login');
-    localStorage.setItem('dbs_portal_mode', mode);
-    window.history.pushState({}, '', mode === 'student' ? '/student' : '/teacher');
   };
 
   const handleLoginSuccess = (newSession: UserSession) => {
     setSession(newSession);
     const role = newSession.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
     setCurrentRole(role);
-    setPortalMode(role === 'FACULTY' ? 'teacher' : 'student');
     localStorage.setItem('dbs_portal_mode', role === 'FACULTY' ? 'teacher' : 'student');
     setActiveTab(role === 'FACULTY' ? 'faculty-attendance' : 'dashboard');
+    setShowSecurityChallenge(false);
+
+    if (role === 'STUDENT') {
+      window.history.replaceState({}, '', '/student');
+    } else {
+      window.history.replaceState({}, '', '/teacher');
+    }
   };
 
   const handleLogout = () => {
     authApi.logout();
     setSession(null);
+    setShowSecurityChallenge(false);
+
     const currentHostname = window.location.hostname.toLowerCase();
     const isSubdomain = currentHostname.startsWith('student.') || currentHostname.startsWith('teacher.');
-    
-    // If not locked to a specific subdomain, return cleanly to the main choice page
+
     if (!isSubdomain) {
       setPortalView('choice');
       window.history.pushState({}, '', '/');
+    } else if (currentHostname.startsWith('student.')) {
+      setPortalView('student-login');
+    } else {
+      setPortalView('teacher-login');
     }
+  };
+
+  const handleDismissSecurityChallenge = () => {
+    setShowSecurityChallenge(false);
+    window.history.replaceState({}, '', '/student');
+  };
+
+  const handleSecuritySignOutToFaculty = () => {
+    authApi.logout();
+    setSession(null);
+    setShowSecurityChallenge(false);
+    setPortalView('teacher-login');
+    window.history.pushState({}, '', '/teacher');
   };
 
   if (isInitializing) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
-        <div style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600 }}>Loading DBS Global University Portal...</div>
+        <div style={{ fontSize: '1rem', color: '#562b63', fontWeight: 600 }}>
+          Initializing DBS University Security Gateway...
+        </div>
       </div>
     );
   }
 
-  // 1. If not authenticated: Route between Main Choice, Student Login, or Teacher Login
+  // 1. Unauthenticated Gateway: Choice, Student Login, or Teacher Login
   if (!session) {
     if (portalView === 'choice') {
       return <PortalChoicePage onSelectPortal={handleSelectPortal} />;
@@ -144,7 +224,6 @@ export function App() {
           onLoginSuccess={handleLoginSuccess}
           onSwitchToStudent={() => {
             setPortalView('student-login');
-            setPortalMode('student');
             window.history.pushState({}, '', '/student');
           }}
         />
@@ -157,7 +236,6 @@ export function App() {
         portalMode="student"
         onTogglePortal={() => {
           setPortalView('teacher-login');
-          setPortalMode('teacher');
           window.history.pushState({}, '', '/teacher');
         }}
         onLoginSuccess={handleLoginSuccess} 
@@ -165,30 +243,28 @@ export function App() {
     );
   }
 
-  // 2. If authenticated, show full University Campus Portal
+  // 2. Authenticated Dashboard: Strictly isolated by role
   return (
     <div className="app-layout">
-      {/* Top Portal Banner */}
+      {/* Top Security & Domain Strip */}
       <div className="subdomain-top-banner">
         <div className="banner-inner">
           <div className="subdomain-badge-active">
             <span className="dot-pulse"></span>
             <strong>{currentRole === 'STUDENT' ? 'student.autonex.studio' : 'teacher.autonex.studio'}</strong>
             <span className="badge-sep">&bull;</span>
-            <span>{currentRole === 'STUDENT' ? 'Student & Parent Portal' : 'Faculty & Staff Administration Gateway'}</span>
+            <span>
+              {currentRole === 'STUDENT'
+                ? 'DBS Global University &bull; Official Student &amp; Academic ERP'
+                : 'DBS Global University &bull; Faculty &amp; Staff Administration'}
+            </span>
           </div>
 
           <div className="banner-actions">
-            <button 
-              className="switch-portal-btn-top"
-              onClick={() => {
-                const nextMode = portalMode === 'student' ? 'teacher' : 'student';
-                handleLogout();
-                handlePortalChange(nextMode);
-              }}
-            >
-              Switch to {portalMode === 'student' ? 'teacher.autonex.studio' : 'student.autonex.studio'} &rarr;
-            </button>
+            <div className="security-tag-pill">
+              <ShieldCheck size={13} className="text-emerald" />
+              <span>Biometric 256-bit Encrypted Session</span>
+            </div>
           </div>
         </div>
       </div>
@@ -196,14 +272,14 @@ export function App() {
       {/* Universal Top Navigation */}
       <Navbar
         currentRole={currentRole}
-        onRoleChange={(role) => setCurrentRole(role)}
+        onRoleChange={() => {}}
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         userSession={session}
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Strictly Enforced Student Portal */}
       <main className="main-content">
         {currentRole === 'STUDENT' ? (
           <>
@@ -227,6 +303,49 @@ export function App() {
         )}
       </main>
 
+      {/* Role Security Challenge Modal */}
+      {showSecurityChallenge && (
+        <div className="security-modal-overlay">
+          <div className="security-modal-box">
+            <div className="security-modal-header">
+              <div className="security-icon-circle">
+                <ShieldAlert size={28} />
+              </div>
+              <h2 className="security-title">Faculty Authentication Required</h2>
+            </div>
+            
+            <p className="security-body-text">
+              You attempted to navigate directly to the Faculty Administration Gateway (<code>/teacher</code>), but your active browser session is verified as a <strong>Student</strong> (<code>{session.name} - {session.rollNo || '23DBSBTECH042'}</code>).
+            </p>
+            
+            <div className="security-note-box">
+              <Lock size={15} />
+              <span>Direct URL bypassing is strictly prohibited under DBS ERP Role-Based Access Control (RBAC).</span>
+            </div>
+
+            <div className="security-modal-actions">
+              <button 
+                type="button" 
+                className="btn-security-primary"
+                onClick={handleDismissSecurityChallenge}
+              >
+                <ArrowLeft size={16} />
+                <span>Return to Student Dashboard</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="btn-security-secondary"
+                onClick={handleSecuritySignOutToFaculty}
+              >
+                <LogOut size={16} />
+                <span>Sign Out &amp; Authenticate as Faculty</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* University Footer */}
       <footer className="portal-footer">
         <div className="footer-content">
@@ -234,13 +353,13 @@ export function App() {
             <span className="footer-brand">DBS GLOBAL UNIVERSITY</span>
             <span className="footer-divider">&bull;</span>
             <span className="footer-campus">
-              {currentRole === 'STUDENT' ? 'student.dgu.in' : 'teacher.dgu.in'} &bull; Dehradun Campus
+              {currentRole === 'STUDENT' ? 'student.dgu.in' : 'teacher.dgu.in'} &bull; Dehradun Academic Campus
             </span>
           </div>
           <div className="footer-right">
             <span>
               Signed in as <strong>{session.name}</strong> ({session.role}) &bull;{' '}
-              <button onClick={handleLogout} style={{ color: '#ef4444', textDecoration: 'underline', fontWeight: 600 }}>
+              <button onClick={handleLogout} className="footer-signout-btn">
                 Sign Out
               </button>
             </span>
@@ -253,14 +372,15 @@ export function App() {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
+          background: #f8fafc;
         }
 
         .subdomain-top-banner {
-          background: #0b1329;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 6px 20px;
-          font-size: 0.75rem;
-          color: #94a3b8;
+          background: #562b63;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+          padding: 7px 24px;
+          font-size: 0.76rem;
+          color: #f5eff8;
         }
 
         .banner-inner {
@@ -280,34 +400,37 @@ export function App() {
         }
 
         .subdomain-badge-active strong {
-          color: ${currentRole === 'STUDENT' ? '#38bdf8' : '#fbbf24'};
+          color: #ffffff;
+          font-weight: 700;
+          letter-spacing: 0.01em;
         }
 
         .dot-pulse {
           width: 7px;
           height: 7px;
           border-radius: 50%;
-          background: ${currentRole === 'STUDENT' ? '#38bdf8' : '#fbbf24'};
-          box-shadow: 0 0 6px ${currentRole === 'STUDENT' ? '#38bdf8' : '#fbbf24'};
+          background: #34d399;
+          box-shadow: 0 0 8px #34d399;
         }
 
         .badge-sep {
-          color: #475569;
+          color: rgba(255, 255, 255, 0.4);
         }
 
-        .switch-portal-btn-top {
-          background: none;
-          border: none;
-          color: #cbd5e1;
+        .security-tag-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255, 255, 255, 0.12);
+          padding: 3px 10px;
+          border-radius: 9999px;
+          font-size: 0.72rem;
           font-weight: 600;
-          cursor: pointer;
-          font-size: 0.75rem;
-          padding: 2px 6px;
+          color: #ffffff;
         }
 
-        .switch-portal-btn-top:hover {
-          color: #ffffff;
-          text-decoration: underline;
+        .text-emerald {
+          color: #34d399;
         }
 
         .main-content {
@@ -316,11 +439,11 @@ export function App() {
 
         .portal-footer {
           margin-top: auto;
-          border-top: 1px solid var(--border-subtle);
-          background: rgba(6, 11, 20, 0.7);
+          border-top: 1px solid #e2e8f0;
+          background: #ffffff;
           padding: 16px 24px;
           font-size: 0.78rem;
-          color: var(--text-muted);
+          color: #64748b;
         }
 
         .footer-content {
@@ -341,11 +464,162 @@ export function App() {
 
         .footer-brand {
           font-weight: 700;
-          color: var(--text-secondary);
+          color: #390c46;
+          letter-spacing: 0.02em;
         }
 
         .footer-divider {
-          color: var(--amber-500);
+          color: #cbd5e1;
+        }
+
+        .footer-campus {
+          color: #64748b;
+        }
+
+        .footer-signout-btn {
+          color: #dc2626;
+          font-weight: 600;
+          cursor: pointer;
+          background: none;
+          border: none;
+          padding: 0;
+          text-decoration: underline;
+        }
+
+        .footer-signout-btn:hover {
+          color: #b91c1c;
+        }
+
+        /* Role Security Modal */
+        .security-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.65);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 99999;
+          padding: 20px;
+        }
+
+        .security-modal-box {
+          background: #ffffff;
+          border-radius: 20px;
+          padding: 32px 28px;
+          max-width: 480px;
+          width: 100%;
+          box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25);
+          border: 1px solid #e2e8f0;
+          text-align: center;
+        }
+
+        .security-modal-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .security-icon-circle {
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: #fef2f2;
+          color: #dc2626;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #fee2e2;
+        }
+
+        .security-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .security-body-text {
+          font-size: 0.9rem;
+          line-height: 1.55;
+          color: #475569;
+          margin: 0 0 16px 0;
+        }
+
+        .security-body-text code {
+          background: #f1f5f9;
+          padding: 2px 6px;
+          border-radius: 4px;
+          color: #562b63;
+          font-weight: 600;
+        }
+
+        .security-note-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #faf5ff;
+          border: 1px solid #f3e8ff;
+          padding: 10px 14px;
+          border-radius: 10px;
+          font-size: 0.78rem;
+          color: #6b21a8;
+          text-align: left;
+          margin-bottom: 24px;
+        }
+
+        .security-modal-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .btn-security-primary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 44px;
+          background: #562b63;
+          color: #ffffff;
+          font-weight: 600;
+          font-size: 0.9rem;
+          border-radius: 12px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-security-primary:hover {
+          background: #461f52;
+          transform: translateY(-1px);
+        }
+
+        .btn-security-secondary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 42px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          color: #64748b;
+          font-weight: 600;
+          font-size: 0.86rem;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.18s ease;
+        }
+
+        .btn-security-secondary:hover {
+          background: #f8fafc;
+          color: #0f172a;
+          border-color: #cbd5e1;
         }
       `}</style>
     </div>
