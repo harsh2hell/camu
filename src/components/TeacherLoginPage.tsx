@@ -1155,6 +1155,11 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
 
         /* RESPONSIVE DESIGN */
         @media (max-width: 900px) {
+          /* Hide support button on mobile layout */
+          .support-glass {
+            display: none !important;
+          }
+
           .faculty-auth-card {
             flex-direction: column;
             width: 100%;

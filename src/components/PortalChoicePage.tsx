@@ -952,6 +952,12 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
 
         /* RESPONSIVE DESIGN */
         @media (max-width: 900px) {
+          /* Hide support button on mobile layout */
+          .portal-top-bar,
+          .support-glass {
+            display: none !important;
+          }
+
           .choice-auth-card {
             flex-direction: column;
             width: 100%;

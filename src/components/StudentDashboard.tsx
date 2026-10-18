@@ -21,6 +21,7 @@ import {
   ChevronDown,
   LogOut,
   Sliders,
+  Menu,
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
@@ -45,6 +46,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   userSession,
   onLogout,
 }) => {
+  // Mobile sidemenu drawer state
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+
   // Dropdown states
   const [growthTimeframe, setGrowthTimeframe] = useState<'Monthly' | 'Weekly' | 'Semester'>('Monthly');
   const [showGrowthDropdown, setShowGrowthDropdown] = useState(false);
@@ -92,6 +96,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         e.preventDefault();
         setShowSearchModal((prev) => !prev);
       } else if (e.key === 'Escape') {
+        setShowMobileDrawer(false);
         setShowSearchModal(false);
         setShowNotifications(false);
         setShowCalendarModal(false);
@@ -259,6 +264,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       <div className="oak-main-wrapper">
         {/* TOP FLOATING HEADER BAR */}
         <header className="oak-top-header">
+          {/* Mobile Sidemenu Hamburger Button */}
+          <button
+            type="button"
+            className="oak-mobile-hamburger-btn"
+            onClick={() => setShowMobileDrawer(true)}
+            aria-label="Open Sidemenu Drawer"
+          >
+            <Menu size={18} />
+          </button>
+
           {/* Centered Search Bar */}
           <div 
             className="oak-search-bar" 
@@ -1094,6 +1109,223 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* 10. MOBILE SIDEMENU DRAWER */}
+      {showMobileDrawer && (
+        <div 
+          className="oak-mobile-drawer-overlay animate-fade-in"
+          onClick={() => setShowMobileDrawer(false)}
+        >
+          <div 
+            className="oak-mobile-drawer animate-slide-right"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="oak-drawer-header">
+              <div className="oak-drawer-brand">
+                <img 
+                  src="/dbs_logo_transparent.png" 
+                  alt="DBS Global University" 
+                  className="oak-drawer-logo"
+                />
+                <div className="oak-drawer-title-wrap">
+                  <h3 className="oak-drawer-title">DBS Global University</h3>
+                  <span className="oak-drawer-subtitle">Dehradun Academic Portal</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="oak-drawer-close-btn"
+                onClick={() => setShowMobileDrawer(false)}
+                aria-label="Close Drawer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Student Mini Profile Card */}
+            <div className="oak-drawer-user-pill">
+              <img 
+                src={CURRENT_STUDENT.avatarUrl || '/dbs_fresher.webp'} 
+                alt={userSession?.name || CURRENT_STUDENT.name} 
+                className="oak-drawer-avatar"
+              />
+              <div className="oak-drawer-user-info">
+                <strong>{userSession?.name || CURRENT_STUDENT.name}</strong>
+                <span>{CURRENT_STUDENT.rollNo} &bull; {CURRENT_STUDENT.program}</span>
+              </div>
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="oak-drawer-nav">
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'dashboard' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('dashboard');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <Home size={18} />
+                <span>Dashboard Overview</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'notices' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('notices');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <MessageSquare size={18} />
+                <span>Campus Notices &amp; Messages</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'lms' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('lms');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <GraduationCap size={18} />
+                <span>Academics &amp; LMS Assignments</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'timetable' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('timetable');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <BarChart2 size={18} />
+                <span>Smart Timetable &amp; Schedule</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'grades' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('grades');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <Trophy size={18} />
+                <span>Academic Gradebook &amp; SGPA</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'fees' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('fees');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <FileText size={18} />
+                <span>Fee Receipts &amp; Dues</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'gatepass' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('gatepass');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <ShieldCheck size={18} />
+                <span>Hostel Digital Gatepass</span>
+              </button>
+
+              <button
+                type="button"
+                className={`oak-drawer-nav-item ${activeTab === 'leaves' ? 'is-active' : ''}`}
+                onClick={() => {
+                  onNavigateTab('leaves');
+                  setShowMobileDrawer(false);
+                }}
+              >
+                <Settings size={18} />
+                <span>Leave &amp; On-Duty (OD) Pass</span>
+              </button>
+            </nav>
+
+            {/* Drawer Footer with Logout */}
+            <div className="oak-drawer-footer">
+              {onLogout && (
+                <button
+                  type="button"
+                  className="oak-drawer-logout-btn"
+                  onClick={() => {
+                    setShowMobileDrawer(false);
+                    onLogout();
+                  }}
+                >
+                  <LogOut size={16} />
+                  <span>Log Out of Session</span>
+                </button>
+              )}
+              <div className="oak-drawer-security-tag">
+                <ShieldCheck size={13} className="text-emerald" />
+                <span>Biometric 256-bit Encrypted Session</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 11. MOBILE STICKY BOTTOM NAV BAR */}
+      <nav className="oak-mobile-bottom-bar" aria-label="Mobile Navigation Bar">
+        <button
+          type="button"
+          className={`oak-bottom-bar-item ${activeTab === 'dashboard' ? 'is-active' : ''}`}
+          onClick={() => onNavigateTab('dashboard')}
+        >
+          <Home size={19} />
+          <span>Home</span>
+        </button>
+
+        <button
+          type="button"
+          className={`oak-bottom-bar-item ${activeTab === 'notices' ? 'is-active' : ''}`}
+          onClick={() => onNavigateTab('notices')}
+        >
+          <MessageSquare size={19} />
+          <span>Notices</span>
+        </button>
+
+        <button
+          type="button"
+          className={`oak-bottom-bar-item ${activeTab === 'lms' ? 'is-active' : ''}`}
+          onClick={() => onNavigateTab('lms')}
+        >
+          <GraduationCap size={19} />
+          <span>LMS</span>
+        </button>
+
+        <button
+          type="button"
+          className={`oak-bottom-bar-item ${activeTab === 'timetable' ? 'is-active' : ''}`}
+          onClick={() => onNavigateTab('timetable')}
+        >
+          <BarChart2 size={19} />
+          <span>Schedule</span>
+        </button>
+
+        <button
+          type="button"
+          className="oak-bottom-bar-item"
+          onClick={() => setShowMobileDrawer(true)}
+        >
+          <Menu size={19} />
+          <span>Menu</span>
+        </button>
+      </nav>
 
       {/* DASHBOARD CSS STYLING */}
       <style>{`
@@ -2397,6 +2629,199 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           width: 100%;
         }
 
+        /* 10. MOBILE SIDEMENU DRAWER STYLES */
+        .oak-mobile-hamburger-btn {
+          display: none;
+        }
+
+        .oak-mobile-drawer-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.65);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 999;
+          display: flex;
+        }
+
+        .oak-mobile-drawer {
+          width: 86%;
+          max-width: 320px;
+          height: 100%;
+          background: #ffffff;
+          box-shadow: 10px 0 40px rgba(0, 0, 0, 0.2);
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .oak-drawer-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 18px 16px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .oak-drawer-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .oak-drawer-logo {
+          width: 36px;
+          height: 36px;
+          object-fit: contain;
+        }
+
+        .oak-drawer-title-wrap {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .oak-drawer-title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+          line-height: 1.2;
+        }
+
+        .oak-drawer-subtitle {
+          font-size: 0.72rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .oak-drawer-close-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: #f1f5f9;
+          border: none;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .oak-drawer-user-pill {
+          margin: 14px 18px;
+          padding: 12px;
+          background: #f8fafc;
+          border-radius: 14px;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .oak-drawer-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .oak-drawer-user-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+
+        .oak-drawer-user-info strong {
+          font-size: 0.88rem;
+          color: #0f172a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .oak-drawer-user-info span {
+          font-size: 0.72rem;
+          color: #64748b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .oak-drawer-nav {
+          padding: 8px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+        }
+
+        .oak-drawer-nav-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: none;
+          background: transparent;
+          color: #475569;
+          font-size: 0.86rem;
+          font-weight: 500;
+          text-align: left;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .oak-drawer-nav-item.is-active {
+          background: #e5f569;
+          color: #0f172a;
+          font-weight: 700;
+        }
+
+        .oak-drawer-footer {
+          padding: 16px 18px 24px;
+          border-top: 1px solid #f1f5f9;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .oak-drawer-logout-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 11px;
+          border-radius: 12px;
+          background: #fee2e2;
+          color: #dc2626;
+          border: none;
+          font-size: 0.84rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .oak-drawer-security-tag {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-size: 0.7rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        /* 11. MOBILE STICKY BOTTOM NAV BAR */
+        .oak-mobile-bottom-bar {
+          display: none;
+        }
+
         /* RESPONSIVE BREAKPOINTS */
         @media (max-width: 1200px) {
           .oak-content-grid {
@@ -2408,24 +2833,236 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         }
 
         @media (max-width: 900px) {
+          /* Hide desktop slim rail on mobile/tablet */
           .oak-sidebar-rail {
+            display: none !important;
+          }
+
+          /* Show mobile hamburger trigger */
+          .oak-mobile-hamburger-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: #0f172a;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+          }
+
+          /* Show sticky mobile bottom bar */
+          .oak-mobile-bottom-bar {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 62px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            align-items: center;
+            justify-content: space-around;
+            z-index: 80;
+            padding: 0 8px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+          }
+
+          .oak-bottom-bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 0.68rem;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: color 0.15s ease;
+          }
+
+          .oak-bottom-bar-item.is-active {
+            color: #0f172a;
+            font-weight: 700;
+          }
+
+          .oak-bottom-bar-item.is-active svg {
+            color: #562b63;
+          }
+
+          /* Main wrapper mobile padding with room for bottom bar */
+          .oak-main-wrapper {
+            padding: 12px 16px 84px 16px;
+          }
+
+          .oak-top-header {
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+
+          .oak-search-bar {
+            flex: 1;
+            width: auto;
+            min-width: 0;
+            height: 38px;
+          }
+
+          .oak-kbd-badge {
             display: none;
           }
+
+          .oak-header-actions {
+            gap: 8px;
+          }
+
+          .oak-header-pill-btn {
+            width: 38px;
+            height: 38px;
+          }
+
+          .oak-profile-avatar-pill {
+            width: 38px;
+            height: 38px;
+          }
+
+          /* CARDS STACK SCROLLABLE ONE BY ONE FOR PHONE */
           .oak-content-grid {
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 16px;
           }
+
+          .oak-col-growth,
+          .oak-col-center,
           .oak-col-events {
-            grid-column: span 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 16px;
           }
+
+          .oak-center-bottom-row {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 16px;
+          }
+
+          .oak-white-card,
+          .oak-dark-card {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 18px 16px;
+            border-radius: 20px;
+          }
+
+          .oak-hero-backdrop {
+            height: auto;
+            min-height: auto;
+            padding: 20px 16px;
+            border-radius: 22px;
+          }
+
+          .oak-university-title {
+            font-size: 1.4rem;
+          }
+
+          .oak-university-subline {
+            font-size: 0.78rem;
+          }
+
           .oak-hero-floating-row {
-            flex-wrap: wrap;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 12px;
+            margin-top: 16px;
           }
+
+          .oak-stat-glass-card {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 16px;
+            padding: 12px 16px;
+          }
+
           .oak-lime-action-card {
+            width: 100%;
             margin-left: 0;
+            box-sizing: border-box;
+            border-radius: 16px;
+            padding: 16px;
+          }
+
+          .oak-lime-buttons-row {
+            display: flex;
+            gap: 10px;
             width: 100%;
           }
-          .oak-search-bar {
-            width: 100%;
+
+          .oak-lime-pill-btn {
+            flex: 1;
+            justify-content: center;
+            height: 38px;
+            font-size: 0.8rem;
+          }
+
+          /* Attendance Bar Chart horizontal scrolling for phone */
+          .oak-chart-body {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+          }
+
+          .oak-bars-track {
+            min-width: 320px;
+            gap: 8px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .oak-main-wrapper {
+            padding: 10px 12px 82px 12px;
+          }
+
+          .oak-hero-backdrop {
+            padding: 16px 14px;
+            border-radius: 18px;
+          }
+
+          .oak-university-title {
+            font-size: 1.25rem;
+          }
+
+          .oak-university-subline {
+            font-size: 0.74rem;
+          }
+
+          .oak-white-card,
+          .oak-dark-card {
+            padding: 16px 14px;
+            border-radius: 18px;
+          }
+
+          .oak-search-placeholder {
+            font-size: 0.78rem;
+          }
+
+          .oak-subview-header-bar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
           }
         }
       `}</style>

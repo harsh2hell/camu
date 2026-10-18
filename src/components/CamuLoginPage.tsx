@@ -1421,6 +1421,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
            and smooth scrolling for any screen size.
            ========================================================================== */
         @media (max-width: 820px) {
+          /* Hide support button on mobile layout */
+          .login-top-actions,
+          .support-glass {
+            display: none !important;
+          }
+
           .freshy-auth-viewport {
             height: auto;
             min-height: 100dvh;
