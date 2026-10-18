@@ -34,52 +34,52 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
 
-  // 9 Curated Academic & Faculty Slides
+  // 9 Academic Campus & Faculty Slides (Curated for natural portrait & 4:3 vertical card display)
   const slides = [
     {
-      image: '/dbs_computing_lab.webp',
-      title: 'Advanced AI & Computing Labs',
-      desc: 'High-performance computing workstations, cloud architecture, and next-gen technology incubation centers.',
+      image: '/dbs_campus_real.jpg',
+      title: 'Himalayan Academic Campus',
+      desc: 'An inspiring academic sanctuary nestled in the serene Doon Valley, engineered for holistic intellectual growth.',
     },
     {
-      image: '/dbs_academic_guest_lecture.webp',
-      title: 'Distinguished Academic Keynotes',
-      desc: 'Global business leaders and academic scholars conducting masterclasses in our state-of-the-art auditoriums.',
-    },
-    {
-      image: '/dbs_campus_hero.webp',
-      title: 'DBS Global University Faculty',
-      desc: 'Distinguished professorship, multidisciplinary schools of thought, and world-class academic governance.',
-    },
-    {
-      image: '/dbs_academic_ai_summit.webp',
-      title: 'National AI & Tech Conclaves',
-      desc: 'Undergraduate and postgraduate research symposiums tackling real-world computational challenges.',
-    },
-    {
-      image: '/dbs_academic_computing2.webp',
-      title: 'Software Systems & Robotics Lab',
-      desc: 'Hands-on programming incubators, intelligent automation suites, and applied machine learning research.',
-    },
-    {
-      image: '/dbs_academic_finance_suite.webp',
-      title: 'Financial Analytics & Modeling Suite',
-      desc: 'Simulated institutional trading floors, algorithmic market analytics, and quantitative FinTech pedagogy.',
-    },
-    {
-      image: '/dbs_campus_teamwork.webp',
-      title: 'Collaborative Scholarly Research',
-      desc: 'Fostering peer collaboration, innovation fellowships, and entrepreneurial incubation across departments.',
+      image: '/dbs_academic_conclave.webp',
+      title: 'National Academic Conclaves',
+      desc: 'Undergraduate and postgraduate research symposiums solving next-generation industry and business challenges.',
     },
     {
       image: '/dbs_academic_seminar.webp',
-      title: 'Executive Seminar Amphitheatres',
-      desc: 'Interactive case-study roundtables equipped with smart acoustic systems and hybrid digital lecture capture.',
+      title: 'Faculty Excellence & Mentorship',
+      desc: 'Distinguished professorship, scholarly achievement awards, and continuous student-faculty research guidance.',
     },
     {
-      image: '/dbs_campus_real.jpg',
-      title: 'Himalayan Campus Academic Life',
-      desc: 'An inspiring academic sanctuary nestled in the serene Doon Valley, engineered for holistic intellectual growth.',
+      image: '/dbs_academic_finance_suite.webp',
+      title: 'Scholarly Research & Innovation',
+      desc: 'Developing critical thinkers, entrepreneurs, and global scholars ready to lead tomorrow’s knowledge economy.',
+    },
+    {
+      image: '/dbs_academic_ai_summit.webp',
+      title: 'Global Tech & AI Summits',
+      desc: 'Interactive keynotes and masterclasses hosted with international industry leaders and academic pioneers.',
+    },
+    {
+      image: '/dbs_academic_lecture_hall.webp',
+      title: 'Interactive Smart Lecture Theatres',
+      desc: 'Tiered academic amphitheatres equipped for hybrid learning, case study workshops, and faculty lectures.',
+    },
+    {
+      image: '/dbs_academic_guest_lecture.webp',
+      title: 'Distinguished Keynote Auditoriums',
+      desc: 'Smart acoustic auditoriums designed for national conventions, executive masterclasses, and academic discourse.',
+    },
+    {
+      image: '/dbs_academic_genesis.webp',
+      title: 'Innovation & Youth Conclaves',
+      desc: 'Empowering future leaders through student incubation, multidisciplinary symposia, and creative summits.',
+    },
+    {
+      image: '/dbs_fresher.webp',
+      title: 'Vibrant Academic Student Community',
+      desc: 'A collaborative, energetic student body united by intellectual curiosity, cultural diversity, and leadership.',
     },
   ];
 
@@ -129,18 +129,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
       onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
     } catch {
       setErrorMessage('Google SSO failed.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAppleOrMicrosoftLogin = async () => {
-    setIsLoading(true);
-    try {
-      const session = await authApi.loginWithMicrosoft();
-      onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
-    } catch {
-      setErrorMessage('Single Sign-On failed.');
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +222,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
             {!isRegisterMode ? (
               <>
-                {/* 3. SSO Buttons (Google & Apple / Microsoft) */}
+                {/* 3. Single Clean SSO Button: Continue with Google */}
                 <div className="freshy-sso-group">
                   <button 
                     type="button" 
@@ -249,18 +237,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                       <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                     </svg>
                     <span>Continue with Google</span>
-                  </button>
-
-                  <button 
-                    type="button" 
-                    className="freshy-sso-btn"
-                    onClick={handleAppleOrMicrosoftLogin}
-                    disabled={isLoading}
-                  >
-                    <svg className="freshy-sso-icon" viewBox="0 0 24 24" fill="#000000">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.66 1.37-.56.65-1.06 1.71-.93 2.73 1.03.08 2.07-.54 2.58-1.25z"/>
-                    </svg>
-                    <span>Continue with Apple</span>
                   </button>
                 </div>
 
@@ -441,23 +417,14 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Interactive 2.5s Academic Cross-fading Carousel */}
+        {/* RIGHT COLUMN: Interactive 2.5s Academic Cross-fading Carousel (Zero Second Logo on Desktop) */}
         <div 
           className="freshy-image-column"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
           <div className="freshy-image-card-container">
-            {/* Floating Transparent DBS Logo Badge on Photo */}
-            <div className="freshy-photo-dbs-badge">
-              <img 
-                src="/dbs_logo_transparent.png" 
-                alt="DBS Global University" 
-                className="freshy-photo-dbs-logo"
-              />
-            </div>
-
-            {/* Cross-fading stacked academic photos with gentle cinematic pan zoom */}
+            {/* Cross-fading stacked academic photos with natural un-cropped framing */}
             {slides.map((slide, idx) => (
               <div 
                 key={idx}
@@ -541,15 +508,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-auth-card {
           width: 100%;
-          max-width: 980px;
-          height: calc(100dvh - 32px);
-          max-height: 620px;
+          max-width: 1140px;
+          height: calc(100dvh - 36px);
+          max-height: 590px;
           min-height: 480px;
           background: #ffffff;
           border-radius: 20px;
           box-shadow: 0 16px 48px -12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
           display: grid;
-          grid-template-columns: 1.05fr 0.95fr;
+          grid-template-columns: 420px 1fr;
           overflow: hidden;
           position: relative;
         }
@@ -584,7 +551,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           display: flex;
           justify-content: center;
           align-items: center;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
         }
 
         .freshy-dbs-main-logo {
@@ -608,7 +575,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-subtitle {
           font-size: 0.82rem;
           color: #64748b;
-          margin-bottom: 14px;
+          margin-bottom: 16px;
           line-height: 1.35;
         }
 
@@ -623,17 +590,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           text-align: center;
         }
 
-        /* 3. SSO Buttons */
+        /* 3. SSO Button */
         .freshy-sso-group {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
         }
 
         .freshy-sso-btn {
           width: 100%;
-          height: 38px;
+          height: 40px;
           background: #ffffff;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
@@ -641,7 +608,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           align-items: center;
           justify-content: center;
           gap: 10px;
-          font-size: 0.83rem;
+          font-size: 0.85rem;
           font-weight: 600;
           color: #1e293b;
           cursor: pointer;
@@ -654,8 +621,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-sso-icon {
-          width: 15px;
-          height: 15px;
+          width: 16px;
+          height: 16px;
         }
 
         /* 4. OR Divider */
@@ -663,7 +630,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           display: flex;
           align-items: center;
           gap: 12px;
-          margin: 10px 0;
+          margin: 12px 0;
         }
 
         .or-line {
@@ -683,7 +650,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-fields-form {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 11px;
           text-align: left;
         }
 
@@ -694,7 +661,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-input-label {
-          font-size: 0.79rem;
+          font-size: 0.8rem;
           font-weight: 600;
           color: #0f172a;
         }
@@ -722,11 +689,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-text-input {
           width: 100%;
-          height: 38px;
+          height: 40px;
           padding: 8px 14px;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
-          font-size: 0.85rem;
+          font-size: 0.86rem;
           color: #0f172a;
           background: #ffffff;
           outline: none;
@@ -764,15 +731,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         /* 6. Deep Black Log in Button */
         .freshy-submit-btn {
           width: 100%;
-          height: 42px;
+          height: 44px;
           background: #0f172a;
           color: #ffffff;
           border: none;
           border-radius: 10px;
-          font-size: 0.91rem;
+          font-size: 0.92rem;
           font-weight: 600;
           cursor: pointer;
-          margin-top: 6px;
+          margin-top: 8px;
           transition: background 0.15s ease;
         }
 
@@ -788,9 +755,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         /* 7. Sign up switcher with clear separation */
         .freshy-signup-row {
           text-align: center;
-          font-size: 0.8rem;
+          font-size: 0.82rem;
           color: #64748b;
-          margin-top: 10px;
+          margin-top: 12px;
         }
 
         .freshy-signup-link {
@@ -809,7 +776,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           font-size: 0.68rem;
           color: #94a3b8;
           line-height: 1.45;
-          margin-top: 18px;
+          margin-top: 20px;
         }
 
         .freshy-legal-disclaimer a {
@@ -820,8 +787,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         /* ==========================================================================
            RIGHT COLUMN: 2.5S TIMED ACADEMIC CAROUSEL
-           Smooth cross-fading photos with subtle pan-zoom, gradient scrim,
-           and university story-style progress timer dashes.
+           Natural, uncropped framing without artificial zoom or second logo on desktop.
            ========================================================================== */
         .freshy-image-column {
           padding: 10px;
@@ -837,36 +803,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           height: 100%;
           border-radius: 16px;
           overflow: hidden;
-          background: #090e17;
+          background: #0f172a;
           display: flex;
           flex-direction: column;
           justify-content: flex-end;
         }
 
-        /* Floating Official Transparent Logo Badge on Photo */
-        .freshy-photo-dbs-badge {
-          position: absolute;
-          top: 18px;
-          left: 20px;
-          z-index: 10;
-          padding: 6px 14px;
-          background: rgba(15, 23, 42, 0.45);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border-radius: 30px;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          display: flex;
-          align-items: center;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        .freshy-photo-dbs-logo {
-          height: 22px;
-          width: auto;
-          object-fit: contain;
-        }
-
-        /* Stacked Photo Layers for Buttery Smooth Cross-Fade */
+        /* Stacked Photo Layers: Natural framing, zero artificial zoom */
         .freshy-campus-photo-layer {
           position: absolute;
           inset: 0;
@@ -886,12 +829,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transform: scale(1.04);
-          transition: transform 3.5s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        .freshy-campus-photo-layer.photo-active .freshy-campus-photo {
-          transform: scale(1);
+          object-position: center 25%; /* Keeps professors, students and campus facades properly centered */
         }
 
         /* Bottom Dark Gradient Scrim */
@@ -900,9 +838,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           inset: 0;
           background: linear-gradient(
             to bottom,
-            rgba(0, 0, 0, 0.02) 0%,
-            rgba(0, 0, 0, 0.15) 35%,
-            rgba(0, 0, 0, 0.82) 75%,
+            rgba(0, 0, 0, 0.0) 0%,
+            rgba(0, 0, 0, 0.12) 40%,
+            rgba(0, 0, 0, 0.80) 75%,
             rgba(0, 0, 0, 0.95) 100%
           );
           z-index: 3;
@@ -1006,7 +944,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
            ========================================================================== */
         @media (min-height: 760px) and (min-width: 821px) {
           .freshy-auth-card {
+            max-width: 1180px;
             max-height: 660px;
+            grid-template-columns: 430px 1fr;
             border-radius: 24px;
           }
           .freshy-form-column {
@@ -1025,18 +965,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           }
           .freshy-subtitle {
             font-size: 0.86rem;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
           }
           .freshy-sso-group {
-            gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
           }
           .freshy-sso-btn {
-            height: 42px;
-            font-size: 0.86rem;
+            height: 44px;
+            font-size: 0.88rem;
           }
           .freshy-or-divider {
-            margin: 12px 0;
+            margin: 14px 0;
           }
           .freshy-fields-form {
             gap: 12px;
@@ -1047,16 +986,16 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             padding: 9px 14px;
           }
           .freshy-submit-btn {
-            height: 44px;
-            font-size: 0.93rem;
-            margin-top: 8px;
+            height: 46px;
+            font-size: 0.94rem;
+            margin-top: 10px;
           }
           .freshy-signup-row {
-            margin-top: 12px;
+            margin-top: 14px;
             font-size: 0.84rem;
           }
           .freshy-legal-disclaimer {
-            margin-top: 22px;
+            margin-top: 24px;
             font-size: 0.7rem;
           }
           .freshy-image-overlay-content {
