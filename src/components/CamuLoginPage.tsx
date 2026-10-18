@@ -18,7 +18,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
   // Dynamic user detection: Returning vs. First-Time visitor
   const [savedEmail, setSavedEmail] = useState<string>(() => {
-    return localStorage.getItem('dbs_last_user_email') || '';
+    const lastRole = localStorage.getItem('dbs_last_user_role');
+    const email = localStorage.getItem('dbs_last_user_email') || '';
+    if (lastRole === 'FACULTY') {
+      return '';
+    }
+    return email;
   });
   const [savedName, setSavedName] = useState<string>(() => {
     return localStorage.getItem('dbs_last_user_name') || '';
@@ -150,6 +155,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
       const session = await authApi.login(emailOrRoll, password);
       // Persist email & name for returning user detection
       localStorage.setItem('dbs_last_user_email', emailOrRoll.trim());
+      localStorage.setItem('dbs_last_user_role', 'STUDENT');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
 
@@ -169,6 +175,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     try {
       const session = await authApi.loginWithGoogle();
       localStorage.setItem('dbs_last_user_email', session.email || 'harsh.23cse@dgu.ac.in');
+      localStorage.setItem('dbs_last_user_role', 'STUDENT');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
       onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });

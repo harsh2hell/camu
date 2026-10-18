@@ -31,6 +31,9 @@ class ApiClient {
         headers: this.getAuthHeaders(),
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent('dbs-session-expired', { detail: { status: 401 } }));
+        }
         throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
       }
       return await response.json();
@@ -48,6 +51,9 @@ class ApiClient {
         body: JSON.stringify(body),
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent('dbs-session-expired', { detail: { status: 401 } }));
+        }
         throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
       }
       return await response.json();

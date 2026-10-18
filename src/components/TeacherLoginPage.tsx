@@ -13,7 +13,11 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
 }) => {
   // Dynamic user detection: Returning vs. First-Time visitor
   const [savedEmail, setSavedEmail] = useState<string>(() => {
+    const lastRole = localStorage.getItem('dbs_last_user_role');
     const email = localStorage.getItem('dbs_last_user_email') || '';
+    if (lastRole === 'FACULTY') {
+      return email;
+    }
     return email.toLowerCase().includes('sharma') || email.toLowerCase().includes('faculty') || email.toLowerCase().includes('prof') 
       ? email 
       : '';
@@ -120,6 +124,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
     try {
       const session = await authApi.login(emailOrEmpId, password);
       localStorage.setItem('dbs_last_user_email', emailOrEmpId.trim());
+      localStorage.setItem('dbs_last_user_role', 'FACULTY');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
 
@@ -139,6 +144,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
     try {
       const session = await authApi.loginWithGoogle();
       localStorage.setItem('dbs_last_user_email', session.email || 'rajesh.sharma@dgu.ac.in');
+      localStorage.setItem('dbs_last_user_role', 'FACULTY');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
 

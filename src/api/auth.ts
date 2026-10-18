@@ -20,6 +20,7 @@ export const authApi = {
       localStorage.setItem('dbs_auth_token', response.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(response));
       localStorage.setItem('dbs_last_user_email', response.email || username);
+      localStorage.setItem('dbs_last_user_role', response.role || (username.toLowerCase().includes('faculty') || username.toLowerCase().includes('sharma') ? 'FACULTY' : 'STUDENT'));
       if (response.name) localStorage.setItem('dbs_last_user_name', response.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return response;
@@ -49,6 +50,7 @@ export const authApi = {
       localStorage.setItem('dbs_auth_token', session.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(session));
       localStorage.setItem('dbs_last_user_email', session.email || username);
+      localStorage.setItem('dbs_last_user_role', session.role);
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return session;
@@ -77,6 +79,7 @@ export const authApi = {
       localStorage.setItem('dbs_auth_token', response.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(response));
       localStorage.setItem('dbs_last_user_email', response.email || data.email);
+      localStorage.setItem('dbs_last_user_role', 'STUDENT');
       localStorage.setItem('dbs_last_user_name', response.name || data.fullName);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return response;
@@ -93,6 +96,7 @@ export const authApi = {
       localStorage.setItem('dbs_auth_token', session.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(session));
       localStorage.setItem('dbs_last_user_email', session.email);
+      localStorage.setItem('dbs_last_user_role', 'STUDENT');
       localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return session;
@@ -111,10 +115,13 @@ export const authApi = {
       if (lastActive) {
         const elapsed = Date.now() - parseInt(lastActive, 10);
         if (elapsed > INACTIVITY_TIMEOUT_MS) {
-          // Expired due to inactivity: preserve email for "Welcome Back" greeting
+          // Expired due to inactivity: preserve email and role for respective login fallback
           if (session.email) {
             localStorage.setItem('dbs_last_user_email', session.email);
             if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
+          }
+          if (session.role) {
+            localStorage.setItem('dbs_last_user_role', session.role);
           }
           localStorage.removeItem('dbs_auth_token');
           localStorage.removeItem('dbs_user_session');
@@ -124,6 +131,9 @@ export const authApi = {
       
       // Heartbeat update
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
+      if (session.role) {
+        localStorage.setItem('dbs_last_user_role', session.role);
+      }
       return session;
     } catch {
       return null;
@@ -131,7 +141,7 @@ export const authApi = {
   },
 
   logout(): void {
-    // Retain previous session email so login screen greets returning user
+    // Retain previous session email & role so user returns directly to their role-specific login screen
     const raw = localStorage.getItem('dbs_user_session');
     if (raw) {
       try {
@@ -140,11 +150,24 @@ export const authApi = {
           localStorage.setItem('dbs_last_user_email', session.email);
           if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
         }
+        if (session.role) {
+          localStorage.setItem('dbs_last_user_role', session.role);
+        }
       } catch {
         // ignore
       }
     }
     localStorage.removeItem('dbs_auth_token');
     localStorage.removeItem('dbs_user_session');
+  },
+
+  getLastUserRole(): 'STUDENT' | 'FACULTY' | null {
+    const role = localStorage.getItem('dbs_last_user_role');
+    if (role === 'FACULTY' || role === 'STUDENT') return role;
+    return null;
+  },
+
+  setLastUserRole(role: 'STUDENT' | 'FACULTY'): void {
+    localStorage.setItem('dbs_last_user_role', role);
   },
 };

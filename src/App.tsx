@@ -57,11 +57,26 @@ function detectInitialView(): PortalView {
     return 'teacher-login';
   }
 
+  // Explicit choice route (only when specifically navigated to /choice)
+  if (pathname === '/choice' || query === 'choice') {
+    return 'choice';
+  }
+
   // Query parameter detection
   if (query === 'student') return 'student-login';
   if (query === 'teacher' || query === 'faculty') return 'teacher-login';
 
-  // Default root domain (choice between Student and Faculty portal)
+  // Fallback for returning users whose session/token/cookie expired or who logged out:
+  // Directly fallback to their respective login page instead of the first-timer choice page!
+  const lastRole = localStorage.getItem('dbs_last_user_role');
+  if (lastRole === 'FACULTY') {
+    return 'teacher-login';
+  }
+  if (lastRole === 'STUDENT' || localStorage.getItem('dbs_last_user_email')) {
+    return 'student-login';
+  }
+
+  // Default root domain: choice between Student and Faculty portal strictly for brand-new visitors
   return 'choice';
 }
 
@@ -161,6 +176,7 @@ export function App() {
     const role = newSession.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
     setCurrentRole(role);
     localStorage.setItem('dbs_portal_mode', role === 'FACULTY' ? 'teacher' : 'student');
+    localStorage.setItem('dbs_last_user_role', role);
     setActiveTab(role === 'FACULTY' ? 'faculty-attendance' : 'dashboard');
     setShowSecurityChallenge(false);
 
@@ -172,6 +188,16 @@ export function App() {
   };
 
   const handleLogout = () => {
+    // 1. Determine prior role for fallback redirect
+    const targetRole: 'STUDENT' | 'FACULTY' =
+      session?.role === 'FACULTY' || currentRole === 'FACULTY' || localStorage.getItem('dbs_last_user_role') === 'FACULTY'
+        ? 'FACULTY'
+        : 'STUDENT';
+
+    // 2. Persist role so fallback always routes directly to their login screen
+    localStorage.setItem('dbs_last_user_role', targetRole);
+
+    // 3. Clear auth session & tokens
     authApi.logout();
     setSession(null);
     setShowSecurityChallenge(false);
@@ -179,15 +205,66 @@ export function App() {
     const currentHostname = window.location.hostname.toLowerCase();
     const isSubdomain = currentHostname.startsWith('student.') || currentHostname.startsWith('teacher.');
 
-    if (!isSubdomain) {
-      setPortalView('choice');
-      window.history.pushState({}, '', '/');
-    } else if (currentHostname.startsWith('student.')) {
-      setPortalView('student-login');
-    } else {
+    // 4. Fallback redirect directly to their respective login page, NEVER to choice page!
+    if (targetRole === 'FACULTY') {
       setPortalView('teacher-login');
+      if (!isSubdomain) {
+        window.history.pushState({}, '', '/teacher');
+      }
+    } else {
+      setPortalView('student-login');
+      if (!isSubdomain) {
+        window.history.pushState({}, '', '/student');
+      }
     }
   };
+
+  // Handle token, cookie, or session expiration fallback
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      const targetRole: 'STUDENT' | 'FACULTY' =
+        session?.role === 'FACULTY' || currentRole === 'FACULTY' || localStorage.getItem('dbs_last_user_role') === 'FACULTY'
+          ? 'FACULTY'
+          : 'STUDENT';
+
+      localStorage.setItem('dbs_last_user_role', targetRole);
+      authApi.logout();
+      setSession(null);
+      setShowSecurityChallenge(false);
+
+      const currentHostname = window.location.hostname.toLowerCase();
+      const isSubdomain = currentHostname.startsWith('student.') || currentHostname.startsWith('teacher.');
+
+      if (targetRole === 'FACULTY') {
+        setPortalView('teacher-login');
+        if (!isSubdomain) {
+          window.history.pushState({}, '', '/teacher');
+        }
+      } else {
+        setPortalView('student-login');
+        if (!isSubdomain) {
+          window.history.pushState({}, '', '/student');
+        }
+      }
+    };
+
+    window.addEventListener('dbs-session-expired', handleSessionExpired);
+
+    // Periodic heartbeat check: if session expired via inactivity timeout in authApi
+    const checkInterval = setInterval(() => {
+      if (session) {
+        const current = authApi.getCurrentSession();
+        if (!current) {
+          handleSessionExpired();
+        }
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('dbs-session-expired', handleSessionExpired);
+      clearInterval(checkInterval);
+    };
+  }, [session, currentRole]);
 
   const handleDismissSecurityChallenge = () => {
     setShowSecurityChallenge(false);
@@ -195,6 +272,7 @@ export function App() {
   };
 
   const handleSecuritySignOutToFaculty = () => {
+    localStorage.setItem('dbs_last_user_role', 'FACULTY');
     authApi.logout();
     setSession(null);
     setShowSecurityChallenge(false);
@@ -223,6 +301,7 @@ export function App() {
         <TeacherLoginPage 
           onLoginSuccess={handleLoginSuccess}
           onSwitchToStudent={() => {
+            localStorage.setItem('dbs_last_user_role', 'STUDENT');
             setPortalView('student-login');
             window.history.pushState({}, '', '/student');
           }}
@@ -235,6 +314,7 @@ export function App() {
       <CamuLoginPage 
         portalMode="student"
         onTogglePortal={() => {
+          localStorage.setItem('dbs_last_user_role', 'FACULTY');
           setPortalView('teacher-login');
           window.history.pushState({}, '', '/teacher');
         }}
