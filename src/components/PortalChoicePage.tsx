@@ -1,5 +1,5 @@
-import React from 'react';
-import { GraduationCap, Briefcase, ArrowRight, ShieldCheck, HelpCircle, Building2, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, Briefcase, ArrowRight, LifeBuoy, Mail, Copy, Check, X } from 'lucide-react';
 
 interface PortalChoicePageProps {
   onSelectPortal: (portal: 'student' | 'teacher') => void;
@@ -9,480 +9,1022 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
   const currentHostname = window.location.hostname;
   const isCustomDomain = currentHostname.includes('autonex.studio') || currentHostname.includes('dgu.');
 
+  // 2.5s Academic Carousel transition matching login page
+  const SLIDE_DURATION = 2500;
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [progressKey, setProgressKey] = useState(0);
+
+  // Support Modal State
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  interface SlideItem {
+    image: string;
+    title: string;
+    desc: string;
+  }
+
+  const slides: SlideItem[] = [
+    {
+      image: '/dbs_campus_real.jpg',
+      title: 'Himalayan Academic Campus',
+      desc: 'An inspiring academic sanctuary nestled in the serene Doon Valley, engineered for holistic intellectual growth.',
+    },
+    {
+      image: '/dbs_academic_conclave.webp',
+      title: 'National Academic Conclaves',
+      desc: 'Undergraduate and postgraduate research symposiums solving next-generation industry and business challenges.',
+    },
+    {
+      image: '/dbs_academic_seminar.webp',
+      title: 'Faculty Excellence & Mentorship',
+      desc: 'Distinguished professorship, scholarly achievement awards, and continuous student-faculty research guidance.',
+    },
+    {
+      image: '/dbs_academic_finance_suite.webp',
+      title: 'Scholarly Research & Innovation',
+      desc: 'Developing critical thinkers, entrepreneurs, and global scholars ready to lead tomorrow’s knowledge economy.',
+    },
+    {
+      image: '/dbs_academic_ai_summit.webp',
+      title: 'Global Tech & AI Summits',
+      desc: 'Interactive keynotes and masterclasses hosted with international industry leaders and academic pioneers.',
+    },
+    {
+      image: '/dbs_academic_lecture_hall.webp',
+      title: 'Interactive Smart Lecture Theatres',
+      desc: 'Tiered academic amphitheatres equipped for hybrid learning, case study workshops, and faculty lectures.',
+    },
+    {
+      image: '/dbs_academic_guest_lecture.webp',
+      title: 'Distinguished Keynote Auditoriums',
+      desc: 'Smart acoustic auditoriums designed for national conventions, executive masterclasses, and academic discourse.',
+    },
+    {
+      image: '/dbs_academic_genesis.webp',
+      title: 'Innovation & Youth Conclaves',
+      desc: 'Empowering future leaders through student incubation, multidisciplinary symposia, and creative summits.',
+    },
+    {
+      image: '/dbs_fresher.webp',
+      title: 'Vibrant Academic Student Community',
+      desc: 'A collaborative, energetic student body united by intellectual curiosity, cultural diversity, and leadership.',
+    },
+  ];
+
+  useEffect(() => {
+    if (isPaused) return;
+
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % slides.length);
+      setProgressKey((prev) => prev + 1);
+    }, SLIDE_DURATION);
+
+    return () => clearInterval(timer);
+  }, [isPaused, slides.length]);
+
+  const handleSelectSlide = (idx: number) => {
+    setActiveSlide(idx);
+    setProgressKey((prev) => prev + 1);
+  };
+
   const handlePortalClick = (target: 'student' | 'teacher') => {
-    // If on a live custom domain that supports subdomains, navigate to subdomain
     if (isCustomDomain && !currentHostname.startsWith('student.') && !currentHostname.startsWith('teacher.')) {
       const baseDomain = currentHostname.replace(/^www\./, '');
       const targetSubdomain = target === 'student' ? 'student.' : 'teacher.';
-      // Try navigating to subdomain, fallback to client state if fails
       window.location.href = `${window.location.protocol}//${targetSubdomain}${baseDomain}`;
       return;
     }
-    // Default / fallback: Client routing via state or path
     onSelectPortal(target);
   };
 
-  return (
-    <div className="choice-viewport">
-      {/* Background Decor */}
-      <div className="choice-bg-gradient" />
-      <div className="choice-bg-mesh" />
+  const handleCopySupportEmail = () => {
+    navigator.clipboard.writeText('support@dbs.edu.in');
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
 
-      {/* Main Choice Card Container */}
-      <div className="choice-container">
-        {/* University Header */}
-        <header className="choice-header">
-          <div className="choice-brand-logo-wrap">
+  return (
+    <div className="choice-auth-viewport">
+      
+      {/* FLOATING TOP BAR: Liquid Glass Support Button */}
+      <div className="choice-floating-top-bar">
+        <button 
+          type="button" 
+          className="liquid-glass-btn support-glass"
+          onClick={() => setShowSupportModal(true)}
+          title="Need IT or Academic Help?"
+        >
+          <LifeBuoy size={16} className="glass-btn-icon" />
+          <span className="glass-btn-text">Support</span>
+        </button>
+      </div>
+
+      {/* CENTERED 50-50 CARD: EXACT MATCH TO LOGIN PAGE UI DESIGN */}
+      <div className="choice-auth-card">
+
+        {/* MOBILE ONLY: Hero Banner */}
+        <div className="choice-mobile-banner">
+          {slides.map((slide, idx) => (
             <img 
-              src="/dbs_logo_dark.png" 
+              key={idx}
+              src={slide.image} 
+              alt={slide.title} 
+              className={`choice-mobile-banner-img ${idx === activeSlide ? 'banner-active' : ''}`}
+            />
+          ))}
+          <div className="choice-mobile-banner-scrim" />
+          <div className="choice-mobile-banner-brand">
+            <img 
+              src="/dbs_logo_transparent.png" 
               alt="DBS Global University" 
-              className="choice-main-logo"
+              className="choice-mobile-dbs-logo"
             />
           </div>
-          <span className="choice-tagline">Academic Enterprise Gateway &bull; Digital Campus 2026</span>
-          <h1 className="choice-title">Select Your Academic Portal</h1>
-          <p className="choice-subtitle">
-            Welcome to DBS Global University. Please choose your designated gateway to access student services or faculty administration.
-          </p>
-        </header>
-
-        {/* 2 Choice Portals Grid */}
-        <div className="choice-grid">
-          {/* Card 1: Student & Parent Portal */}
-          <div 
-            className="choice-card student-card"
-            onClick={() => handlePortalClick('student')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePortalClick('student'); }}
-          >
-            <div className="card-top-row">
-              <div className="card-icon-wrap student-icon-wrap">
-                <GraduationCap size={28} />
-              </div>
-              <span className="card-badge student-badge">STUDENT &amp; PARENT</span>
-            </div>
-
-            <div className="card-body">
-              <h2 className="card-name">Student Portal</h2>
-              <div className="card-domain-slug">
-                <span>student.autonex.studio</span>
-                <span className="card-domain-alias">&bull; student.dgu.in</span>
-              </div>
-              <p className="card-desc">
-                Access course registrations, smart AI timetable, attendance analytics, LMS assignments, examination grades, fee receipts, and campus gate passes.
-              </p>
-
-              <ul className="card-feature-list">
-                <li><CheckCircle2 size={14} className="feature-check" /> Real-time biometric attendance tracker</li>
-                <li><CheckCircle2 size={14} className="feature-check" /> Instant OD / Leave applications &amp; Gate pass</li>
-                <li><CheckCircle2 size={14} className="feature-check" /> Semester fee receipts &amp; exam grade cards</li>
-              </ul>
-            </div>
-
-            <div className="card-footer">
-              <button 
-                type="button" 
-                className="choice-action-btn student-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePortalClick('student');
-                }}
-              >
-                <span>Enter Student Portal</span>
-                <ArrowRight size={17} />
-              </button>
-            </div>
+          <div className="choice-mobile-dots">
+            {slides.map((_, idx) => (
+              <span 
+                key={idx} 
+                className={`mobile-dot ${idx === activeSlide ? 'dot-active' : ''}`} 
+              />
+            ))}
           </div>
+        </div>
 
-          {/* Card 2: Faculty & Staff Gateway */}
-          <div 
-            className="choice-card faculty-card"
-            onClick={() => handlePortalClick('teacher')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePortalClick('teacher'); }}
-          >
-            <div className="card-top-row">
-              <div className="card-icon-wrap faculty-icon-wrap">
-                <Briefcase size={28} />
-              </div>
-              <span className="card-badge faculty-badge">FACULTY &amp; STAFF</span>
+        {/* LEFT COLUMN: 50% Choice Selection */}
+        <div className="choice-form-column">
+          <div className="choice-form-inner">
+            {/* 1. DBS University Logo */}
+            <div className="choice-brand-emblem-wrap">
+              <img 
+                src="/dbs_logo_dark.png" 
+                alt="DBS Global University" 
+                className="choice-dbs-main-logo"
+              />
             </div>
 
-            <div className="card-body">
-              <h2 className="card-name">Faculty Gateway</h2>
-              <div className="card-domain-slug">
-                <span>teacher.autonex.studio</span>
-                <span className="card-domain-alias">&bull; teacher.dgu.in</span>
-              </div>
-              <p className="card-desc">
-                Classroom attendance recording, defaulter lists, OD &amp; leave approvals, grade submission, academic courseware, and faculty performance dashboards.
-              </p>
+            {/* 2. Welcome Heading */}
+            <h1 className="choice-title">Welcome!</h1>
+            <p className="choice-subtitle">
+              Select your designated academic portal to sign in.
+            </p>
 
-              <ul className="card-feature-list">
-                <li><CheckCircle2 size={14} className="feature-check" /> Fast 1-click lecture attendance logging</li>
-                <li><CheckCircle2 size={14} className="feature-check" /> Real-time student OD &amp; medical leave approvals</li>
-                <li><CheckCircle2 size={14} className="feature-check" /> Defaulter reports &amp; student academic monitoring</li>
-              </ul>
+            {/* 3. TWO SLEEK PORTAL CHOICE CARDS */}
+            <div className="choice-tiles-group">
+              
+              {/* Option 1: Student Portal */}
+              <div 
+                className="portal-choice-tile student-tile"
+                onClick={() => handlePortalClick('student')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePortalClick('student'); }}
+              >
+                <div className="tile-left-icon">
+                  <GraduationCap size={22} />
+                </div>
+                <div className="tile-content">
+                  <div className="tile-title-row">
+                    <span className="tile-title">Student Portal</span>
+                    <span className="tile-badge badge-student">STUDENT &amp; PARENT</span>
+                  </div>
+                  <span className="tile-domain">student.autonex.studio</span>
+                  <p className="tile-desc">Attendance, LMS, timetable, exam grades &amp; gate pass</p>
+                </div>
+                <div className="tile-arrow-circle">
+                  <ArrowRight size={16} />
+                </div>
+              </div>
+
+              {/* Option 2: Faculty Gateway */}
+              <div 
+                className="portal-choice-tile faculty-tile"
+                onClick={() => handlePortalClick('teacher')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePortalClick('teacher'); }}
+              >
+                <div className="tile-left-icon faculty-icon-bg">
+                  <Briefcase size={22} />
+                </div>
+                <div className="tile-content">
+                  <div className="tile-title-row">
+                    <span className="tile-title">Faculty Gateway</span>
+                    <span className="tile-badge badge-faculty">FACULTY &amp; STAFF</span>
+                  </div>
+                  <span className="tile-domain">teacher.autonex.studio</span>
+                  <p className="tile-desc">Classroom attendance, OD approvals, and student analytics</p>
+                </div>
+                <div className="tile-arrow-circle">
+                  <ArrowRight size={16} />
+                </div>
+              </div>
+
             </div>
 
-            <div className="card-footer">
+            {/* 4. Bottom Support Link */}
+            <div className="choice-bottom-note">
+              <span>Need help signing in? </span>
               <button 
                 type="button" 
-                className="choice-action-btn faculty-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePortalClick('teacher');
-                }}
+                className="choice-support-link"
+                onClick={() => setShowSupportModal(true)}
               >
-                <span>Enter Faculty Gateway</span>
-                <ArrowRight size={17} />
+                Contact Support Desk
               </button>
+            </div>
+
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: 50% Photo Carousel Matching Login Page */}
+        <div 
+          className="choice-image-column"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          {slides.map((slide, idx) => (
+            <div
+              key={idx}
+              className={`choice-slide ${idx === activeSlide ? 'slide-active' : ''}`}
+            >
+              <img 
+                src={slide.image} 
+                alt={slide.title} 
+                className="choice-slide-img"
+              />
+            </div>
+          ))}
+
+          {/* Bottom Vignette Gradient */}
+          <div className="choice-slide-gradient" />
+
+          {/* Carousel Progress Bar & Captions */}
+          <div className="choice-slide-overlay-content">
+            <div className="choice-progress-bars">
+              {slides.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className="choice-progress-track"
+                  onClick={() => handleSelectSlide(idx)}
+                >
+                  <div 
+                    className={`choice-progress-fill ${
+                      idx === activeSlide ? 'fill-animating' : idx < activeSlide ? 'fill-complete' : ''
+                    }`}
+                    key={idx === activeSlide ? progressKey : undefined}
+                    style={{
+                      animationDuration: `${SLIDE_DURATION}ms`,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="choice-caption-box">
+              <h2 className="choice-slide-title">
+                {slides[activeSlide].title}
+              </h2>
+              <p className="choice-slide-desc">
+                {slides[activeSlide].desc}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Bottom Trust & Help Bar */}
-        <footer className="choice-bottom-bar">
-          <div className="choice-bottom-item">
-            <ShieldCheck size={16} className="choice-bottom-icon" />
-            <span>256-bit Encrypted University SSO Authentication</span>
-          </div>
-          <div className="choice-bottom-sep">&bull;</div>
-          <div className="choice-bottom-item">
-            <Building2 size={16} className="choice-bottom-icon" />
-            <span>DBS Global University, Dehradun</span>
-          </div>
-          <div className="choice-bottom-sep">&bull;</div>
-          <div className="choice-bottom-item">
-            <HelpCircle size={16} className="choice-bottom-icon" />
-            <a href="mailto:registrar@dbs.edu.in" className="choice-help-link">Need Help? Registrar Office</a>
-          </div>
-        </footer>
       </div>
 
+      {/* SUPPORT MODAL (Liquid Glass Design) */}
+      {showSupportModal && (
+        <div className="support-modal-backdrop" onClick={() => setShowSupportModal(false)}>
+          <div className="support-glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="support-card-header">
+              <div className="support-header-left">
+                <div className="support-icon-badge">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h3 className="support-title">DBS University Support</h3>
+                  <p className="support-subtitle">Academic ERP &amp; IT Help Desk</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="support-close-btn"
+                onClick={() => setShowSupportModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="support-card-body">
+              <div className="support-item">
+                <span className="support-item-label">Technical Support Email:</span>
+                <div className="support-email-row">
+                  <span className="support-email-text">support@dbs.edu.in</span>
+                  <button 
+                    type="button" 
+                    className="copy-email-btn"
+                    onClick={handleCopySupportEmail}
+                  >
+                    {copiedEmail ? <Check size={14} className="text-emerald" /> : <Copy size={14} />}
+                    <span>{copiedEmail ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">Registrar Academic Office:</span>
+                <span className="support-val-text">registrar@dbs.edu.in</span>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">ERP Helpline Phone:</span>
+                <span className="support-val-text">+91 135 269 9100 (Ext: 104)</span>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">Service Desk Hours:</span>
+                <span className="support-val-text">Monday &ndash; Saturday, 9:00 AM &ndash; 5:30 PM IST</span>
+              </div>
+
+              <a 
+                href="mailto:support@dbs.edu.in?subject=DBS%20Portal%20Access%20Support"
+                className="direct-mail-cta"
+              >
+                <Mail size={16} />
+                <span>Open Mail Client to support@dbs.edu.in</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .choice-viewport {
+        .choice-auth-viewport {
           min-height: 100vh;
-          min-height: 100dvh;
           width: 100vw;
-          background: #f8fafc;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 28px 16px;
-          position: relative;
-          box-sizing: border-box;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          color: #0f172a;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .choice-bg-gradient {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 50% 0%, rgba(86, 43, 99, 0.08) 0%, transparent 60%),
-                      radial-gradient(circle at 10% 90%, rgba(57, 12, 70, 0.05) 0%, transparent 50%);
-          pointer-events: none;
-        }
-
-        .choice-bg-mesh {
-          position: absolute;
-          inset: 0;
-          background-image: radial-gradient(#cbd5e1 0.75px, transparent 0.75px);
-          background-size: 24px 24px;
-          opacity: 0.45;
-          pointer-events: none;
-        }
-
-        .choice-container {
-          position: relative;
-          z-index: 2;
-          width: 100%;
-          max-width: 960px;
-          margin: 0 auto;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
+          background: #f8fafc;
+          padding: 24px;
+          box-sizing: border-box;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          position: relative;
         }
 
-        /* University Header */
-        .choice-header {
+        /* FLOATING TOP GLASS BAR */
+        .choice-floating-top-bar {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          width: 1040px;
+          max-width: 95vw;
+          margin-bottom: 14px;
+          z-index: 20;
+          animation: fadeInDown 0.3s ease;
+        }
+
+        @keyframes fadeInDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* LIQUID GLASS CYLINDRICAL BUTTON */
+        .liquid-glass-btn {
+          height: 40px;
+          padding: 0 18px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.78);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border: 1.5px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 
+            0 8px 24px -4px rgba(57, 12, 70, 0.08),
+            0 2px 6px 0 rgba(0, 0, 0, 0.04),
+            inset 0 1px 1px rgba(255, 255, 255, 0.9);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.84rem;
+          font-weight: 600;
+          color: #390c46;
+          cursor: pointer;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .liquid-glass-btn:hover {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.92);
+          border-color: rgba(57, 12, 70, 0.25);
+          box-shadow: 
+            0 12px 28px -4px rgba(57, 12, 70, 0.16),
+            0 4px 10px 0 rgba(0, 0, 0, 0.06),
+            inset 0 1px 2px rgba(255, 255, 255, 1);
+          color: #210529;
+        }
+
+        .glass-btn-icon {
+          color: #562b63;
+        }
+
+        /* 50-50 CARD CONTAINER */
+        .choice-auth-card {
+          width: 1040px;
+          max-width: 95vw;
+          min-height: 580px;
+          background: #ffffff;
+          border-radius: 28px;
+          box-shadow: 
+            0 20px 50px -10px rgba(15, 23, 42, 0.08),
+            0 1px 3px 0 rgba(0, 0, 0, 0.02);
+          border: 1px solid #f1f5f9;
+          display: flex;
+          overflow: hidden;
+          position: relative;
+        }
+
+        /* MOBILE BANNER */
+        .choice-mobile-banner {
+          display: none;
+          position: relative;
+          width: 100%;
+          height: 180px;
+          overflow: hidden;
+        }
+
+        .choice-mobile-banner-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0;
+          transition: opacity 0.8s ease-in-out;
+        }
+
+        .choice-mobile-banner-img.banner-active {
+          opacity: 1;
+        }
+
+        .choice-mobile-banner-scrim {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.75) 100%);
+        }
+
+        .choice-mobile-banner-brand {
+          position: absolute;
+          top: 14px;
+          left: 16px;
+          z-index: 3;
+        }
+
+        .choice-mobile-dbs-logo {
+          height: 32px;
+          filter: brightness(0) invert(1);
+        }
+
+        .choice-mobile-dots {
+          position: absolute;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 6px;
+          z-index: 3;
+        }
+
+        .mobile-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.4);
+          transition: all 0.3s ease;
+        }
+
+        .mobile-dot.dot-active {
+          width: 18px;
+          border-radius: 3px;
+          background: #ffffff;
+        }
+
+        /* LEFT FORM COLUMN (50%) */
+        .choice-form-column {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 44px 50px;
+          background: #ffffff;
+          box-sizing: border-box;
+        }
+
+        .choice-form-inner {
+          width: 100%;
+          max-width: 380px;
+          display: flex;
+          flex-direction: column;
           text-align: center;
-          margin-bottom: 32px;
-          max-width: 680px;
         }
 
-        .choice-brand-logo-wrap {
+        .choice-brand-emblem-wrap {
+          margin-bottom: 20px;
           display: flex;
           justify-content: center;
-          align-items: center;
-          margin-bottom: 12px;
         }
 
-        .choice-main-logo {
-          height: 44px;
+        .choice-dbs-main-logo {
+          height: 52px;
           width: auto;
-          max-width: 260px;
           object-fit: contain;
-          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.04));
-        }
-
-        .choice-tagline {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: #562b63;
-          background: rgba(86, 43, 99, 0.07);
-          padding: 4px 12px;
-          border-radius: 20px;
-          margin-bottom: 12px;
         }
 
         .choice-title {
-          font-size: 2.1rem;
+          font-size: 1.65rem;
           font-weight: 800;
           color: #0f172a;
           letter-spacing: -0.025em;
+          margin-bottom: 4px;
           line-height: 1.2;
-          margin: 0 0 10px;
         }
 
         .choice-subtitle {
-          font-size: 0.95rem;
+          font-size: 0.84rem;
           color: #64748b;
-          line-height: 1.5;
+          margin-bottom: 24px;
+          line-height: 1.35;
+        }
+
+        /* TILES GROUP */
+        .choice-tiles-group {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          text-align: left;
+        }
+
+        .portal-choice-tile {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 16px 18px;
+          border-radius: 16px;
+          border: 1.5px solid #e2e8f0;
+          background: #ffffff;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+        }
+
+        .portal-choice-tile:hover {
+          border-color: #390c46;
+          background: #fdfafc;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px -4px rgba(57, 12, 70, 0.12);
+        }
+
+        .tile-left-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: #f5eff8;
+          color: #390c46;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          border: 1px solid rgba(57, 12, 70, 0.1);
+          transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .portal-choice-tile:hover .tile-left-icon {
+          background: #390c46;
+          color: #ffffff;
+          transform: scale(1.05);
+        }
+
+        .faculty-icon-bg {
+          background: #f1f5f9;
+          color: #1e293b;
+          border-color: #e2e8f0;
+        }
+
+        .tile-content {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .tile-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 2px;
+        }
+
+        .tile-title {
+          font-size: 0.98rem;
+          font-weight: 700;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+        }
+
+        .tile-badge {
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 4px;
+          letter-spacing: 0.03em;
+        }
+
+        .badge-student {
+          background: #fdf2f8;
+          color: #9d174d;
+          border: 1px solid #fbcfe8;
+        }
+
+        .badge-faculty {
+          background: #f8fafc;
+          color: #475569;
+          border: 1px solid #e2e8f0;
+        }
+
+        .tile-domain {
+          display: block;
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #390c46;
+          margin-bottom: 3px;
+          font-family: ui-monospace, monospace;
+        }
+
+        .tile-desc {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin: 0;
+          line-height: 1.35;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .tile-arrow-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+          flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+
+        .portal-choice-tile:hover .tile-arrow-circle {
+          background: #390c46;
+          border-color: #390c46;
+          color: #ffffff;
+          transform: translateX(3px);
+        }
+
+        /* BOTTOM SUPPORT */
+        .choice-bottom-note {
+          margin-top: 24px;
+          font-size: 0.8rem;
+          color: #64748b;
+        }
+
+        .choice-support-link {
+          background: none;
+          border: none;
+          color: #390c46;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: underline;
+          padding: 0;
+        }
+
+        .choice-support-link:hover {
+          color: #1e0525;
+        }
+
+        /* RIGHT COLUMN: 50% Photo Carousel */
+        .choice-image-column {
+          flex: 1;
+          position: relative;
+          overflow: hidden;
+          background: #0f172a;
+        }
+
+        .choice-slide {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .choice-slide.slide-active {
+          opacity: 1;
+        }
+
+        .choice-slide-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center 30%;
+        }
+
+        .choice-slide-gradient {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 60%;
+          background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.88) 100%);
+          pointer-events: none;
+        }
+
+        .choice-slide-overlay-content {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 36px 36px 32px;
+          color: #ffffff;
+          z-index: 2;
+        }
+
+        .choice-progress-bars {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 16px;
+        }
+
+        .choice-progress-track {
+          flex: 1;
+          height: 3px;
+          background: rgba(255, 255, 255, 0.28);
+          border-radius: 2px;
+          overflow: hidden;
+          cursor: pointer;
+        }
+
+        .choice-progress-fill {
+          height: 100%;
+          width: 0%;
+          background: #ffffff;
+        }
+
+        .choice-progress-fill.fill-complete {
+          width: 100%;
+        }
+
+        .choice-progress-fill.fill-animating {
+          animation-name: progressLinear;
+          animation-timing-function: linear;
+          animation-fill-mode: forwards;
+          background: #ec4899;
+        }
+
+        @keyframes progressLinear {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+
+        .choice-caption-box {
+          text-align: left;
+        }
+
+        .choice-slide-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 6px;
+          letter-spacing: -0.01em;
+          color: #ffffff;
+        }
+
+        .choice-slide-desc {
+          font-size: 0.82rem;
+          line-height: 1.45;
+          color: #e2e8f0;
           margin: 0;
         }
 
-        /* Two Choice Cards Grid */
-        .choice-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-          width: 100%;
-          margin-bottom: 28px;
-        }
-
-        .choice-card {
-          background: #ffffff;
-          border-radius: 20px;
-          border: 1.5px solid #e2e8f0;
-          padding: 28px 26px 24px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          cursor: pointer;
-          position: relative;
-          box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.02);
-          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-          outline: none;
-        }
-
-        .choice-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px -12px rgba(86, 43, 99, 0.16), 0 0 0 1.5px #562b63;
-          border-color: #562b63;
-        }
-
-        .choice-card:focus-visible {
-          box-shadow: 0 0 0 3px rgba(86, 43, 99, 0.25);
-          border-color: #562b63;
-        }
-
-        .card-top-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 18px;
-        }
-
-        .card-icon-wrap {
-          width: 54px;
-          height: 54px;
-          border-radius: 14px;
+        /* SUPPORT MODAL */
+        .support-modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.2s ease;
+          z-index: 99999;
+          padding: 20px;
+          animation: fadeIn 0.2s ease;
         }
 
-        .choice-card:hover .card-icon-wrap {
-          transform: scale(1.08);
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
-        .student-icon-wrap {
-          background: rgba(86, 43, 99, 0.08);
-          color: #562b63;
-        }
-
-        .faculty-icon-wrap {
-          background: rgba(57, 12, 70, 0.08);
-          color: #390c46;
-        }
-
-        .card-badge {
-          font-size: 0.72rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          padding: 4px 10px;
-          border-radius: 8px;
-        }
-
-        .student-badge {
-          background: #f3e8ff;
-          color: #6b21a8;
-        }
-
-        .faculty-badge {
-          background: #fdf2f8;
-          color: #9d174d;
-        }
-
-        .card-name {
-          font-size: 1.45rem;
-          font-weight: 800;
-          color: #0f172a;
-          margin: 0 0 4px;
-          letter-spacing: -0.015em;
-        }
-
-        .card-domain-slug {
-          font-size: 0.8rem;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          color: #562b63;
-          font-weight: 600;
-          margin-bottom: 12px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .card-domain-alias {
-          color: #94a3b8;
-          font-weight: 400;
-        }
-
-        .card-desc {
-          font-size: 0.86rem;
-          color: #64748b;
-          line-height: 1.45;
-          margin: 0 0 16px;
-        }
-
-        .card-feature-list {
-          list-style: none;
-          padding: 0;
-          margin: 0 0 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 7px;
-        }
-
-        .card-feature-list li {
-          font-size: 0.81rem;
-          color: #334155;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .feature-check {
-          color: #059669;
-          flex-shrink: 0;
-        }
-
-        /* Action Buttons */
-        .choice-action-btn {
+        .support-glass-card {
           width: 100%;
-          height: 46px;
-          border: none;
+          max-width: 440px;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(24px) saturate(200%);
+          -webkit-backdrop-filter: blur(24px) saturate(200%);
+          border-radius: 24px;
+          border: 1.5px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 
+            0 24px 60px -12px rgba(57, 12, 70, 0.25),
+            0 2px 8px rgba(0, 0, 0, 0.04);
+          padding: 28px;
+          animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes scaleUp {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        .support-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .support-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .support-icon-badge {
+          width: 40px;
+          height: 40px;
           border-radius: 12px;
-          font-size: 0.94rem;
-          font-weight: 600;
-          cursor: pointer;
+          background: #f5eff8;
+          color: #562b63;
           display: flex;
           align-items: center;
           justify-content: center;
+          border: 1px solid rgba(86, 43, 99, 0.12);
+        }
+
+        .support-title {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .support-subtitle {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin: 2px 0 0 0;
+        }
+
+        .support-close-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: #f1f5f9;
+          border: none;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .support-close-btn:hover {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        .support-card-body {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          text-align: left;
+        }
+
+        .support-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .support-item-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .support-email-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 8px 12px;
+          border-radius: 10px;
+        }
+
+        .support-email-text {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #390c46;
+          font-family: ui-monospace, monospace;
+        }
+
+        .copy-email-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 4px 10px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #334155;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .copy-email-btn:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+
+        .text-emerald {
+          color: #059669;
+        }
+
+        .support-val-text {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .direct-mail-cta {
+          margin-top: 8px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           gap: 8px;
+          height: 42px;
+          background: #390c46;
+          color: #ffffff;
+          border-radius: 10px;
+          font-size: 0.86rem;
+          font-weight: 600;
+          text-decoration: none;
           transition: all 0.18s ease;
         }
 
-        .student-btn {
-          background: #562b63;
-          color: #ffffff;
-          box-shadow: 0 4px 14px rgba(86, 43, 99, 0.22);
-        }
-
-        .student-btn:hover {
-          background: #461f52;
-          box-shadow: 0 6px 18px rgba(86, 43, 99, 0.32);
-        }
-
-        .faculty-btn {
-          background: #390c46;
-          color: #ffffff;
-          box-shadow: 0 4px 14px rgba(57, 12, 70, 0.22);
-        }
-
-        .faculty-btn:hover {
+        .direct-mail-cta:hover {
           background: #2a0834;
-          box-shadow: 0 6px 18px rgba(57, 12, 70, 0.32);
+          transform: translateY(-1px);
         }
 
-        /* Bottom Bar */
-        .choice-bottom-bar {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          font-size: 0.78rem;
-          color: #64748b;
-          text-align: center;
-        }
-
-        .choice-bottom-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .choice-bottom-icon {
-          color: #562b63;
-        }
-
-        .choice-bottom-sep {
-          color: #cbd5e1;
-        }
-
-        .choice-help-link {
-          color: #562b63;
-          font-weight: 600;
-          text-decoration: underline;
-        }
-
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
-          .choice-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 900px) {
+          .choice-auth-card {
+            flex-direction: column;
+            width: 100%;
+            max-width: 440px;
+            min-height: auto;
+            border-radius: 20px;
           }
 
-          .choice-title {
-            font-size: 1.6rem;
+          .choice-image-column {
+            display: none;
           }
 
-          .choice-card {
-            padding: 22px 18px 20px;
+          .choice-mobile-banner {
+            display: block;
           }
 
-          .choice-header {
-            margin-bottom: 24px;
+          .choice-form-column {
+            padding: 24px 20px 32px;
           }
         }
       `}</style>

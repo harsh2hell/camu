@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LifeBuoy, Mail, Copy, Check, X } from 'lucide-react';
 import { authApi, type UserSession } from '../api/auth';
 
 interface CamuLoginPageProps {
@@ -36,6 +36,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Support Modal & Copy Email state
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   // Registration state
   const [regName, setRegName] = useState('');
@@ -202,6 +206,19 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
   return (
     <div className="freshy-auth-viewport">
+      {/* FLOATING TOP BAR: Liquid Glass Support Button */}
+      <div className="freshy-floating-top-bar">
+        <button 
+          type="button" 
+          className="freshy-glass-pill-btn"
+          onClick={() => setShowSupportModal(true)}
+          title="Need IT or Academic Help?"
+        >
+          <LifeBuoy size={16} className="glass-btn-icon" />
+          <span className="glass-btn-text">Support</span>
+        </button>
+      </div>
+
       {/* Centered Modal / Canvas Container matching screenshot */}
       <div className="freshy-auth-card">
         
@@ -541,6 +558,76 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         </div>
       </div>
 
+      {/* SUPPORT MODAL (Liquid Glass Design) */}
+      {showSupportModal && (
+        <div className="support-modal-backdrop" onClick={() => setShowSupportModal(false)}>
+          <div className="support-glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="support-card-header">
+              <div className="support-header-left">
+                <div className="support-icon-badge">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h3 className="support-title">DBS University Support</h3>
+                  <p className="support-subtitle">Academic ERP &amp; IT Help Desk</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="support-close-btn"
+                onClick={() => setShowSupportModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="support-card-body">
+              <div className="support-item">
+                <span className="support-item-label">Technical Support Email:</span>
+                <div className="support-email-row">
+                  <span className="support-email-text">support@dbs.edu.in</span>
+                  <button 
+                    type="button" 
+                    className="copy-email-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText('support@dbs.edu.in');
+                      setCopiedEmail(true);
+                      setTimeout(() => setCopiedEmail(false), 2000);
+                    }}
+                  >
+                    {copiedEmail ? <Check size={14} className="text-emerald" /> : <Copy size={14} />}
+                    <span>{copiedEmail ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">Registrar Academic Office:</span>
+                <span className="support-val-text">registrar@dbs.edu.in</span>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">ERP Helpline:</span>
+                <span className="support-val-text">+91 135 269 9100 (Ext: 104)</span>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">Service Desk Hours:</span>
+                <span className="support-val-text">Monday &ndash; Saturday, 9:00 AM &ndash; 5:30 PM IST</span>
+              </div>
+
+              <a 
+                href="mailto:support@dbs.edu.in?subject=DBS%20Student%20Portal%20Support"
+                className="direct-mail-cta"
+              >
+                <Mail size={16} />
+                <span>Open Mail Client to support@dbs.edu.in</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         /* ==========================================================================
            FULLSCREEN VIEWPORT & ADAPTIVE SIZING ARCHITECTURE
@@ -554,6 +641,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           width: 100vw;
           background: #f8fafc;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 16px;
@@ -562,6 +650,211 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           box-sizing: border-box;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          position: relative;
+        }
+
+        .freshy-floating-top-bar {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          width: 100%;
+          max-width: 1020px;
+          margin-bottom: 12px;
+          z-index: 20;
+        }
+
+        .freshy-glass-pill-btn {
+          height: 38px;
+          padding: 0 16px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.78);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border: 1.5px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 
+            0 8px 24px -4px rgba(57, 12, 70, 0.08),
+            0 2px 6px 0 rgba(0, 0, 0, 0.04),
+            inset 0 1px 1px rgba(255, 255, 255, 0.9);
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #390c46;
+          cursor: pointer;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .freshy-glass-pill-btn:hover {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.92);
+          border-color: rgba(57, 12, 70, 0.25);
+          color: #210529;
+          box-shadow: 0 12px 28px -4px rgba(57, 12, 70, 0.16);
+        }
+
+        .glass-btn-icon {
+          color: #562b63;
+        }
+
+        /* Support Modal Styles */
+        .support-modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 99999;
+          padding: 20px;
+        }
+
+        .support-glass-card {
+          width: 100%;
+          max-width: 440px;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(24px) saturate(200%);
+          -webkit-backdrop-filter: blur(24px) saturate(200%);
+          border-radius: 24px;
+          border: 1.5px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 0 24px 60px -12px rgba(57, 12, 70, 0.25);
+          padding: 28px;
+        }
+
+        .support-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .support-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .support-icon-badge {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: #f5eff8;
+          color: #562b63;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .support-title {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .support-subtitle {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin: 2px 0 0 0;
+        }
+
+        .support-close-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: #f1f5f9;
+          border: none;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .support-card-body {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          text-align: left;
+        }
+
+        .support-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .support-item-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .support-email-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 8px 12px;
+          border-radius: 10px;
+        }
+
+        .support-email-text {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #390c46;
+          font-family: ui-monospace, monospace;
+        }
+
+        .copy-email-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 4px 10px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #334155;
+          cursor: pointer;
+        }
+
+        .text-emerald {
+          color: #059669;
+        }
+
+        .support-val-text {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .direct-mail-cta {
+          margin-top: 8px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 42px;
+          background: #390c46;
+          color: #ffffff;
+          border-radius: 10px;
+          font-size: 0.86rem;
+          font-weight: 600;
+          text-decoration: none;
+        }
+
+        .direct-mail-cta:hover {
+          background: #2a0834;
         }
 
         .freshy-auth-card {

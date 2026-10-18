@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, ShieldCheck, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, LifeBuoy, Mail, Copy, Check, X } from 'lucide-react';
 import { authApi, type UserSession } from '../api/auth';
 
 interface TeacherLoginPageProps {
@@ -14,7 +14,6 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
   // Dynamic user detection: Returning vs. First-Time visitor
   const [savedEmail, setSavedEmail] = useState<string>(() => {
     const email = localStorage.getItem('dbs_last_user_email') || '';
-    // If last email was faculty, prefill it
     return email.toLowerCase().includes('sharma') || email.toLowerCase().includes('faculty') || email.toLowerCase().includes('prof') 
       ? email 
       : '';
@@ -35,6 +34,10 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Support Modal & Copy Email state
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   // 2.5s Academic Carousel transition
   const SLIDE_DURATION = 2500;
@@ -138,6 +141,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
       localStorage.setItem('dbs_last_user_email', session.email || 'rajesh.sharma@dbs.edu.in');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
+
       onLoginSuccess({ ...session, role: 'FACULTY' });
     } catch {
       setErrorMessage('Google Workspace SSO failed.');
@@ -146,8 +150,41 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
     }
   };
 
+  const handleCopySupportEmail = () => {
+    navigator.clipboard.writeText('support@dbs.edu.in');
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
+
   return (
     <div className="faculty-auth-viewport">
+      
+      {/* FLOATING TOP BAR: Liquid Glass Cylindrical Buttons */}
+      <div className="faculty-floating-top-bar">
+        {onSwitchToStudent && (
+          <button 
+            type="button" 
+            className="liquid-glass-btn student-switch-glass"
+            onClick={onSwitchToStudent}
+            title="Go to Student Portal"
+          >
+            <GraduationCap size={16} className="glass-btn-icon" />
+            <span className="glass-btn-text">Student? Login here</span>
+            <span className="glass-btn-arrow">&rarr;</span>
+          </button>
+        )}
+
+        <button 
+          type="button" 
+          className="liquid-glass-btn support-glass"
+          onClick={() => setShowSupportModal(true)}
+          title="Need IT or Academic Help?"
+        >
+          <LifeBuoy size={16} className="glass-btn-icon" />
+          <span className="glass-btn-text">Support</span>
+        </button>
+      </div>
+
       <div className="faculty-auth-card">
         
         {/* MOBILE ONLY: Compact DBS Campus Hero Banner */}
@@ -189,14 +226,6 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
                 alt="DBS Global University" 
                 className="faculty-dbs-main-logo"
               />
-            </div>
-
-            {/* Portal Badge Indicator */}
-            <div className="faculty-domain-indicator">
-              <span className="faculty-status-dot" />
-              <strong>teacher.autonex.studio</strong>
-              <span className="domain-sep">&bull;</span>
-              <span>Faculty Gateway</span>
             </div>
 
             {/* 2. Dynamic Titles: Returning vs. New Faculty */}
@@ -309,32 +338,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
               >
                 {isLoading ? 'Authenticating...' : 'Sign in to Faculty Suite'}
               </button>
-
-              {/* 7. Switch to Student Portal Link */}
-              <div className="faculty-student-switch-row">
-                <span>Are you a student? </span>
-                <button
-                  type="button"
-                  className="faculty-student-link"
-                  onClick={onSwitchToStudent}
-                >
-                  <GraduationCap size={14} className="inline-icon" />
-                  Go to Student Portal
-                </button>
-              </div>
             </form>
-
-            {/* 8. Bottom Terms & Security Disclaimer */}
-            <div className="faculty-legal-disclaimer">
-              <div className="faculty-security-note">
-                <ShieldCheck size={12} />
-                <span>Authorized Faculty &amp; Academic Staff Access Only</span>
-              </div>
-              <span>By accessing you acknowledge DBS Global University </span>
-              <a href="#it-policy" onClick={(e) => { e.preventDefault(); alert('DBS IT & Academic Security Policy'); }}>
-                IT &amp; Security Policy
-              </a>.
-            </div>
           </div>
         </div>
 
@@ -344,157 +348,333 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className="faculty-image-card-container">
-            {slides.map((slide, idx) => (
-              <div 
-                key={idx}
-                className={`faculty-campus-photo-layer ${idx === activeSlide ? 'photo-active' : ''}`}
-              >
-                <img 
-                  src={slide.desktopImage || slide.image} 
-                  alt={slide.title} 
-                  className="faculty-campus-photo"
-                />
-              </div>
-            ))}
-            
-            <div className="faculty-image-scrim" />
+          {slides.map((slide, idx) => (
+            <div
+              key={idx}
+              className={`faculty-slide ${idx === activeSlide ? 'slide-active' : ''}`}
+            >
+              <img 
+                src={slide.desktopImage || slide.image} 
+                alt={slide.title} 
+                className="faculty-slide-img"
+              />
+            </div>
+          ))}
 
-            <div className="faculty-image-overlay-content">
-              <div className="faculty-carousel-bars">
-                {slides.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`carousel-bar-line ${
-                      idx === activeSlide 
-                        ? 'bar-active' 
-                        : idx < activeSlide 
-                          ? 'bar-completed' 
-                          : ''
+          {/* Bottom Vignette Gradient */}
+          <div className="faculty-slide-gradient" />
+
+          {/* Carousel Progress Bar & Captions */}
+          <div className="faculty-slide-overlay-content">
+            <div className="faculty-progress-bars">
+              {slides.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className="faculty-progress-track"
+                  onClick={() => handleSelectSlide(idx)}
+                >
+                  <div 
+                    className={`faculty-progress-fill ${
+                      idx === activeSlide ? 'fill-animating' : idx < activeSlide ? 'fill-complete' : ''
                     }`}
-                    onClick={() => handleSelectSlide(idx)}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  >
-                    {idx === activeSlide && (
-                      <span 
-                        key={progressKey}
-                        className="carousel-bar-progress" 
-                        style={{
-                          animationDuration: `${SLIDE_DURATION}ms`,
-                          animationPlayState: isPaused ? 'paused' : 'running',
-                        }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
+                    key={idx === activeSlide ? progressKey : undefined}
+                    style={{
+                      animationDuration: `${SLIDE_DURATION}ms`,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
 
-              <div key={activeSlide} className="faculty-slide-text-wrapper">
-                <h2 className="faculty-slide-title">{slides[activeSlide].title}</h2>
-                <p className="faculty-slide-desc">{slides[activeSlide].desc}</p>
-              </div>
+            <div className="faculty-caption-box">
+              <h2 className="faculty-slide-title">
+                {slides[activeSlide].title}
+              </h2>
+              <p className="faculty-slide-desc">
+                {slides[activeSlide].desc}
+              </p>
             </div>
           </div>
         </div>
+
       </div>
+
+      {/* SUPPORT MODAL (Liquid Glass Design) */}
+      {showSupportModal && (
+        <div className="support-modal-backdrop" onClick={() => setShowSupportModal(false)}>
+          <div className="support-glass-card" onClick={(e) => e.stopPropagation()}>
+            <div className="support-card-header">
+              <div className="support-header-left">
+                <div className="support-icon-badge">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h3 className="support-title">DBS University Support</h3>
+                  <p className="support-subtitle">Academic ERP &amp; IT Help Desk</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="support-close-btn"
+                onClick={() => setShowSupportModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="support-card-body">
+              <div className="support-item">
+                <span className="support-item-label">Technical Support Email:</span>
+                <div className="support-email-row">
+                  <span className="support-email-text">support@dbs.edu.in</span>
+                  <button 
+                    type="button" 
+                    className="copy-email-btn"
+                    onClick={handleCopySupportEmail}
+                  >
+                    {copiedEmail ? <Check size={14} className="text-emerald" /> : <Copy size={14} />}
+                    <span>{copiedEmail ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">Registrar Academic Office:</span>
+                <span className="support-val-text">registrar@dbs.edu.in</span>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">ERP Helpline:</span>
+                <span className="support-val-text">+91 135 269 9100 (Ext: 104)</span>
+              </div>
+
+              <div className="support-item">
+                <span className="support-item-label">Service Desk Hours:</span>
+                <span className="support-val-text">Monday &ndash; Saturday, 9:00 AM &ndash; 5:30 PM IST</span>
+              </div>
+
+              <a 
+                href="mailto:support@dbs.edu.in?subject=DBS%20Portal%20Login%20Support"
+                className="direct-mail-cta"
+              >
+                <Mail size={16} />
+                <span>Open Mail Client to support@dbs.edu.in</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .faculty-auth-viewport {
           min-height: 100vh;
-          min-height: 100dvh;
           width: 100vw;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
           background: #f8fafc;
+          padding: 24px;
+          box-sizing: border-box;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          position: relative;
+        }
+
+        /* FLOATING TOP GLASS BAR */
+        .faculty-floating-top-bar {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 16px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          color: #0f172a;
-          box-sizing: border-box;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
+          gap: 12px;
+          margin-bottom: 16px;
+          z-index: 20;
+          animation: fadeInDown 0.3s ease;
         }
 
+        @keyframes fadeInDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* LIQUID GLASS CYLINDRICAL BUTTON */
+        .liquid-glass-btn {
+          height: 42px;
+          padding: 0 20px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.78);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border: 1.5px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 
+            0 8px 24px -4px rgba(57, 12, 70, 0.08),
+            0 2px 6px 0 rgba(0, 0, 0, 0.04),
+            inset 0 1px 1px rgba(255, 255, 255, 0.9);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.86rem;
+          font-weight: 600;
+          color: #390c46;
+          cursor: pointer;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .liquid-glass-btn:hover {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.92);
+          border-color: rgba(57, 12, 70, 0.25);
+          box-shadow: 
+            0 12px 28px -4px rgba(57, 12, 70, 0.16),
+            0 4px 10px 0 rgba(0, 0, 0, 0.06),
+            inset 0 1px 2px rgba(255, 255, 255, 1);
+          color: #210529;
+        }
+
+        .liquid-glass-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 4px 12px rgba(57, 12, 70, 0.1);
+        }
+
+        .glass-btn-icon {
+          color: #562b63;
+        }
+
+        .glass-btn-arrow {
+          font-weight: 700;
+          transition: transform 0.18s ease;
+        }
+
+        .liquid-glass-btn:hover .glass-btn-arrow {
+          transform: translateX(3px);
+        }
+
+        /* MAIN CARD */
         .faculty-auth-card {
-          width: 100%;
-          max-width: 1020px;
-          height: calc(100dvh - 36px);
-          max-height: 600px;
-          min-height: 480px;
+          width: 1040px;
+          max-width: 95vw;
+          min-height: 580px;
           background: #ffffff;
-          border-radius: 20px;
-          box-shadow: 0 16px 48px -12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
-          display: grid;
-          grid-template-columns: 1fr 1fr;
+          border-radius: 28px;
+          box-shadow: 
+            0 20px 50px -10px rgba(15, 23, 42, 0.08),
+            0 1px 3px 0 rgba(0, 0, 0, 0.02);
+          border: 1px solid #f1f5f9;
+          display: flex;
           overflow: hidden;
           position: relative;
         }
 
+        /* MOBILE BANNER */
         .faculty-mobile-banner {
           display: none;
+          position: relative;
+          width: 100%;
+          height: 180px;
+          overflow: hidden;
         }
 
-        /* Left Column: Form */
-        .faculty-form-column {
-          padding: 24px 38px 20px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
+        .faculty-mobile-banner-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
           height: 100%;
+          object-fit: cover;
+          opacity: 0;
+          transition: opacity 0.8s ease-in-out;
+        }
+
+        .faculty-mobile-banner-img.banner-active {
+          opacity: 1;
+        }
+
+        .faculty-mobile-banner-scrim {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.75) 100%);
+        }
+
+        .faculty-mobile-banner-brand {
+          position: absolute;
+          top: 14px;
+          left: 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          z-index: 3;
+        }
+
+        .faculty-mobile-dbs-logo {
+          height: 32px;
+          filter: brightness(0) invert(1);
+        }
+
+        .faculty-badge-pill {
+          font-size: 0.65rem;
+          font-weight: 700;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(8px);
+          color: #ffffff;
+          padding: 3px 8px;
+          border-radius: 4px;
+        }
+
+        .faculty-mobile-dots {
+          position: absolute;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 6px;
+          z-index: 3;
+        }
+
+        .mobile-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.4);
+          transition: all 0.3s ease;
+        }
+
+        .mobile-dot.dot-active {
+          width: 18px;
+          border-radius: 3px;
+          background: #ffffff;
+        }
+
+        /* LEFT FORM COLUMN (50%) */
+        .faculty-form-column {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 44px 52px;
+          background: #ffffff;
           box-sizing: border-box;
-          overflow-y: auto;
-          scrollbar-width: thin;
         }
 
         .faculty-form-inner {
-          max-width: 350px;
           width: 100%;
-          margin: 0 auto;
+          max-width: 370px;
+          display: flex;
+          flex-direction: column;
           text-align: center;
         }
 
         .faculty-brand-emblem-wrap {
+          margin-bottom: 20px;
           display: flex;
           justify-content: center;
-          align-items: center;
-          margin-bottom: 8px;
         }
 
         .faculty-dbs-main-logo {
-          height: 38px;
+          height: 52px;
           width: auto;
-          max-width: 220px;
           object-fit: contain;
-          filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.03));
-        }
-
-        .faculty-domain-indicator {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.73rem;
-          color: #390c46;
-          background: rgba(57, 12, 70, 0.06);
-          padding: 3px 10px;
-          border-radius: 12px;
-          margin-bottom: 8px;
-        }
-
-        .faculty-status-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #059669;
-        }
-
-        .domain-sep {
-          color: #94a3b8;
         }
 
         .faculty-title {
-          font-size: 1.55rem;
+          font-size: 1.65rem;
           font-weight: 800;
           color: #0f172a;
           letter-spacing: -0.025em;
@@ -601,40 +781,32 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
         }
 
         .faculty-switch-user-btn {
-          font-size: 0.74rem;
-          color: #475569;
-          font-weight: 600;
           background: none;
           border: none;
+          color: #390c46;
+          font-size: 0.75rem;
+          font-weight: 600;
           cursor: pointer;
-          padding: 0;
           text-decoration: underline;
-          transition: color 0.15s ease;
-        }
-
-        .faculty-switch-user-btn:hover {
-          color: #0f172a;
         }
 
         .faculty-forgot-link {
-          font-size: 0.74rem;
-          color: #64748b;
-          font-weight: 500;
           background: none;
           border: none;
+          color: #64748b;
+          font-size: 0.75rem;
           cursor: pointer;
-          padding: 0;
+          text-decoration: underline;
         }
 
         .faculty-forgot-link:hover {
           color: #0f172a;
-          text-decoration: underline;
         }
 
         .faculty-text-input {
           width: 100%;
-          height: 40px;
-          padding: 8px 14px;
+          height: 42px;
+          padding: 0 12px;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
           font-size: 0.86rem;
@@ -705,351 +877,317 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
           cursor: not-allowed;
         }
 
-        /* Switch to student link */
-        .faculty-student-switch-row {
-          text-align: center;
-          font-size: 0.82rem;
-          color: #64748b;
-          margin-top: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-        }
-
-        .faculty-student-link {
-          color: #0f172a;
-          font-weight: 700;
-          background: none;
-          border: none;
-          cursor: pointer;
-          text-decoration: underline;
-          padding: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          transition: color 0.15s ease;
-        }
-
-        .faculty-student-link:hover {
-          color: #334155;
-        }
-
-        .inline-icon {
-          color: #562b63;
-        }
-
-        /* Bottom Disclaimer */
-        .faculty-legal-disclaimer {
-          text-align: center;
-          font-size: 0.68rem;
-          color: #94a3b8;
-          line-height: 1.45;
-          margin-top: 20px;
-        }
-
-        .faculty-security-note {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 5px;
-          color: #64748b;
-          font-weight: 600;
-          margin-bottom: 4px;
-        }
-
-        .faculty-legal-disclaimer a {
-          color: #0f172a;
-          font-weight: 600;
-          text-decoration: underline;
-          transition: color 0.15s ease;
-        }
-
-        .faculty-legal-disclaimer a:hover {
-          color: #334155;
-        }
-
-        /* Right Column: Carousel */
+        /* RIGHT COLUMN: 50% Photo Carousel */
         .faculty-image-column {
-          padding: 10px;
-          display: flex;
-          height: 100%;
-          box-sizing: border-box;
-          user-select: none;
-        }
-
-        .faculty-image-card-container {
+          flex: 1;
           position: relative;
-          width: 100%;
-          height: 100%;
-          border-radius: 16px;
           overflow: hidden;
-          background: #1f0727;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
+          background: #0f172a;
         }
 
-        .faculty-campus-photo-layer {
+        .faculty-slide {
           position: absolute;
           inset: 0;
           opacity: 0;
-          transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1);
-          pointer-events: none;
-          z-index: 1;
+          transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .faculty-campus-photo-layer.photo-active {
+        .faculty-slide.slide-active {
           opacity: 1;
-          pointer-events: auto;
-          z-index: 2;
         }
 
-        .faculty-campus-photo {
+        .faculty-slide-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          object-position: center 25%;
+          object-position: center 30%;
         }
 
-        .faculty-image-scrim {
+        .faculty-slide-gradient {
           position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            to bottom,
-            rgba(0, 0, 0, 0.0) 0%,
-            rgba(31, 7, 39, 0.15) 40%,
-            rgba(31, 7, 39, 0.85) 75%,
-            rgba(31, 7, 39, 0.98) 100%
-          );
-          z-index: 3;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 60%;
+          background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.88) 100%);
           pointer-events: none;
         }
 
-        .faculty-image-overlay-content {
-          position: relative;
-          z-index: 10;
-          padding: 22px 24px;
-          color: #ffffff;
-        }
-
-        .faculty-carousel-bars {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          margin-bottom: 8px;
-        }
-
-        .carousel-bar-line {
-          position: relative;
-          height: 3px;
-          width: 9px;
-          border-radius: 9999px;
-          background: rgba(255, 255, 255, 0.3);
-          border: none;
-          cursor: pointer;
-          transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
-          padding: 0;
-          overflow: hidden;
-        }
-
-        .carousel-bar-line.bar-completed {
-          background: rgba(255, 255, 255, 0.85);
-        }
-
-        .carousel-bar-line.bar-active {
-          width: 24px;
-          background: rgba(255, 255, 255, 0.3);
-        }
-
-        .carousel-bar-progress {
+        .faculty-slide-overlay-content {
           position: absolute;
-          top: 0;
-          left: 0;
           bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 36px 36px 32px;
+          color: #ffffff;
+          z-index: 2;
+        }
+
+        .faculty-progress-bars {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 16px;
+        }
+
+        .faculty-progress-track {
+          flex: 1;
+          height: 3px;
+          background: rgba(255, 255, 255, 0.28);
+          border-radius: 2px;
+          overflow: hidden;
+          cursor: pointer;
+        }
+
+        .faculty-progress-fill {
+          height: 100%;
           width: 0%;
-          background: linear-gradient(90deg, #d946ef, #ff3366);
-          border-radius: 9999px;
-          animation: fillProgress linear forwards;
-          box-shadow: 0 0 8px rgba(217, 70, 239, 0.8);
+          background: #ffffff;
         }
 
-        @keyframes fillProgress {
-          0% { width: 0%; }
-          100% { width: 100%; }
+        .faculty-progress-fill.fill-complete {
+          width: 100%;
         }
 
-        .faculty-slide-text-wrapper {
-          animation: slideTextFade 0.45s ease-out;
+        .faculty-progress-fill.fill-animating {
+          animation-name: progressLinear;
+          animation-timing-function: linear;
+          animation-fill-mode: forwards;
+          background: #ec4899;
         }
 
-        @keyframes slideTextFade {
-          from {
-            opacity: 0;
-            transform: translateY(6px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        @keyframes progressLinear {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+
+        .faculty-caption-box {
+          text-align: left;
         }
 
         .faculty-slide-title {
           font-size: 1.25rem;
           font-weight: 700;
+          margin-bottom: 6px;
+          letter-spacing: -0.01em;
           color: #ffffff;
-          line-height: 1.2;
-          margin-bottom: 4px;
         }
 
         .faculty-slide-desc {
-          font-size: 0.74rem;
-          color: #cbd5e1;
-          line-height: 1.4;
-          max-width: 380px;
-          opacity: 0.92;
+          font-size: 0.82rem;
+          line-height: 1.45;
+          color: #e2e8f0;
+          margin: 0;
         }
 
-        /* Large desktop expansion */
-        @media (min-height: 760px) and (min-width: 821px) {
-          .faculty-auth-card {
-            max-width: 1040px;
-            max-height: 640px;
-            grid-template-columns: 1fr 1fr;
-            border-radius: 24px;
-          }
-          .faculty-form-column {
-            padding: 30px 42px 24px;
-          }
-          .faculty-dbs-main-logo {
-            height: 44px;
-            max-width: 250px;
-          }
-          .faculty-title {
-            font-size: 1.65rem;
-          }
-          .faculty-subtitle {
-            font-size: 0.86rem;
-            margin-bottom: 18px;
-          }
-          .faculty-submit-btn {
-            height: 46px;
-            font-size: 0.94rem;
-          }
+        /* SUPPORT MODAL (Liquid Glass) */
+        .support-modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 99999;
+          padding: 20px;
+          animation: fadeIn 0.2s ease;
         }
 
-        /* Mobile responsiveness */
-        @media (max-width: 820px) {
-          .faculty-auth-viewport {
-            height: auto;
-            min-height: 100dvh;
-            padding: 10px 10px 24px;
-            align-items: flex-start;
-          }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
 
+        .support-glass-card {
+          width: 100%;
+          max-width: 440px;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(24px) saturate(200%);
+          -webkit-backdrop-filter: blur(24px) saturate(200%);
+          border-radius: 24px;
+          border: 1.5px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 
+            0 24px 60px -12px rgba(57, 12, 70, 0.25),
+            0 2px 8px rgba(0, 0, 0, 0.04);
+          padding: 28px;
+          animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes scaleUp {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        .support-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .support-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .support-icon-badge {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: #f5eff8;
+          color: #562b63;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(86, 43, 99, 0.12);
+        }
+
+        .support-title {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .support-subtitle {
+          font-size: 0.75rem;
+          color: #64748b;
+          margin: 2px 0 0 0;
+        }
+
+        .support-close-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: #f1f5f9;
+          border: none;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .support-close-btn:hover {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        .support-card-body {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          text-align: left;
+        }
+
+        .support-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .support-item-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .support-email-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 8px 12px;
+          border-radius: 10px;
+        }
+
+        .support-email-text {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #390c46;
+          font-family: ui-monospace, monospace;
+        }
+
+        .copy-email-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 4px 10px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #334155;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .copy-email-btn:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+
+        .text-emerald {
+          color: #059669;
+        }
+
+        .support-val-text {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .direct-mail-cta {
+          margin-top: 8px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 42px;
+          background: #390c46;
+          color: #ffffff;
+          border-radius: 10px;
+          font-size: 0.86rem;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.18s ease;
+        }
+
+        .direct-mail-cta:hover {
+          background: #2a0834;
+          transform: translateY(-1px);
+        }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 900px) {
           .faculty-auth-card {
-            grid-template-columns: 1fr;
-            height: auto;
-            max-height: none;
-            min-height: auto;
+            flex-direction: column;
+            width: 100%;
             max-width: 440px;
-            margin: 0 auto;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-          }
-
-          .faculty-mobile-banner {
-            display: block;
-            position: relative;
-            height: 130px;
-            width: 100%;
-            overflow: hidden;
-            background: #1f0727;
-          }
-
-          .faculty-mobile-banner-img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0;
-            transition: opacity 0.75s ease-in-out;
-          }
-
-          .faculty-mobile-banner-img.banner-active {
-            opacity: 1;
-          }
-
-          .faculty-mobile-banner-scrim {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-              to bottom,
-              rgba(31, 7, 39, 0.25) 0%,
-              rgba(31, 7, 39, 0.88) 100%
-            );
-          }
-
-          .faculty-mobile-banner-brand {
-            position: absolute;
-            bottom: 12px;
-            left: 16px;
-            right: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 5;
-          }
-
-          .faculty-mobile-dbs-logo {
-            height: 28px;
-            width: auto;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
-          }
-
-          .faculty-badge-pill {
-            font-size: 0.68rem;
-            font-weight: 700;
-            color: #ffffff;
-            background: rgba(57, 12, 70, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 3px 8px;
-            border-radius: 6px;
-          }
-
-          .faculty-mobile-dots {
-            position: absolute;
-            top: 10px;
-            right: 14px;
-            display: flex;
-            gap: 4px;
-            z-index: 5;
-          }
-
-          .mobile-dot {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.35);
-            transition: all 0.3s ease;
-          }
-
-          .mobile-dot.dot-active {
-            width: 14px;
-            border-radius: 9999px;
-            background: linear-gradient(90deg, #d946ef, #ff3366);
-            box-shadow: 0 0 6px rgba(217, 70, 239, 0.7);
+            min-height: auto;
+            border-radius: 20px;
           }
 
           .faculty-image-column {
             display: none;
           }
 
+          .faculty-mobile-banner {
+            display: block;
+          }
+
           .faculty-form-column {
-            padding: 22px 20px 24px;
-            overflow-y: visible;
+            padding: 24px 20px 32px;
           }
         }
       `}</style>
