@@ -122,7 +122,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
     setErrorMessage(null);
 
     try {
-      const session = await authApi.login(emailOrEmpId, password);
+      const session = await authApi.login(emailOrEmpId, password, 'FACULTY');
       localStorage.setItem('dbs_last_user_email', emailOrEmpId.trim());
       localStorage.setItem('dbs_last_user_role', 'FACULTY');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
@@ -142,7 +142,7 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      const session = await authApi.loginWithGoogle();
+      const session = await authApi.loginWithGoogle('FACULTY');
       localStorage.setItem('dbs_last_user_email', session.email || 'rajesh.sharma@dgu.ac.in');
       localStorage.setItem('dbs_last_user_role', 'FACULTY');
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);

@@ -23,6 +23,11 @@ function isTeacherAttempt(): boolean {
   const pathname = window.location.pathname.toLowerCase();
   const query = new URLSearchParams(window.location.search).get('portal');
 
+  // If path or query specifically targets student portal, don't flag as teacher attempt
+  if (pathname === '/student' || pathname.startsWith('/student/') || query === 'student') {
+    return false;
+  }
+
   return (
     hostname.startsWith('teacher.') ||
     hostname.startsWith('faculty.') ||
@@ -90,6 +95,24 @@ export function App() {
 
   // Check saved session & enforce route security on mount
   useEffect(() => {
+    const currentHostname = window.location.hostname.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
+    const isCustomDomain = currentHostname.includes('autonex.studio') || currentHostname.includes('dgu.');
+
+    // Auto-heal misrouted URLs (e.g. teacher.autonex.studio/student -> student.autonex.studio/)
+    if (isCustomDomain && currentHostname.startsWith('teacher.') && (pathname === '/student' || pathname.startsWith('/student/'))) {
+      const baseDomain = currentHostname.replace(/^(teacher|student|faculty|www)\./, '');
+      window.location.replace(`${window.location.protocol}//student.${baseDomain}/`);
+      return;
+    }
+
+    // Auto-heal misrouted URLs (e.g. student.autonex.studio/teacher -> teacher.autonex.studio/)
+    if (isCustomDomain && currentHostname.startsWith('student.') && (pathname === '/teacher' || pathname.startsWith('/teacher/'))) {
+      const baseDomain = currentHostname.replace(/^(teacher|student|faculty|www)\./, '');
+      window.location.replace(`${window.location.protocol}//teacher.${baseDomain}/`);
+      return;
+    }
+
     const existing = authApi.getCurrentSession();
     const teacherRouteRequested = isTeacherAttempt();
 
@@ -151,17 +174,38 @@ export function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const handleSelectPortal = (target: 'student' | 'teacher') => {
+  const switchPortal = (target: 'student' | 'teacher') => {
+    localStorage.setItem('dbs_last_user_role', target === 'student' ? 'STUDENT' : 'FACULTY');
+
     const currentHostname = window.location.hostname.toLowerCase();
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : '';
     const isCustomDomain = currentHostname.includes('autonex.studio') || currentHostname.includes('dgu.');
 
-    if (isCustomDomain && !currentHostname.startsWith('student.') && !currentHostname.startsWith('teacher.')) {
-      const baseDomain = currentHostname.replace(/^www\./, '');
+    // 1. Production / Custom domain: redirect across subdomains
+    if (isCustomDomain) {
+      const baseDomain = currentHostname.replace(/^(teacher|student|faculty|www)\./, '');
       const sub = target === 'student' ? 'student.' : 'teacher.';
-      window.location.href = `${window.location.protocol}//${sub}${baseDomain}`;
-      return;
+      const targetUrl = `${protocol}//${sub}${baseDomain}/`;
+      
+      // If we are not already on the destination subdomain, perform full browser navigation
+      if (!currentHostname.startsWith(sub)) {
+        window.location.href = targetUrl;
+        return;
+      }
     }
 
+    // 2. Localhost with subdomains (e.g. teacher.localhost, student.localhost)
+    if (currentHostname.endsWith('.localhost') || currentHostname === 'teacher.localhost' || currentHostname === 'student.localhost') {
+      const sub = target === 'student' ? 'student' : 'teacher';
+      const targetUrl = `${protocol}//${sub}.localhost${port}/`;
+      if (!currentHostname.startsWith(`${sub}.`)) {
+        window.location.href = targetUrl;
+        return;
+      }
+    }
+
+    // 3. Fallback for path-based local testing (e.g. localhost:5173/student or /teacher)
     if (target === 'student') {
       setPortalView('student-login');
       window.history.pushState({}, '', '/student');
@@ -169,6 +213,10 @@ export function App() {
       setPortalView('teacher-login');
       window.history.pushState({}, '', '/teacher');
     }
+  };
+
+  const handleSelectPortal = (target: 'student' | 'teacher') => {
+    switchPortal(target);
   };
 
   const handleLoginSuccess = (newSession: UserSession) => {
@@ -203,9 +251,20 @@ export function App() {
     setShowSecurityChallenge(false);
 
     const currentHostname = window.location.hostname.toLowerCase();
+    const isCustomDomain = currentHostname.includes('autonex.studio') || currentHostname.includes('dgu.');
+
+    // 4. Fallback redirect directly to their respective login page on the appropriate subdomain
+    if (isCustomDomain) {
+      const baseDomain = currentHostname.replace(/^(teacher|student|faculty|www)\./, '');
+      const sub = targetRole === 'FACULTY' ? 'teacher.' : 'student.';
+      if (!currentHostname.startsWith(sub)) {
+        window.location.href = `${window.location.protocol}//${sub}${baseDomain}/`;
+        return;
+      }
+    }
+
     const isSubdomain = currentHostname.startsWith('student.') || currentHostname.startsWith('teacher.');
 
-    // 4. Fallback redirect directly to their respective login page, NEVER to choice page!
     if (targetRole === 'FACULTY') {
       setPortalView('teacher-login');
       if (!isSubdomain) {
@@ -272,12 +331,10 @@ export function App() {
   };
 
   const handleSecuritySignOutToFaculty = () => {
-    localStorage.setItem('dbs_last_user_role', 'FACULTY');
     authApi.logout();
     setSession(null);
     setShowSecurityChallenge(false);
-    setPortalView('teacher-login');
-    window.history.pushState({}, '', '/teacher');
+    switchPortal('teacher');
   };
 
   if (isInitializing) {
@@ -300,11 +357,7 @@ export function App() {
       return (
         <TeacherLoginPage 
           onLoginSuccess={handleLoginSuccess}
-          onSwitchToStudent={() => {
-            localStorage.setItem('dbs_last_user_role', 'STUDENT');
-            setPortalView('student-login');
-            window.history.pushState({}, '', '/student');
-          }}
+          onSwitchToStudent={() => switchPortal('student')}
         />
       );
     }
@@ -313,11 +366,7 @@ export function App() {
     return (
       <CamuLoginPage 
         portalMode="student"
-        onTogglePortal={() => {
-          localStorage.setItem('dbs_last_user_role', 'FACULTY');
-          setPortalView('teacher-login');
-          window.history.pushState({}, '', '/teacher');
-        }}
+        onTogglePortal={() => switchPortal('teacher')}
         onLoginSuccess={handleLoginSuccess} 
       />
     );

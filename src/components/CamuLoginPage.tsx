@@ -152,16 +152,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     setErrorMessage(null);
 
     try {
-      const session = await authApi.login(emailOrRoll, password);
+      const targetRole = isStudent ? 'STUDENT' : 'FACULTY';
+      const session = await authApi.login(emailOrRoll, password, targetRole);
       // Persist email & name for returning user detection
       localStorage.setItem('dbs_last_user_email', emailOrRoll.trim());
-      localStorage.setItem('dbs_last_user_role', 'STUDENT');
+      localStorage.setItem('dbs_last_user_role', targetRole);
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
 
       onLoginSuccess({
         ...session,
-        role: isStudent ? 'STUDENT' : 'FACULTY',
+        role: targetRole,
       });
     } catch (err: any) {
       setErrorMessage(err.message || 'Invalid credentials. Please try again.');
@@ -173,12 +174,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      const session = await authApi.loginWithGoogle();
-      localStorage.setItem('dbs_last_user_email', session.email || 'harsh.23cse@dgu.ac.in');
-      localStorage.setItem('dbs_last_user_role', 'STUDENT');
+      const targetRole = isStudent ? 'STUDENT' : 'FACULTY';
+      const session = await authApi.loginWithGoogle(targetRole);
+      localStorage.setItem('dbs_last_user_email', session.email || (isStudent ? 'harsh.23cse@dgu.ac.in' : 'rajesh.sharma@dgu.ac.in'));
+      localStorage.setItem('dbs_last_user_role', targetRole);
       if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
-      onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
+      onLoginSuccess({ ...session, role: targetRole });
     } catch {
       setErrorMessage('Google SSO failed.');
     } finally {

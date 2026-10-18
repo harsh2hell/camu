@@ -14,24 +14,37 @@ export interface UserSession {
 
 export const authApi = {
   // Real login API call with fallback for client-side persistence
-  async login(username: string, password?: string): Promise<UserSession> {
+  // Real login API call with fallback for client-side persistence
+  async login(username: string, password?: string, forceRole?: 'STUDENT' | 'FACULTY'): Promise<UserSession> {
     try {
-      const response = await apiClient.post<UserSession>('/auth/login', { username, password });
-      localStorage.setItem('dbs_auth_token', response.token);
-      localStorage.setItem('dbs_user_session', JSON.stringify(response));
-      localStorage.setItem('dbs_last_user_email', response.email || username);
-      localStorage.setItem('dbs_last_user_role', response.role || (username.toLowerCase().includes('faculty') || username.toLowerCase().includes('sharma') ? 'FACULTY' : 'STUDENT'));
-      if (response.name) localStorage.setItem('dbs_last_user_name', response.name);
+      const response = await apiClient.post<UserSession>('/auth/login', { username, password, role: forceRole });
+      const role = forceRole || response.role || (username.toLowerCase().includes('faculty') || username.toLowerCase().includes('sharma') || username.toLowerCase().includes('prof') || username.toLowerCase().includes('teacher') ? 'FACULTY' : 'STUDENT');
+      const sessionWithRole: UserSession = {
+        ...response,
+        role,
+      };
+
+      localStorage.setItem('dbs_auth_token', sessionWithRole.token);
+      localStorage.setItem('dbs_user_session', JSON.stringify(sessionWithRole));
+      localStorage.setItem('dbs_last_user_email', sessionWithRole.email || username);
+      localStorage.setItem('dbs_last_user_role', sessionWithRole.role);
+      if (sessionWithRole.name) localStorage.setItem('dbs_last_user_name', sessionWithRole.name);
       localStorage.setItem('dbs_last_active_time', Date.now().toString());
-      return response;
+      return sessionWithRole;
     } catch {
       // Local simulated response for testing before backend connection
-      const isFaculty = username.toLowerCase().includes('faculty') || username.toLowerCase().includes('sharma');
+      const isFaculty = forceRole === 'FACULTY' || (forceRole !== 'STUDENT' && (
+        username.toLowerCase().includes('faculty') || 
+        username.toLowerCase().includes('sharma') ||
+        username.toLowerCase().includes('prof') ||
+        username.toLowerCase().includes('teacher')
+      ));
+
       const session: UserSession = isFaculty
         ? {
             id: 'FAC-108',
             name: 'Dr. Rajesh Sharma',
-            email: 'rajesh.sharma@dgu.ac.in',
+            email: username.includes('@') ? username : `${username}@dgu.ac.in`,
             role: 'FACULTY',
             department: 'Computer Science & Engineering',
             token: `DBS_AUTH_JWT_${Date.now()}_FACULTY`,
@@ -57,14 +70,14 @@ export const authApi = {
     }
   },
 
-  async loginWithGoogle(): Promise<UserSession> {
-    // Google SSO simulation for DBS Global University Workspace (@dgu.ac.in)
-    return this.login('harsh.23cse@dgu.ac.in');
+  async loginWithGoogle(preferredRole: 'STUDENT' | 'FACULTY' = 'STUDENT'): Promise<UserSession> {
+    const email = preferredRole === 'FACULTY' ? 'rajesh.sharma@dgu.ac.in' : 'harsh.23cse@dgu.ac.in';
+    return this.login(email, undefined, preferredRole);
   },
 
-  async loginWithMicrosoft(): Promise<UserSession> {
-    // Microsoft Office 365 SSO
-    return this.login('harsh.23cse@dgu.ac.in');
+  async loginWithMicrosoft(preferredRole: 'STUDENT' | 'FACULTY' = 'STUDENT'): Promise<UserSession> {
+    const email = preferredRole === 'FACULTY' ? 'rajesh.sharma@dgu.ac.in' : 'harsh.23cse@dgu.ac.in';
+    return this.login(email, undefined, preferredRole);
   },
 
   async registerWithPin(data: {
