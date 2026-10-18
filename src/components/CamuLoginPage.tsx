@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  Eye, 
-  EyeOff, 
-  GraduationCap, 
-  Sparkles, 
-  BookOpen, 
-  Calendar, 
-  ShieldCheck, 
-  User, 
-  KeyRound, 
-  MapPin,
-  Clock,
-  ExternalLink,
-  Laptop
-} from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { authApi, type UserSession } from '../api/auth';
 
 interface CamuLoginPageProps {
@@ -22,47 +8,65 @@ interface CamuLoginPageProps {
   onLoginSuccess: (session: UserSession) => void;
 }
 
-export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({ 
-  portalMode, 
-  onTogglePortal, 
-  onLoginSuccess 
+export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
+  portalMode,
+  onTogglePortal,
+  onLoginSuccess,
 }) => {
   const isStudent = portalMode === 'student';
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [username, setUsername] = useState(isStudent ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
+  const [emailOrRoll, setEmailOrRoll] = useState(isStudent ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
   const [password, setPassword] = useState(isStudent ? 'DBS@2026' : 'Faculty@DBS');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Registration / PIN Activation (Student only)
-  const [regFullName, setRegFullName] = useState('');
-  const [regRollNo, setRegRollNo] = useState('');
+  // Registration state
+  const [regName, setRegName] = useState('');
+  const [regRoll, setRegRoll] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPin, setRegPin] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
+  // Carousel slide state
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  const slides = [
+    {
+      image: '/dbs_campus_real.jpg',
+      title: 'Discover your next journey',
+      desc: 'Explore ideas, academic excellence, and campus experiences designed to inspire your future at DBS Global University.',
+    },
+    {
+      image: '/dbs_campus_bg.jpg',
+      title: 'World-Class Himalayan Campus',
+      desc: 'Modern architecture, cutting-edge computing laboratories, and expansive sports grounds nestled in the scenic Doon Valley.',
+    },
+    {
+      image: '/dbs_campus_slide2.webp',
+      title: 'Empowering Future Leaders',
+      desc: 'Connecting higher education with global industry opportunities, live projects, and innovative technology learning.',
+    },
+  ];
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) {
-      setErrorMessage(isStudent ? 'Please enter your Roll Number or Student Email.' : 'Please enter your Faculty Employee Code.');
+    if (!emailOrRoll.trim()) {
+      setErrorMessage('Please enter your email or roll number.');
       return;
     }
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const session = await authApi.login(username, password);
-      // Ensure role matches the portal mode
-      const adjustedSession: UserSession = {
+      const session = await authApi.login(emailOrRoll, password);
+      onLoginSuccess({
         ...session,
         role: isStudent ? 'STUDENT' : 'FACULTY',
-      };
-      onLoginSuccess(adjustedSession);
+      });
     } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed. Please verify your credentials.');
+      setErrorMessage(err.message || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -73,20 +77,20 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     try {
       const session = await authApi.loginWithGoogle();
       onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
-    } catch (err: any) {
-      setErrorMessage('Google SSO failed. Please try again.');
+    } catch {
+      setErrorMessage('Google SSO failed.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMicrosoftLogin = async () => {
+  const handleAppleOrMicrosoftLogin = async () => {
     setIsLoading(true);
     try {
       const session = await authApi.loginWithMicrosoft();
       onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
-    } catch (err: any) {
-      setErrorMessage('Microsoft 365 SSO failed. Please try again.');
+    } catch {
+      setErrorMessage('Single Sign-On failed.');
     } finally {
       setIsLoading(false);
     }
@@ -94,8 +98,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regFullName || !regRollNo || !regEmail || !regPin || !regPassword) {
-      setErrorMessage('Please complete all registration fields.');
+    if (!regName || !regRoll || !regEmail || !regPin || !regPassword) {
+      setErrorMessage('Please fill in all registration fields.');
       return;
     }
     setIsLoading(true);
@@ -103,901 +107,493 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
     try {
       const session = await authApi.registerWithPin({
-        fullName: regFullName,
-        rollNo: regRollNo,
+        fullName: regName,
+        rollNo: regRoll,
         email: regEmail,
         camuPin: regPin,
         password: regPassword,
       });
       onLoginSuccess(session);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Activation failed. Please contact Registrar Office.');
+    } catch {
+      setErrorMessage('Activation failed. Contact Registrar Office.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="dbs-auth-layout">
-      {/* Top Domain Switcher Ribbon */}
-      <div className="domain-switcher-bar">
-        <div className="current-subdomain-pill">
-          <span className="live-dot-subdomain"></span>
-          <span className="domain-text">
-            {isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}
-          </span>
-          <span className="domain-scope-label">
-            {isStudent ? 'Official Student & Parent Portal' : 'Faculty & Academic Administration Portal'}
-          </span>
-        </div>
-
-        <button 
-          type="button" 
-          className="switch-portal-action-btn"
-          onClick={() => {
-            const nextMode = isStudent ? 'teacher' : 'student';
-            onTogglePortal(nextMode);
-            setUsername(nextMode === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
-            setPassword(nextMode === 'student' ? 'DBS@2026' : 'Faculty@DBS');
-            setIsRegisterMode(false);
-            setErrorMessage(null);
-          }}
-        >
-          <span>Go to <strong>{isStudent ? 'teacher.dgu.in' : 'student.dgu.in'}</strong></span>
-          <ExternalLink size={13} />
-        </button>
-      </div>
-
-      {/* LEFT COLUMN: Campus Showcase */}
-      <div className="auth-showcase-panel">
-        <div 
-          className="showcase-bg-image"
-          style={{ backgroundImage: "url('/dbs_campus_bg.jpg')" }}
-        ></div>
-        <div className="showcase-gradient-overlay"></div>
-
-        <div className="showcase-content">
-          {/* Top Brand Tag */}
-          <div className="showcase-top-badge">
-            <div className="crest-emblem">
-              <GraduationCap size={24} className="crest-gold" />
+    <div className="freshy-auth-viewport">
+      {/* Centered Modal / Canvas Container matching screenshot */}
+      <div className="freshy-auth-card">
+        {/* LEFT COLUMN: Clean Form */}
+        <div className="freshy-form-column">
+          {/* Top Portal Toggle (Student vs Teacher) */}
+          <div className="portal-subdomain-pill-row">
+            <div className="portal-indicator-chip">
+              <span className="dot-live"></span>
+              <span>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
             </div>
-            <div>
-              <div className="showcase-uni-title">DBS GLOBAL UNIVERSITY</div>
-              <div className="showcase-uni-sub">
-                {isStudent ? 'Student & Parent Academic Suite' : 'Faculty & Academic Administration Suite'}
-              </div>
-            </div>
+            <button
+              type="button"
+              className="portal-switch-subtle-btn"
+              onClick={() => {
+                const next = isStudent ? 'teacher' : 'student';
+                onTogglePortal(next);
+                setEmailOrRoll(next === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
+                setPassword(next === 'student' ? 'DBS@2026' : 'Faculty@DBS');
+                setErrorMessage(null);
+              }}
+            >
+              Switch to {isStudent ? 'teacher.dgu.in' : 'student.dgu.in'}
+            </button>
           </div>
 
-          {/* Central Hero Statement */}
-          <div className="showcase-hero-body">
-            <span className="live-term-pill">
-              <span className="pulse-dot"></span> 
-              {isStudent ? 'student.dgu.in • Student Access' : 'teacher.dgu.in • Faculty Access'}
-            </span>
-            
-            <h1 className="showcase-heading">
+          <div className="freshy-form-inner">
+            {/* 1. Radiating Sun / Emblem Logo */}
+            <div className="freshy-brand-emblem-wrap">
+              <svg className="freshy-sun-logo" viewBox="0 0 100 100" fill="none">
+                {/* Center Core */}
+                <circle cx="50" cy="50" r="14" fill="#f97316" />
+                <circle cx="50" cy="50" r="8" fill="#ffffff" />
+                <circle cx="50" cy="50" r="4" fill="#f97316" />
+                {/* Radiating Petals / Sun Rays */}
+                <g stroke="#f97316" strokeWidth="4.5" strokeLinecap="round">
+                  <line x1="50" y1="20" x2="50" y2="10" />
+                  <line x1="50" y1="80" x2="50" y2="90" />
+                  <line x1="20" y1="50" x2="10" y2="50" />
+                  <line x1="80" y1="50" x2="90" y2="50" />
+                  <line x1="29" y1="29" x2="21" y2="21" />
+                  <line x1="71" y1="71" x2="79" y2="79" />
+                  <line x1="29" y1="71" x2="21" y2="79" />
+                  <line x1="71" y1="29" x2="79" y2="21" />
+                  <line x1="39" y1="23" x2="34" y2="13" />
+                  <line x1="61" y1="23" x2="66" y2="13" />
+                  <line x1="39" y1="77" x2="34" y2="87" />
+                  <line x1="61" y1="77" x2="66" y2="87" />
+                  <line x1="23" y1="39" x2="13" y2="34" />
+                  <line x1="23" y1="61" x2="13" y2="66" />
+                  <line x1="77" y1="39" x2="87" y2="34" />
+                  <line x1="77" y1="61" x2="87" y2="66" />
+                </g>
+              </svg>
+            </div>
+
+            {/* 2. Titles */}
+            <h1 className="freshy-title">Welcome Back!</h1>
+            <p className="freshy-subtitle">
               {isStudent 
-                ? 'Your Campus Life, Attendance & Academics at Your Fingertips.' 
-                : 'Accelerate Classroom Attendance, Grading & Academic Governance.'}
-            </h1>
-            
-            <p className="showcase-description">
-              {isStudent 
-                ? 'Log in to track your 75% attendance criteria, real-time timetable, exam grades, digital gate pass, and campus dues in a unified modern portal.' 
-                : 'Dedicated portal for DBS professors and HODs: 1-click lecture attendance roll call, 75% defaulter warnings, internal assessment grading, and on-duty leave approvals.'}
+                ? 'Sign in to continue where you left off.' 
+                : 'Sign in to DBS Global University Faculty Suite.'}
             </p>
 
-            {/* Feature Highlights Grid */}
-            <div className="showcase-features-grid">
-              {isStudent ? (
-                <>
-                  <div className="showcase-feature-card">
-                    <BookOpen size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">75% Attendance Predictor</div>
-                      <div className="feature-desc">Know how many classes you can skip/attend</div>
-                    </div>
-                  </div>
-                  <div className="showcase-feature-card">
-                    <Calendar size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">Live Dynamic Timetable</div>
-                      <div className="feature-desc">Room LT-201 allocations & schedules</div>
-                    </div>
-                  </div>
-                  <div className="showcase-feature-card">
-                    <ShieldCheck size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">Encrypted Hostel Gate Pass</div>
-                      <div className="feature-desc">Live security QR codes with curfew timer</div>
-                    </div>
-                  </div>
-                  <div className="showcase-feature-card">
-                    <Sparkles size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">Instant Fee Clearances</div>
-                      <div className="feature-desc">1-click receipts & exam No-Dues</div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="showcase-feature-card">
-                    <Laptop size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">1-Click Attendance</div>
-                      <div className="feature-desc">Mark entire batch present in 2 seconds</div>
-                    </div>
-                  </div>
-                  <div className="showcase-feature-card">
-                    <ShieldCheck size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">75% Defaulter Monitor</div>
-                      <div className="feature-desc">Automated SMS/Email debarment warnings</div>
-                    </div>
-                  </div>
-                  <div className="showcase-feature-card">
-                    <BookOpen size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">Continuous Internal Eval</div>
-                      <div className="feature-desc">Sessional 1, Mid-term & IA2 marks entry</div>
-                    </div>
-                  </div>
-                  <div className="showcase-feature-card">
-                    <Calendar size={20} className="feature-icon" />
-                    <div>
-                      <div className="feature-title">OD & Leave Approvals</div>
-                      <div className="feature-desc">Instant verification of hackathons & sports</div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom Campus Location */}
-          <div className="showcase-footer-strip">
-            <div className="footer-info-item">
-              <MapPin size={15} />
-              <span>Selaqui Campus, Chakrata Road, Dehradun (UK)</span>
-            </div>
-            <div className="footer-info-item">
-              <Clock size={15} />
-              <span>DBS IT Systems: Online 99.98%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT COLUMN: The Auth Gateway */}
-      <div className="auth-form-panel">
-        <div className="auth-form-wrapper">
-          {/* Form Header */}
-          <div className="auth-form-header">
-            <div className="subdomain-indicator-badge">
-              <span className="dot-active"></span>
-              <strong>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</strong>
-            </div>
-
-            <h2 className="auth-main-title">
-              {isRegisterMode 
-                ? 'Activate Student Account' 
-                : isStudent ? 'Student Sign In' : 'Faculty & Staff Sign In'}
-            </h2>
-            <p className="auth-subtitle">
-              {isRegisterMode 
-                ? 'Enter your Registrar PIN to initialize your university digital account.' 
-                : isStudent 
-                  ? 'Access your personal student ledger, timetable, and attendance.' 
-                  : 'Faculty authentication for Dr. Rajesh Sharma and teaching staff.'}
-            </p>
-          </div>
-
-          {/* Error Banner */}
-          {errorMessage && (
-            <div className="auth-alert-box">
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {!isRegisterMode ? (
-            /* Login Form */
-            <form onSubmit={handleLogin} className="auth-form-fields">
-              <div className="input-group">
-                <label className="input-label">
-                  {isStudent ? 'Student Roll Number or Email' : 'Faculty Employee Code or Email'}
-                </label>
-                <div className="input-container">
-                  <User size={18} className="field-icon" />
-                  <input
-                    type="text"
-                    className="text-input"
-                    placeholder={isStudent ? 'e.g. DBS/23/CSE/042 or harsh.23cse@dbs.edu.in' : 'e.g. DBS-FAC-108 or rajesh.sharma@dbs.edu.in'}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="freshy-error-alert">
+                <span>{errorMessage}</span>
               </div>
+            )}
 
-              <div className="input-group">
-                <div className="label-row">
-                  <label className="input-label">Password</label>
+            {!isRegisterMode ? (
+              <>
+                {/* 3. SSO Buttons (Google & Apple / Microsoft) */}
+                <div className="freshy-sso-group">
                   <button 
                     type="button" 
-                    className="forgot-pw-btn"
-                    onClick={() => alert(`Password recovery link dispatched to your registered DBS ${isStudent ? 'Student' : 'Faculty'} email.`)}
+                    className="freshy-sso-btn"
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
                   >
-                    Forgot Password?
+                    <svg className="freshy-sso-icon" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
+                    <span>Continue with Google</span>
                   </button>
-                </div>
-                <div className="input-container">
-                  <KeyRound size={18} className="field-icon" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="text-input"
-                    placeholder="Enter your security password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="password-eye-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
 
-              <div className="form-remember-row">
-                <label className="checkbox-wrap">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe} 
-                    onChange={(e) => setRememberMe(e.target.checked)} 
-                  />
-                  <span>Keep me signed in on this workstation</span>
-                </label>
-              </div>
-
-              {/* Primary Action Button */}
-              <button 
-                type="submit" 
-                className="auth-submit-btn"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Verifying Credentials...' : `Sign In to ${isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}`}
-              </button>
-
-              {/* Single Sign-On Divider */}
-              <div className="auth-or-divider">
-                <span className="or-line"></span>
-                <span className="or-text">OR SIGN IN WITH UNIVERSITY SSO</span>
-                <span className="or-line"></span>
-              </div>
-
-              {/* SSO Buttons */}
-              <div className="sso-grid">
-                <button 
-                  type="button" 
-                  className="sso-btn"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                >
-                  <svg className="sso-svg" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
-                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                  </svg>
-                  <span>Google Workspace</span>
-                </button>
-
-                <button 
-                  type="button" 
-                  className="sso-btn"
-                  onClick={handleMicrosoftLogin}
-                  disabled={isLoading}
-                >
-                  <svg className="sso-svg" viewBox="0 0 24 24">
-                    <path fill="#f25022" d="M1 1h10v10H1z"/>
-                    <path fill="#00a4ef" d="M1 13h10v10H1z"/>
-                    <path fill="#7fba00" d="M13 1h10v10H13z"/>
-                    <path fill="#ffb900" d="M13 13h10v10H13z"/>
-                  </svg>
-                  <span>Microsoft 365</span>
-                </button>
-              </div>
-
-              {/* Bottom Switcher */}
-              {isStudent && (
-                <div className="auth-bottom-switch">
-                  <span>First time student? </span>
                   <button 
                     type="button" 
-                    className="switch-link-btn"
-                    onClick={() => setIsRegisterMode(true)}
+                    className="freshy-sso-btn"
+                    onClick={handleAppleOrMicrosoftLogin}
+                    disabled={isLoading}
                   >
-                    Activate with Registrar PIN
+                    <svg className="freshy-sso-icon" viewBox="0 0 24 24" fill="#000000">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.66 1.37-.56.65-1.06 1.71-.93 2.73 1.03.08 2.07-.54 2.58-1.25z"/>
+                    </svg>
+                    <span>Continue with Apple</span>
                   </button>
                 </div>
-              )}
 
-              {/* Subdomain Switch Callout */}
-              <div className="subdomain-switch-footer-box">
-                <span>Looking for the {isStudent ? 'Faculty & Staff' : 'Student'} Portal?</span>
-                <button
-                  type="button"
-                  className="switch-inline-link"
-                  onClick={() => {
-                    const next = isStudent ? 'teacher' : 'student';
-                    onTogglePortal(next);
-                    setUsername(next === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
-                    setPassword(next === 'student' ? 'DBS@2026' : 'Faculty@DBS');
-                    setErrorMessage(null);
-                  }}
-                >
-                  Switch to {isStudent ? 'teacher.dgu.in' : 'student.dgu.in'} &rarr;
-                </button>
-              </div>
-            </form>
-          ) : (
-            /* Student PIN Activation */
-            <form onSubmit={handleRegister} className="auth-form-fields">
-              <div className="input-group">
-                <label className="input-label">Full Name</label>
-                <div className="input-container">
+                {/* 4. OR Divider */}
+                <div className="freshy-or-divider">
+                  <span className="or-line"></span>
+                  <span className="or-text">OR</span>
+                  <span className="or-line"></span>
+                </div>
+
+                {/* 5. Inputs Form */}
+                <form onSubmit={handleLogin} className="freshy-fields-form">
+                  <div className="freshy-input-group">
+                    <label className="freshy-input-label">Email address</label>
+                    <input
+                      type="text"
+                      className="freshy-text-input"
+                      placeholder="Example@gmail.com"
+                      value={emailOrRoll}
+                      onChange={(e) => setEmailOrRoll(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="freshy-input-group">
+                    <div className="freshy-label-row">
+                      <label className="freshy-input-label">Password</label>
+                      <button
+                        type="button"
+                        className="freshy-forgot-link"
+                        onClick={() => alert(`Password reset instructions sent to your registered email.`)}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                    <div className="freshy-password-wrap">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        className="freshy-text-input"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="freshy-eye-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label="Toggle password view"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 6. Deep Dark Log in Button */}
+                  <button 
+                    type="submit" 
+                    className="freshy-submit-btn"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing in...' : 'Log in'}
+                  </button>
+
+                  {/* 7. Sign up switcher */}
+                  <div className="freshy-signup-row">
+                    <span>Don't have account yet? </span>
+                    <button
+                      type="button"
+                      className="freshy-signup-link"
+                      onClick={() => setIsRegisterMode(true)}
+                    >
+                      Sign up
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              /* Sign up / Student Activation Form */
+              <form onSubmit={handleRegister} className="freshy-fields-form">
+                <div className="freshy-input-group">
+                  <label className="freshy-input-label">Full Name</label>
                   <input
                     type="text"
-                    className="text-input"
-                    placeholder="Enter full legal name"
-                    value={regFullName}
-                    onChange={(e) => setRegFullName(e.target.value)}
+                    className="freshy-text-input"
+                    placeholder="Enter your full name"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
                     required
                   />
                 </div>
-              </div>
 
-              <div className="input-group">
-                <label className="input-label">Student Roll Number</label>
-                <div className="input-container">
+                <div className="freshy-input-group">
+                  <label className="freshy-input-label">Student Roll Number</label>
                   <input
                     type="text"
-                    className="text-input"
+                    className="freshy-text-input"
                     placeholder="e.g. DBS/23/CSE/042"
-                    value={regRollNo}
-                    onChange={(e) => setRegRollNo(e.target.value)}
+                    value={regRoll}
+                    onChange={(e) => setRegRoll(e.target.value)}
                     required
                   />
                 </div>
-              </div>
 
-              <div className="input-group">
-                <label className="input-label">Official University Email (@dbs.edu.in)</label>
-                <div className="input-container">
+                <div className="freshy-input-group">
+                  <label className="freshy-input-label">Official University Email</label>
                   <input
                     type="email"
-                    className="text-input"
+                    className="freshy-text-input"
                     placeholder="student.23cse@dbs.edu.in"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     required
                   />
                 </div>
-              </div>
 
-              <div className="input-group">
-                <label className="input-label">Registrar PIN (6-Digit Code)</label>
-                <div className="input-container">
+                <div className="freshy-input-group">
+                  <label className="freshy-input-label">Registrar PIN (6-Digit Code)</label>
                   <input
                     type="text"
-                    className="text-input"
+                    className="freshy-text-input"
                     placeholder="e.g. 748291"
                     value={regPin}
                     onChange={(e) => setRegPin(e.target.value)}
                     required
                   />
                 </div>
-              </div>
 
-              <div className="input-group">
-                <label className="input-label">Create Secure Password</label>
-                <div className="input-container">
+                <div className="freshy-input-group">
+                  <label className="freshy-input-label">Create Password</label>
                   <input
                     type="password"
-                    className="text-input"
-                    placeholder="At least 8 characters"
+                    className="freshy-text-input"
+                    placeholder="Create a password"
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     required
                   />
                 </div>
-              </div>
 
-              <button 
-                type="submit" 
-                className="auth-submit-btn"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Activating...' : 'Verify PIN & Enter student.dgu.in'}
-              </button>
-
-              <div className="auth-bottom-switch" style={{ marginTop: '16px' }}>
-                <span>Already have active credentials? </span>
                 <button 
-                  type="button" 
-                  className="switch-link-btn"
-                  onClick={() => setIsRegisterMode(false)}
+                  type="submit" 
+                  className="freshy-submit-btn"
+                  disabled={isLoading}
                 >
-                  Back to Student Sign In
+                  {isLoading ? 'Creating account...' : 'Create Account'}
                 </button>
-              </div>
-            </form>
-          )}
 
-          {/* Form Footer */}
-          <div className="auth-card-footer">
-            <span>&copy; {new Date().getFullYear()} DBS Global University &bull; {isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
-            <div className="footer-links-row">
-              <a href="#help" onClick={(e) => { e.preventDefault(); alert('IT Helpdesk: it.support@dbs.edu.in'); }}>IT Support</a>
-              <span>&bull;</span>
-              <a href="#privacy" onClick={(e) => { e.preventDefault(); alert('DBS Data Privacy Standards 2026'); }}>Privacy</a>
-              <span>&bull;</span>
-              <a href="#terms" onClick={(e) => { e.preventDefault(); alert('Academic IT Terms of Service'); }}>Terms</a>
+                <div className="freshy-signup-row">
+                  <span>Already have an account? </span>
+                  <button
+                    type="button"
+                    className="freshy-signup-link"
+                    onClick={() => setIsRegisterMode(false)}
+                  >
+                    Log in
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* 8. Bottom Terms Disclaimer */}
+            <div className="freshy-legal-disclaimer">
+              <span>By continuing you agree to our </span>
+              <a href="#terms" onClick={(e) => { e.preventDefault(); alert('DBS Terms & Conditions'); }}>
+                Terms &amp; Conditions
+              </a>
+              <br />
+              <span>and acknowledge our </span>
+              <a href="#privacy" onClick={(e) => { e.preventDefault(); alert('DBS Privacy Policy'); }}>
+                Privacy Policy
+              </a>.
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Real DBS Campus Photography Card matching screenshot */}
+        <div className="freshy-image-column">
+          <div className="freshy-image-card-container">
+            {/* The real DBS University Photo */}
+            <img 
+              src={slides[activeSlide].image} 
+              alt="DBS Global University Campus" 
+              className="freshy-campus-photo"
+            />
+            
+            {/* Bottom Dark Gradient Scrim */}
+            <div className="freshy-image-scrim"></div>
+
+            {/* Overlaid Captions and Pagination Lines */}
+            <div className="freshy-image-overlay-content">
+              {/* Pagination Indicators */}
+              <div className="freshy-carousel-bars">
+                {slides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`carousel-bar-line ${idx === activeSlide ? 'bar-active' : ''}`}
+                    onClick={() => setActiveSlide(idx)}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Title & Description */}
+              <h2 className="freshy-slide-title">{slides[activeSlide].title}</h2>
+              <p className="freshy-slide-desc">{slides[activeSlide].desc}</p>
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        .dbs-auth-layout {
-          position: relative;
-          display: grid;
-          grid-template-columns: 1.15fr 0.95fr;
+        .freshy-auth-viewport {
           min-height: 100vh;
           width: 100vw;
-          background: #ffffff;
-          overflow: hidden;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        /* Top Subdomain Switcher Ribbon */
-        .domain-switcher-bar {
-          position: absolute;
-          top: 14px;
-          left: 20px;
-          right: 20px;
-          z-index: 50;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          pointer-events: none;
-        }
-
-        .current-subdomain-pill {
-          pointer-events: auto;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(15, 23, 42, 0.85);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 6px 14px;
-          border-radius: 9999px;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-        }
-
-        .live-dot-subdomain {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: ${isStudent ? '#38bdf8' : '#f59e0b'};
-          box-shadow: 0 0 8px ${isStudent ? '#38bdf8' : '#f59e0b'};
-        }
-
-        .domain-text {
-          font-size: 0.85rem;
-          font-weight: 800;
-          color: #ffffff;
-          letter-spacing: 0.02em;
-        }
-
-        .domain-scope-label {
-          font-size: 0.72rem;
-          color: #94a3b8;
-          padding-left: 6px;
-          border-left: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .switch-portal-action-btn {
-          pointer-events: auto;
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          background: #ffffff;
-          border: 1.5px solid #cbd5e1;
-          color: #1e293b;
-          padding: 7px 16px;
-          border-radius: 9999px;
-          font-size: 0.78rem;
-          font-weight: 600;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-          transition: all 0.15s ease;
-        }
-
-        .switch-portal-action-btn:hover {
-          background: #f8fafc;
-          border-color: #2563eb;
-          color: #2563eb;
-          transform: translateY(-1px);
-        }
-
-        /* Showcase Panel (Left) */
-        .auth-showcase-panel {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 64px 56px 44px;
-          color: #ffffff;
-          overflow: hidden;
-        }
-
-        .showcase-bg-image {
-          position: absolute;
-          inset: 0;
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          z-index: 1;
-        }
-
-        .showcase-gradient-overlay {
-          position: absolute;
-          inset: 0;
-          background: ${isStudent 
-            ? 'linear-gradient(135deg, rgba(6, 11, 25, 0.94) 0%, rgba(15, 28, 65, 0.84) 50%, rgba(10, 25, 45, 0.9) 100%)' 
-            : 'linear-gradient(135deg, rgba(20, 10, 30, 0.94) 0%, rgba(45, 20, 50, 0.85) 50%, rgba(15, 15, 35, 0.92) 100%)'};
-          z-index: 2;
-        }
-
-        .showcase-content {
-          position: relative;
-          z-index: 5;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          height: 100%;
-        }
-
-        .showcase-top-badge {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .crest-emblem {
-          width: 46px;
-          height: 46px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #1e293b, #0f172a);
-          border: 1.5px solid rgba(245, 158, 11, 0.5);
+          background: #f1f5f9;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+          padding: 24px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          color: #0f172a;
         }
 
-        .crest-gold {
-          color: #fbbf24;
-        }
-
-        .showcase-uni-title {
-          font-size: 1.1rem;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          color: #ffffff;
-        }
-
-        .showcase-uni-sub {
-          font-size: 0.75rem;
-          color: #cbd5e1;
-        }
-
-        .showcase-hero-body {
-          margin: auto 0;
-          max-width: 580px;
-          padding: 20px 0;
-        }
-
-        .live-term-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(245, 158, 11, 0.15);
-          border: 1px solid rgba(245, 158, 11, 0.35);
-          padding: 6px 14px;
-          border-radius: 9999px;
-          font-size: 0.78rem;
-          font-weight: 700;
-          color: #fde047;
-          margin-bottom: 20px;
-        }
-
-        .pulse-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #fde047;
-          box-shadow: 0 0 8px #fde047;
-          animation: pulseAnim 1.6s infinite;
-        }
-
-        @keyframes pulseAnim {
-          0% { opacity: 0.5; transform: scale(0.9); }
-          50% { opacity: 1; transform: scale(1.3); }
-          100% { opacity: 0.5; transform: scale(0.9); }
-        }
-
-        .showcase-heading {
-          font-size: 2.3rem;
-          font-weight: 800;
-          line-height: 1.25;
-          letter-spacing: -0.02em;
-          color: #ffffff;
-          margin-bottom: 16px;
-        }
-
-        .showcase-description {
-          font-size: 0.95rem;
-          line-height: 1.6;
-          color: #cbd5e1;
-          margin-bottom: 30px;
-        }
-
-        .showcase-features-grid {
+        .freshy-auth-card {
+          width: 100%;
+          max-width: 1120px;
+          min-height: 720px;
+          background: #ffffff;
+          border-radius: 28px;
+          box-shadow: 0 25px 70px -12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          overflow: hidden;
         }
 
-        .showcase-feature-card {
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-          border-radius: 12px;
-          padding: 14px 16px;
+        /* LEFT COLUMN */
+        .freshy-form-column {
+          padding: 32px 56px 40px;
           display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-
-        .feature-icon {
-          color: ${isStudent ? '#38bdf8' : '#fbbf24'};
-          margin-top: 2px;
-          flex-shrink: 0;
-        }
-
-        .feature-title {
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #ffffff;
-        }
-
-        .feature-desc {
-          font-size: 0.75rem;
-          color: #94a3b8;
-          margin-top: 2px;
-        }
-
-        .showcase-footer-strip {
-          display: flex;
-          align-items: center;
+          flex-direction: column;
           justify-content: space-between;
-          font-size: 0.78rem;
-          color: #94a3b8;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          padding-top: 18px;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .footer-info-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        /* Form Panel (Right) */
-        .auth-form-panel {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 70px 40px 40px;
-          background: #f8fafc;
           overflow-y: auto;
         }
 
-        .auth-form-wrapper {
-          width: 100%;
-          max-width: 440px;
-          background: #ffffff;
-          padding: 38px 40px;
-          border-radius: 18px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-          border: 1px solid #e2e8f0;
+        .portal-subdomain-pill-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 24px;
         }
 
-        .subdomain-indicator-badge {
+        .portal-indicator-chip {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          background: ${isStudent ? 'rgba(59, 130, 246, 0.1)' : 'rgba(245, 158, 11, 0.1)'};
-          color: ${isStudent ? '#1d4ed8' : '#b45309'};
-          border: 1px solid ${isStudent ? 'rgba(59, 130, 246, 0.25)' : 'rgba(245, 158, 11, 0.25)'};
+          gap: 7px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           padding: 4px 10px;
           border-radius: 9999px;
-          font-size: 0.78rem;
-          margin-bottom: 12px;
-        }
-
-        .dot-active {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: currentColor;
-        }
-
-        .auth-main-title {
-          font-size: 1.6rem;
-          font-weight: 800;
-          color: #0f172a;
-          letter-spacing: -0.02em;
-          margin-bottom: 6px;
-        }
-
-        .auth-subtitle {
-          font-size: 0.85rem;
-          color: #64748b;
-          line-height: 1.4;
-          margin-bottom: 22px;
-        }
-
-        .auth-alert-box {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          color: #b91c1c;
-          padding: 10px 14px;
-          border-radius: 8px;
-          font-size: 0.8rem;
-          margin-bottom: 16px;
-        }
-
-        .auth-form-fields {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .input-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .input-label {
-          font-size: 0.825rem;
-          font-weight: 600;
+          font-size: 0.75rem;
+          font-weight: 700;
           color: #334155;
         }
 
-        .label-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+        .dot-live {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #f97316;
         }
 
-        .forgot-pw-btn {
-          font-size: 0.78rem;
-          color: #2563eb;
-          font-weight: 600;
+        .portal-switch-subtle-btn {
           background: none;
           border: none;
-          cursor: pointer;
-          padding: 0;
-        }
-
-        .input-container {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .field-icon {
-          position: absolute;
-          left: 12px;
-          color: #94a3b8;
-          pointer-events: none;
-        }
-
-        .text-input {
-          width: 100%;
-          height: 44px;
-          padding: 10px 14px 10px 40px;
-          border: 1.5px solid #cbd5e1;
-          border-radius: 9px;
-          font-size: 0.88rem;
-          color: #0f172a;
-          background: #ffffff;
-          outline: none;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .text-input:focus {
-          border-color: ${isStudent ? '#2563eb' : '#d97706'};
-          box-shadow: 0 0 0 3px ${isStudent ? 'rgba(37, 99, 235, 0.12)' : 'rgba(217, 119, 6, 0.12)'};
-        }
-
-        .password-eye-btn {
-          position: absolute;
-          right: 12px;
-          background: none;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          padding: 0;
-        }
-
-        .form-remember-row {
-          display: flex;
-          align-items: center;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: #64748b;
-        }
-
-        .checkbox-wrap {
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          font-weight: 600;
           cursor: pointer;
+          text-decoration: underline;
         }
 
-        .auth-submit-btn {
+        .portal-switch-subtle-btn:hover {
+          color: #0f172a;
+        }
+
+        .freshy-form-inner {
+          max-width: 380px;
           width: 100%;
-          height: 46px;
-          background: ${isStudent 
-            ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' 
-            : 'linear-gradient(135deg, #b45309, #d97706)'};
-          color: #ffffff;
-          border: none;
-          border-radius: 9px;
-          font-size: 0.925rem;
-          font-weight: 700;
-          cursor: pointer;
-          box-shadow: ${isStudent 
-            ? '0 4px 14px rgba(37, 99, 235, 0.28)' 
-            : '0 4px 14px rgba(217, 119, 6, 0.28)'};
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-          margin-top: 4px;
+          margin: 0 auto;
+          text-align: center;
         }
 
-        .auth-submit-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
+        /* Radiant Sun Logo */
+        .freshy-brand-emblem-wrap {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 14px;
         }
 
-        .auth-or-divider {
+        .freshy-sun-logo {
+          width: 52px;
+          height: 52px;
+        }
+
+        .freshy-title {
+          font-size: 1.85rem;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.025em;
+          margin-bottom: 6px;
+        }
+
+        .freshy-subtitle {
+          font-size: 0.88rem;
+          color: #64748b;
+          margin-bottom: 24px;
+        }
+
+        .freshy-error-alert {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #b91c1c;
+          padding: 9px 14px;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          margin-bottom: 16px;
+          text-align: center;
+        }
+
+        /* SSO Buttons */
+        .freshy-sso-group {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .freshy-sso-btn {
+          width: 100%;
+          height: 48px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 12px;
-          margin: 6px 0;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #1e293b;
+          cursor: pointer;
+          transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+        }
+
+        .freshy-sso-btn:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+        }
+
+        .freshy-sso-icon {
+          width: 18px;
+          height: 18px;
+        }
+
+        /* OR Divider */
+        .freshy-or-divider {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin: 18px 0;
         }
 
         .or-line {
@@ -1007,116 +603,243 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .or-text {
-          font-size: 0.68rem;
+          font-size: 0.75rem;
           color: #94a3b8;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-        }
-
-        .sso-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .sso-btn {
-          height: 42px;
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          font-size: 0.8rem;
           font-weight: 600;
-          color: #334155;
-          cursor: pointer;
         }
 
-        .sso-svg {
-          width: 17px;
-          height: 17px;
-        }
-
-        .auth-bottom-switch {
-          text-align: center;
-          font-size: 0.825rem;
-          color: #64748b;
-          margin-top: 6px;
-        }
-
-        .switch-link-btn {
-          color: #2563eb;
-          font-weight: 700;
-          background: none;
-          border: none;
-          cursor: pointer;
-        }
-
-        .subdomain-switch-footer-box {
-          margin-top: 14px;
-          padding: 12px;
-          background: #f1f5f9;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
+        /* Form Fields */
+        .freshy-fields-form {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          font-size: 0.78rem;
-          color: #64748b;
+          gap: 16px;
+          text-align: left;
         }
 
-        .switch-inline-link {
-          color: ${isStudent ? '#b45309' : '#1d4ed8'};
-          font-weight: 700;
-          background: none;
-          border: none;
-          cursor: pointer;
-        }
-
-        .switch-inline-link:hover {
-          text-decoration: underline;
-        }
-
-        .auth-card-footer {
-          margin-top: 24px;
-          padding-top: 16px;
-          border-top: 1px solid #f1f5f9;
-          text-align: center;
-          font-size: 0.72rem;
-          color: #94a3b8;
+        .freshy-input-group {
           display: flex;
           flex-direction: column;
           gap: 6px;
         }
 
-        .footer-links-row {
+        .freshy-input-label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+
+        .freshy-label-row {
           display: flex;
-          justify-content: center;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .freshy-forgot-link {
+          font-size: 0.78rem;
+          color: #64748b;
+          font-weight: 500;
+          background: none;
+          border: none;
+          cursor: pointer;
+        }
+
+        .freshy-forgot-link:hover {
+          color: #0f172a;
+          text-decoration: underline;
+        }
+
+        .freshy-text-input {
+          width: 100%;
+          height: 48px;
+          padding: 10px 16px;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          font-size: 0.9rem;
+          color: #0f172a;
+          background: #ffffff;
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .freshy-text-input:focus {
+          border-color: #0f172a;
+          box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+        }
+
+        .freshy-password-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .freshy-eye-btn {
+          position: absolute;
+          right: 14px;
+          background: none;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+        }
+
+        .freshy-eye-btn:hover {
+          color: #0f172a;
+        }
+
+        /* Deep Black / Midnight Navy Log in Button */
+        .freshy-submit-btn {
+          width: 100%;
+          height: 48px;
+          background: #0f172a;
+          color: #ffffff;
+          border: none;
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 6px;
+          transition: background 0.15s ease, transform 0.1s ease;
+        }
+
+        .freshy-submit-btn:hover:not(:disabled) {
+          background: #1e293b;
+          transform: translateY(-1px);
+        }
+
+        .freshy-submit-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+
+        .freshy-signup-row {
+          text-align: center;
+          font-size: 0.85rem;
+          color: #64748b;
+          margin-top: 8px;
+        }
+
+        .freshy-signup-link {
+          color: #0f172a;
+          font-weight: 700;
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-decoration: underline;
+        }
+
+        /* Bottom Legal Disclaimer */
+        .freshy-legal-disclaimer {
+          text-align: center;
+          font-size: 0.72rem;
+          color: #94a3b8;
+          line-height: 1.5;
+          margin-top: 32px;
+        }
+
+        .freshy-legal-disclaimer a {
+          color: #0f172a;
+          font-weight: 600;
+          text-decoration: underline;
+        }
+
+        /* RIGHT COLUMN: Image & Carousel Card */
+        .freshy-image-column {
+          padding: 14px;
+          display: flex;
+        }
+
+        .freshy-image-card-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          min-height: 640px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: #0f172a;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .freshy-campus-photo {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: opacity 0.5s ease;
+        }
+
+        .freshy-image-scrim {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.05) 0%,
+            rgba(0, 0, 0, 0.25) 50%,
+            rgba(0, 0, 0, 0.88) 100%
+          );
+          z-index: 2;
+        }
+
+        .freshy-image-overlay-content {
+          position: relative;
+          z-index: 10;
+          padding: 36px 40px;
+          color: #ffffff;
+        }
+
+        /* Carousel Bars matching screenshot */
+        .freshy-carousel-bars {
+          display: flex;
           align-items: center;
           gap: 8px;
+          margin-bottom: 18px;
         }
 
-        .footer-links-row a {
-          color: #64748b;
-          text-decoration: none;
+        .carousel-bar-line {
+          height: 3px;
+          width: 16px;
+          border-radius: 2px;
+          background: rgba(255, 255, 255, 0.4);
+          border: none;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          padding: 0;
         }
 
-        @media (max-width: 1024px) {
-          .dbs-auth-layout {
+        .carousel-bar-line.bar-active {
+          width: 36px;
+          background: #ffffff;
+        }
+
+        .freshy-slide-title {
+          font-size: 1.45rem;
+          font-weight: 700;
+          color: #ffffff;
+          line-height: 1.25;
+          margin-bottom: 8px;
+        }
+
+        .freshy-slide-desc {
+          font-size: 0.825rem;
+          color: #cbd5e1;
+          line-height: 1.5;
+          max-width: 440px;
+          opacity: 0.9;
+        }
+
+        @media (max-width: 900px) {
+          .freshy-auth-card {
             grid-template-columns: 1fr;
+            min-height: auto;
           }
-          .auth-showcase-panel {
+          .freshy-image-column {
             display: none;
           }
-          .domain-switcher-bar {
-            position: static;
-            padding: 16px 20px 0;
-          }
-          .auth-form-panel {
-            padding: 20px;
+          .freshy-form-column {
+            padding: 32px 24px;
           }
         }
       `}</style>
