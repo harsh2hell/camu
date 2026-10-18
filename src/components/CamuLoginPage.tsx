@@ -167,8 +167,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           ))}
           <div className="freshy-mobile-banner-scrim"></div>
           <div className="freshy-mobile-banner-brand">
-            <span className="mobile-banner-title">DBS Global University</span>
-            <span className="mobile-banner-subtitle">Official Academic Portal</span>
+            <img 
+              src="/dbs_logo_transparent.png" 
+              alt="DBS Global University" 
+              className="freshy-mobile-dbs-logo"
+            />
           </div>
           {/* Mobile slide indicator dots */}
           <div className="freshy-mobile-dots">
@@ -184,28 +187,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         {/* LEFT COLUMN: Clean Form with Generous Breathing Room */}
         <div className="freshy-form-column">
           <div className="freshy-form-inner">
-            {/* 1. Radiating Sun / Concentric Arch Emblem Logo */}
+            {/* 1. Official Transparent DBS Global University Logo */}
             <div className="freshy-brand-emblem-wrap">
-              <svg className="freshy-sun-logo" viewBox="0 0 64 64" fill="none">
-                {/* Radiating Pill Rays */}
-                <g stroke="#f97316" strokeWidth="2.8" strokeLinecap="round">
-                  <line x1="10" y1="38" x2="15" y2="38" />
-                  <line x1="12" y1="28" x2="17" y2="30" />
-                  <line x1="17" y1="20" x2="22" y2="24" />
-                  <line x1="24" y1="14" x2="27" y2="20" />
-                  <line x1="32" y1="10" x2="32" y2="17" />
-                  <line x1="40" y1="14" x2="37" y2="20" />
-                  <line x1="47" y1="20" x2="42" y2="24" />
-                  <line x1="52" y1="28" x2="47" y2="30" />
-                  <line x1="54" y1="38" x2="49" y2="38" />
-                </g>
-                {/* Concentric Arches */}
-                <g stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" fill="none">
-                  <path d="M 18 42 A 14 14 0 0 1 46 42" />
-                  <path d="M 23 42 A 9 9 0 0 1 41 42" />
-                  <path d="M 28 42 A 4 4 0 0 1 36 42" />
-                </g>
-              </svg>
+              <img 
+                src="/dbs_logo_dark.png" 
+                alt="DBS Global University" 
+                className="freshy-dbs-main-logo"
+              />
             </div>
 
             {/* 2. Titles */}
@@ -439,6 +427,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           onMouseLeave={() => setIsPaused(false)}
         >
           <div className="freshy-image-card-container">
+            {/* Floating Transparent DBS Logo Badge on Photo */}
+            <div className="freshy-photo-dbs-badge">
+              <img 
+                src="/dbs_logo_transparent.png" 
+                alt="DBS Global University" 
+                className="freshy-photo-dbs-logo"
+              />
+            </div>
+
             {/* Cross-fading stacked photos with gentle cinematic pan zoom */}
             {slides.map((slide, idx) => (
               <div 
@@ -561,16 +558,20 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           text-align: center;
         }
 
-        /* 1. Radiant Sun Logo (Arch + Rays) */
+        /* 1. Official Transparent DBS Global University Logo */
         .freshy-brand-emblem-wrap {
           display: flex;
           justify-content: center;
+          align-items: center;
           margin-bottom: 8px;
         }
 
-        .freshy-sun-logo {
-          width: 38px;
+        .freshy-dbs-main-logo {
           height: 38px;
+          width: auto;
+          max-width: 220px;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.03));
         }
 
         /* 2. Titles */
@@ -821,6 +822,29 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           justify-content: flex-end;
         }
 
+        /* Floating Official Transparent Logo Badge on Photo */
+        .freshy-photo-dbs-badge {
+          position: absolute;
+          top: 18px;
+          left: 20px;
+          z-index: 10;
+          padding: 6px 14px;
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-radius: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          display: flex;
+          align-items: center;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .freshy-photo-dbs-logo {
+          height: 22px;
+          width: auto;
+          object-fit: contain;
+        }
+
         /* Stacked Photo Layers for Buttery Smooth Cross-Fade */
         .freshy-campus-photo-layer {
           position: absolute;
@@ -967,12 +991,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           .freshy-form-column {
             padding: 30px 42px 24px;
           }
-          .freshy-sun-logo {
-            width: 42px;
-            height: 42px;
+          .freshy-dbs-main-logo {
+            height: 44px;
+            max-width: 250px;
           }
           .freshy-brand-emblem-wrap {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
           }
           .freshy-title {
             font-size: 1.65rem;
@@ -1103,25 +1127,18 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           .freshy-mobile-banner-brand {
             position: absolute;
             bottom: 12px;
-            left: 14px;
-            right: 14px;
+            left: 16px;
+            right: 16px;
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            align-items: center;
             z-index: 5;
-            color: #ffffff;
           }
 
-          .mobile-banner-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-          }
-
-          .mobile-banner-subtitle {
-            font-size: 0.7rem;
-            color: #cbd5e1;
-            font-weight: 500;
+          .freshy-mobile-dbs-logo {
+            height: 28px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
           }
 
           .freshy-mobile-dots {
@@ -1160,9 +1177,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             max-width: 100%;
           }
 
-          .freshy-sun-logo {
-            width: 40px;
-            height: 40px;
+          .freshy-dbs-main-logo {
+            height: 38px;
+            max-width: 200px;
           }
 
           .freshy-title {
