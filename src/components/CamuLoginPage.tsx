@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { authApi, type UserSession } from '../api/auth';
 
@@ -49,6 +49,14 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
       desc: 'Connecting higher education with global industry opportunities, live projects, and innovative technology learning.',
     },
   ];
+
+  // Optional subtle auto-rotation for the carousel
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % slides.length);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,10 +133,40 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     <div className="freshy-auth-viewport">
       {/* Centered Modal / Canvas Container matching screenshot */}
       <div className="freshy-auth-card">
+        
+        {/* MOBILE ONLY: Compact DBS Campus Hero Banner */}
+        <div className="freshy-mobile-banner">
+          <img 
+            src="/dbs_campus_real.jpg" 
+            alt="DBS Global University Campus" 
+            className="freshy-mobile-banner-img"
+          />
+          <div className="freshy-mobile-banner-scrim"></div>
+          <div className="freshy-mobile-banner-content">
+            <div className="portal-indicator-chip chip-dark">
+              <span className="dot-live"></span>
+              <span>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
+            </div>
+            <button
+              type="button"
+              className="portal-switch-subtle-btn switch-on-dark"
+              onClick={() => {
+                const next = isStudent ? 'teacher' : 'student';
+                onTogglePortal(next);
+                setEmailOrRoll(next === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
+                setPassword(next === 'student' ? 'DBS@2026' : 'Faculty@DBS');
+                setErrorMessage(null);
+              }}
+            >
+              Switch to {isStudent ? 'teacher.dgu.in' : 'student.dgu.in'}
+            </button>
+          </div>
+        </div>
+
         {/* LEFT COLUMN: Clean Form */}
         <div className="freshy-form-column">
-          {/* Top Portal Toggle (Student vs Teacher) */}
-          <div className="portal-subdomain-pill-row">
+          {/* Top Portal Toggle (Student vs Teacher) - Hidden on Mobile since shown in banner */}
+          <div className="portal-subdomain-pill-row desktop-only-flex">
             <div className="portal-indicator-chip">
               <span className="dot-live"></span>
               <span>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
@@ -149,31 +187,26 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           </div>
 
           <div className="freshy-form-inner">
-            {/* 1. Radiating Sun / Emblem Logo */}
+            {/* 1. Radiating Sun / Concentric Arch Emblem Logo */}
             <div className="freshy-brand-emblem-wrap">
-              <svg className="freshy-sun-logo" viewBox="0 0 100 100" fill="none">
-                {/* Center Core */}
-                <circle cx="50" cy="50" r="14" fill="#f97316" />
-                <circle cx="50" cy="50" r="8" fill="#ffffff" />
-                <circle cx="50" cy="50" r="4" fill="#f97316" />
-                {/* Radiating Petals / Sun Rays */}
-                <g stroke="#f97316" strokeWidth="4.5" strokeLinecap="round">
-                  <line x1="50" y1="20" x2="50" y2="10" />
-                  <line x1="50" y1="80" x2="50" y2="90" />
-                  <line x1="20" y1="50" x2="10" y2="50" />
-                  <line x1="80" y1="50" x2="90" y2="50" />
-                  <line x1="29" y1="29" x2="21" y2="21" />
-                  <line x1="71" y1="71" x2="79" y2="79" />
-                  <line x1="29" y1="71" x2="21" y2="79" />
-                  <line x1="71" y1="29" x2="79" y2="21" />
-                  <line x1="39" y1="23" x2="34" y2="13" />
-                  <line x1="61" y1="23" x2="66" y2="13" />
-                  <line x1="39" y1="77" x2="34" y2="87" />
-                  <line x1="61" y1="77" x2="66" y2="87" />
-                  <line x1="23" y1="39" x2="13" y2="34" />
-                  <line x1="23" y1="61" x2="13" y2="66" />
-                  <line x1="77" y1="39" x2="87" y2="34" />
-                  <line x1="77" y1="61" x2="87" y2="66" />
+              <svg className="freshy-sun-logo" viewBox="0 0 64 64" fill="none">
+                {/* Radiating Pill Rays */}
+                <g stroke="#f97316" strokeWidth="2.8" strokeLinecap="round">
+                  <line x1="10" y1="38" x2="15" y2="38" />
+                  <line x1="12" y1="28" x2="17" y2="30" />
+                  <line x1="17" y1="20" x2="22" y2="24" />
+                  <line x1="24" y1="14" x2="27" y2="20" />
+                  <line x1="32" y1="10" x2="32" y2="17" />
+                  <line x1="40" y1="14" x2="37" y2="20" />
+                  <line x1="47" y1="20" x2="42" y2="24" />
+                  <line x1="52" y1="28" x2="47" y2="30" />
+                  <line x1="54" y1="38" x2="49" y2="38" />
+                </g>
+                {/* Concentric Arches */}
+                <g stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" fill="none">
+                  <path d="M 18 42 A 14 14 0 0 1 46 42" />
+                  <path d="M 23 42 A 9 9 0 0 1 41 42" />
+                  <path d="M 28 42 A 4 4 0 0 1 36 42" />
                 </g>
               </svg>
             </div>
@@ -237,7 +270,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                   <div className="freshy-input-group">
                     <label className="freshy-input-label">Email address</label>
                     <input
-                      type="text"
+                      type="email"
+                      inputMode="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       className="freshy-text-input"
                       placeholder="Example@gmail.com"
                       value={emailOrRoll}
@@ -249,10 +285,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                   <div className="freshy-input-group">
                     <div className="freshy-label-row">
                       <label className="freshy-input-label">Password</label>
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         className="freshy-forgot-link"
-                        onClick={() => alert(`Password reset instructions sent to your registered email.`)}
+                        onClick={() => alert('Password reset link sent to your registered email.')}
                       >
                         Forgot Password?
                       </button>
@@ -272,7 +308,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label="Toggle password view"
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>
@@ -330,6 +366,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                   <label className="freshy-input-label">Official University Email</label>
                   <input
                     type="email"
+                    inputMode="email"
                     className="freshy-text-input"
                     placeholder="student.23cse@dbs.edu.in"
                     value={regEmail}
@@ -435,147 +472,190 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
       </div>
 
       <style>{`
+        /* ==========================================================================
+           FULLSCREEN VIEWPORT & ADAPTIVE SIZING ARCHITECTURE
+           Fits standard desktop & laptop viewports completely without vertical scroll,
+           while gracefully falling back to scroll on small displays & mobile devices.
+           ========================================================================== */
+        
         .freshy-auth-viewport {
           min-height: 100vh;
+          min-height: 100dvh;
           width: 100vw;
-          background: #f1f5f9;
+          background: #f8fafc;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 24px;
+          padding: 12px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           color: #0f172a;
+          box-sizing: border-box;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         .freshy-auth-card {
           width: 100%;
-          max-width: 1120px;
-          min-height: 720px;
+          max-width: 980px;
+          /* Fits inside available window height with safety margins */
+          height: calc(100dvh - 24px);
+          max-height: 600px;
+          min-height: 470px;
           background: #ffffff;
-          border-radius: 28px;
-          box-shadow: 0 25px 70px -12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+          border-radius: 20px;
+          box-shadow: 0 16px 48px -12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1.05fr 0.95fr;
           overflow: hidden;
+          position: relative;
         }
 
-        /* LEFT COLUMN */
+        /* MOBILE BANNER: Hidden on desktop */
+        .freshy-mobile-banner {
+          display: none;
+        }
+
+        .desktop-only-flex {
+          display: flex;
+        }
+
+        /* LEFT FORM COLUMN */
         .freshy-form-column {
-          padding: 32px 56px 40px;
+          padding: 14px 34px 12px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           overflow-y: auto;
+          scrollbar-width: thin;
         }
 
         .portal-subdomain-pill-row {
-          display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 24px;
+          margin-bottom: 6px;
         }
 
         .portal-indicator-chip {
           display: inline-flex;
           align-items: center;
-          gap: 7px;
+          gap: 6px;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
-          padding: 4px 10px;
+          padding: 2.5px 8.5px;
           border-radius: 9999px;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 700;
           color: #334155;
+          letter-spacing: -0.01em;
+        }
+
+        .portal-indicator-chip.chip-dark {
+          background: rgba(15, 23, 42, 0.75);
+          backdrop-filter: blur(8px);
+          border-color: rgba(255, 255, 255, 0.15);
+          color: #f8fafc;
         }
 
         .dot-live {
-          width: 7px;
-          height: 7px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: #f97316;
+          box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
         }
 
         .portal-switch-subtle-btn {
           background: none;
           border: none;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: #64748b;
           font-weight: 600;
           cursor: pointer;
           text-decoration: underline;
+          padding: 2px 4px;
         }
 
         .portal-switch-subtle-btn:hover {
           color: #0f172a;
         }
 
+        .portal-switch-subtle-btn.switch-on-dark {
+          color: #e2e8f0;
+        }
+        .portal-switch-subtle-btn.switch-on-dark:hover {
+          color: #ffffff;
+        }
+
         .freshy-form-inner {
-          max-width: 380px;
+          max-width: 350px;
           width: 100%;
           margin: 0 auto;
           text-align: center;
         }
 
-        /* Radiant Sun Logo */
+        /* 1. Radiant Sun Logo (Arch + Rays) */
         .freshy-brand-emblem-wrap {
           display: flex;
           justify-content: center;
-          margin-bottom: 14px;
+          margin-bottom: 4px;
         }
 
         .freshy-sun-logo {
-          width: 52px;
-          height: 52px;
+          width: 34px;
+          height: 34px;
         }
 
+        /* 2. Titles */
         .freshy-title {
-          font-size: 1.85rem;
+          font-size: 1.45rem;
           font-weight: 800;
           color: #0f172a;
           letter-spacing: -0.025em;
-          margin-bottom: 6px;
+          margin-bottom: 2px;
+          line-height: 1.2;
         }
 
         .freshy-subtitle {
-          font-size: 0.88rem;
+          font-size: 0.78rem;
           color: #64748b;
-          margin-bottom: 24px;
+          margin-bottom: 8px;
+          line-height: 1.35;
         }
 
         .freshy-error-alert {
           background: #fef2f2;
           border: 1px solid #fecaca;
           color: #b91c1c;
-          padding: 9px 14px;
+          padding: 6px 10px;
           border-radius: 8px;
-          font-size: 0.78rem;
-          margin-bottom: 16px;
+          font-size: 0.74rem;
+          margin-bottom: 8px;
           text-align: center;
         }
 
-        /* SSO Buttons */
+        /* 3. SSO Buttons */
         .freshy-sso-group {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          margin-bottom: 20px;
+          gap: 6px;
+          margin-bottom: 6px;
         }
 
         .freshy-sso-btn {
           width: 100%;
-          height: 48px;
+          height: 36px;
           background: #ffffff;
           border: 1.5px solid #e2e8f0;
-          border-radius: 12px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 12px;
-          font-size: 0.9rem;
+          gap: 9px;
+          font-size: 0.81rem;
           font-weight: 600;
           color: #1e293b;
           cursor: pointer;
-          transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+          transition: background 0.15s ease, border-color 0.15s ease;
         }
 
         .freshy-sso-btn:hover:not(:disabled) {
@@ -584,16 +664,16 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-sso-icon {
-          width: 18px;
-          height: 18px;
+          width: 15px;
+          height: 15px;
         }
 
-        /* OR Divider */
+        /* 4. OR Divider */
         .freshy-or-divider {
           display: flex;
           align-items: center;
-          gap: 14px;
-          margin: 18px 0;
+          gap: 10px;
+          margin: 6px 0;
         }
 
         .or-line {
@@ -603,27 +683,28 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .or-text {
-          font-size: 0.75rem;
+          font-size: 0.68rem;
           color: #94a3b8;
           font-weight: 600;
+          letter-spacing: 0.04em;
         }
 
-        /* Form Fields */
+        /* 5. Form Fields */
         .freshy-fields-form {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 8px;
           text-align: left;
         }
 
         .freshy-input-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 3px;
         }
 
         .freshy-input-label {
-          font-size: 0.85rem;
+          font-size: 0.77rem;
           font-weight: 600;
           color: #0f172a;
         }
@@ -635,12 +716,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-forgot-link {
-          font-size: 0.78rem;
+          font-size: 0.73rem;
           color: #64748b;
           font-weight: 500;
           background: none;
           border: none;
           cursor: pointer;
+          padding: 0;
         }
 
         .freshy-forgot-link:hover {
@@ -650,14 +732,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-text-input {
           width: 100%;
-          height: 48px;
-          padding: 10px 16px;
+          height: 36px;
+          padding: 6px 12px;
           border: 1.5px solid #e2e8f0;
-          border-radius: 12px;
-          font-size: 0.9rem;
+          border-radius: 9px;
+          font-size: 0.83rem;
           color: #0f172a;
           background: #ffffff;
           outline: none;
+          box-sizing: border-box;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
@@ -674,37 +757,37 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-eye-btn {
           position: absolute;
-          right: 14px;
+          right: 10px;
           background: none;
           border: none;
           color: #94a3b8;
           cursor: pointer;
           display: flex;
           align-items: center;
+          padding: 4px;
         }
 
         .freshy-eye-btn:hover {
           color: #0f172a;
         }
 
-        /* Deep Black / Midnight Navy Log in Button */
+        /* 6. Deep Black Log in Button */
         .freshy-submit-btn {
           width: 100%;
-          height: 48px;
+          height: 38px;
           background: #0f172a;
           color: #ffffff;
           border: none;
-          border-radius: 12px;
-          font-size: 0.95rem;
+          border-radius: 9px;
+          font-size: 0.88rem;
           font-weight: 600;
           cursor: pointer;
-          margin-top: 6px;
-          transition: background 0.15s ease, transform 0.1s ease;
+          margin-top: 3px;
+          transition: background 0.15s ease;
         }
 
         .freshy-submit-btn:hover:not(:disabled) {
           background: #1e293b;
-          transform: translateY(-1px);
         }
 
         .freshy-submit-btn:disabled {
@@ -712,11 +795,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           cursor: not-allowed;
         }
 
+        /* 7. Sign up switcher */
         .freshy-signup-row {
           text-align: center;
-          font-size: 0.85rem;
+          font-size: 0.77rem;
           color: #64748b;
-          margin-top: 8px;
+          margin-top: 3px;
         }
 
         .freshy-signup-link {
@@ -726,15 +810,16 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           border: none;
           cursor: pointer;
           text-decoration: underline;
+          padding: 0;
         }
 
-        /* Bottom Legal Disclaimer */
+        /* 8. Bottom Terms Disclaimer */
         .freshy-legal-disclaimer {
           text-align: center;
-          font-size: 0.72rem;
+          font-size: 0.65rem;
           color: #94a3b8;
-          line-height: 1.5;
-          margin-top: 32px;
+          line-height: 1.35;
+          margin-top: 8px;
         }
 
         .freshy-legal-disclaimer a {
@@ -743,18 +828,19 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           text-decoration: underline;
         }
 
-        /* RIGHT COLUMN: Image & Carousel Card */
+        /* RIGHT COLUMN: Real DBS Campus Card */
         .freshy-image-column {
-          padding: 14px;
+          padding: 10px;
           display: flex;
+          height: 100%;
+          box-sizing: border-box;
         }
 
         .freshy-image-card-container {
           position: relative;
           width: 100%;
           height: 100%;
-          min-height: 640px;
-          border-radius: 20px;
+          border-radius: 16px;
           overflow: hidden;
           background: #0f172a;
           display: flex;
@@ -768,7 +854,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transition: opacity 0.5s ease;
+          transition: opacity 0.4s ease;
         }
 
         .freshy-image-scrim {
@@ -776,8 +862,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           inset: 0;
           background: linear-gradient(
             to bottom,
-            rgba(0, 0, 0, 0.05) 0%,
-            rgba(0, 0, 0, 0.25) 50%,
+            rgba(0, 0, 0, 0.04) 0%,
+            rgba(0, 0, 0, 0.22) 45%,
             rgba(0, 0, 0, 0.88) 100%
           );
           z-index: 2;
@@ -786,21 +872,21 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-image-overlay-content {
           position: relative;
           z-index: 10;
-          padding: 36px 40px;
+          padding: 20px 22px;
           color: #ffffff;
         }
 
-        /* Carousel Bars matching screenshot */
+        /* Carousel Bars */
         .freshy-carousel-bars {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-bottom: 18px;
+          gap: 6px;
+          margin-bottom: 8px;
         }
 
         .carousel-bar-line {
           height: 3px;
-          width: 16px;
+          width: 13px;
           border-radius: 2px;
           background: rgba(255, 255, 255, 0.4);
           border: none;
@@ -810,36 +896,232 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .carousel-bar-line.bar-active {
-          width: 36px;
+          width: 28px;
           background: #ffffff;
         }
 
         .freshy-slide-title {
-          font-size: 1.45rem;
+          font-size: 1.25rem;
           font-weight: 700;
           color: #ffffff;
-          line-height: 1.25;
-          margin-bottom: 8px;
+          line-height: 1.2;
+          margin-bottom: 4px;
         }
 
         .freshy-slide-desc {
-          font-size: 0.825rem;
+          font-size: 0.74rem;
           color: #cbd5e1;
-          line-height: 1.5;
-          max-width: 440px;
-          opacity: 0.9;
+          line-height: 1.4;
+          max-width: 380px;
+          opacity: 0.92;
         }
 
-        @media (max-width: 900px) {
+        /* ==========================================================================
+           LARGE DESKTOP / HIGH RESOLUTION EXPANSION
+           On taller monitors (>= 760px), scale up spacing for a luxurious feel.
+           ========================================================================== */
+        @media (min-height: 760px) and (min-width: 821px) {
+          .freshy-auth-card {
+            max-height: 660px;
+            border-radius: 24px;
+          }
+          .freshy-form-column {
+            padding: 24px 40px 18px;
+          }
+          .freshy-sun-logo {
+            width: 42px;
+            height: 42px;
+          }
+          .freshy-brand-emblem-wrap {
+            margin-bottom: 8px;
+          }
+          .freshy-title {
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+          }
+          .freshy-subtitle {
+            font-size: 0.84rem;
+            margin-bottom: 12px;
+          }
+          .freshy-sso-group {
+            gap: 8px;
+            margin-bottom: 10px;
+          }
+          .freshy-sso-btn {
+            height: 40px;
+            font-size: 0.84rem;
+          }
+          .freshy-or-divider {
+            margin: 10px 0;
+          }
+          .freshy-fields-form {
+            gap: 11px;
+          }
+          .freshy-text-input {
+            height: 40px;
+            font-size: 0.86rem;
+            padding: 8px 14px;
+          }
+          .freshy-submit-btn {
+            height: 42px;
+            font-size: 0.92rem;
+            margin-top: 5px;
+          }
+          .freshy-signup-row {
+            margin-top: 6px;
+            font-size: 0.8rem;
+          }
+          .freshy-legal-disclaimer {
+            margin-top: 14px;
+            font-size: 0.68rem;
+          }
+          .freshy-image-overlay-content {
+            padding: 28px 30px;
+          }
+          .freshy-slide-title {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+          }
+          .freshy-slide-desc {
+            font-size: 0.8rem;
+          }
+        }
+
+        /* ==========================================================================
+           SMALL DESKTOP HEIGHT OVERFLOW SAFEGUARD
+           If user shrinks window height below 500px, allow clean vertical scrolling
+           ========================================================================== */
+        @media (max-height: 500px) and (min-width: 821px) {
+          .freshy-auth-card {
+            height: auto;
+            max-height: none;
+            min-height: 440px;
+            margin: 12px 0;
+          }
+        }
+
+        /* ==========================================================================
+           MOBILE & TABLET RESPONSIVE OPTIMIZATION
+           Mobile-first stack with compact campus hero banner, high-touch inputs,
+           and smooth scrolling for any screen size.
+           ========================================================================== */
+        @media (max-width: 820px) {
+          .freshy-auth-viewport {
+            height: auto;
+            min-height: 100dvh;
+            padding: 10px 10px 24px;
+            align-items: flex-start;
+          }
+
           .freshy-auth-card {
             grid-template-columns: 1fr;
+            height: auto;
+            max-height: none;
             min-height: auto;
+            max-width: 440px;
+            margin: 0 auto;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
           }
+
+          .desktop-only-flex {
+            display: none !important;
+          }
+
+          /* Show sleek mobile campus hero banner */
+          .freshy-mobile-banner {
+            display: block;
+            position: relative;
+            height: 120px;
+            width: 100%;
+            overflow: hidden;
+            background: #0f172a;
+          }
+
+          .freshy-mobile-banner-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .freshy-mobile-banner-scrim {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              to bottom,
+              rgba(15, 23, 42, 0.25) 0%,
+              rgba(15, 23, 42, 0.85) 100%
+            );
+          }
+
+          .freshy-mobile-banner-content {
+            position: absolute;
+            bottom: 10px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+          }
+
           .freshy-image-column {
             display: none;
           }
+
           .freshy-form-column {
-            padding: 32px 24px;
+            padding: 18px 18px 22px;
+            overflow-y: visible;
+          }
+
+          .freshy-form-inner {
+            max-width: 100%;
+          }
+
+          .freshy-sun-logo {
+            width: 38px;
+            height: 38px;
+          }
+
+          .freshy-title {
+            font-size: 1.5rem;
+          }
+
+          .freshy-subtitle {
+            font-size: 0.82rem;
+            margin-bottom: 14px;
+          }
+
+          /* Mobile Touch Targets: 46px height + 16px font to prevent iOS zoom */
+          .freshy-text-input {
+            height: 46px;
+            font-size: 16px;
+            border-radius: 11px;
+            padding: 8px 14px;
+          }
+
+          .freshy-sso-btn {
+            height: 44px;
+            font-size: 0.88rem;
+            border-radius: 11px;
+            gap: 12px;
+          }
+
+          .freshy-submit-btn {
+            height: 46px;
+            font-size: 0.94rem;
+            border-radius: 11px;
+            margin-top: 6px;
+          }
+
+          .freshy-signup-row {
+            margin-top: 6px;
+            font-size: 0.82rem;
+          }
+
+          .freshy-legal-disclaimer {
+            margin-top: 14px;
+            font-size: 0.7rem;
           }
         }
       `}</style>
