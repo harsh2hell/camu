@@ -4,15 +4,9 @@ import { PortalChoicePage } from './components/PortalChoicePage';
 import { CamuLoginPage } from './components/CamuLoginPage';
 import { TeacherLoginPage } from './components/TeacherLoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
-import { SmartTimetable } from './components/SmartTimetable';
 import { LeaveODManager } from './components/LeaveODManager';
-import { LMSAssignments } from './components/LMSAssignments';
-import { NoticeBoardView } from './components/NoticeBoardView';
 import { FacultyAttendanceView } from './components/FacultyAttendanceView';
 import { DefaultersView } from './components/DefaultersView';
-import { FeeReceiptsView } from './components/FeeReceiptsView';
-import { GradebookView } from './components/GradebookView';
-import { HostelGatePassView } from './components/HostelGatePassView';
 import { authApi, type UserSession } from './api/auth';
 import { ShieldAlert, ShieldCheck, Lock, LogOut, ArrowLeft } from 'lucide-react';
 
@@ -401,59 +395,49 @@ export function App() {
 
   // 3. Authenticated Dashboard: Strictly displayed on respective student / teacher portals
   return (
-    <div className="app-layout">
-      {/* Top Security & Domain Strip */}
-      <div className="subdomain-top-banner">
-        <div className="banner-inner">
-          <div className="subdomain-badge-active">
-            <span className="dot-pulse"></span>
-            <strong>{currentRole === 'STUDENT' ? 'student.autonex.studio' : 'teacher.autonex.studio'}</strong>
-            <span className="badge-sep">&bull;</span>
-            <span>
-              {currentRole === 'STUDENT'
-                ? 'DBS Global University &bull; Official Student &amp; Academic ERP'
-                : 'DBS Global University &bull; Faculty &amp; Staff Administration'}
-            </span>
-          </div>
+    <div className={`app-layout ${currentRole === 'STUDENT' ? 'student-portal-view' : ''}`}>
+      {/* Top Security & Domain Strip - Only for Faculty Portal */}
+      {currentRole !== 'STUDENT' && (
+        <div className="subdomain-top-banner">
+          <div className="banner-inner">
+            <div className="subdomain-badge-active">
+              <span className="dot-pulse"></span>
+              <strong>teacher.autonex.studio</strong>
+              <span className="badge-sep">&bull;</span>
+              <span>DBS Global University &bull; Faculty &amp; Staff Administration</span>
+            </div>
 
-          <div className="banner-actions">
-            <div className="security-tag-pill">
-              <ShieldCheck size={13} className="text-emerald" />
-              <span>Biometric 256-bit Encrypted Session</span>
+            <div className="banner-actions">
+              <div className="security-tag-pill">
+                <ShieldCheck size={13} className="text-emerald" />
+                <span>Biometric 256-bit Encrypted Session</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Universal Top Navigation */}
-      <Navbar
-        currentRole={currentRole}
-        onRoleChange={() => {}}
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
-        userSession={session}
-        onLogout={handleLogout}
-      />
+      {/* Universal Top Navigation - Only for Faculty Portal */}
+      {currentRole !== 'STUDENT' && (
+        <Navbar
+          currentRole={currentRole}
+          onRoleChange={() => {}}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+          userSession={session}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main Content Area - Strictly Enforced Student Portal */}
-      <main className="main-content">
+      <main className={`main-content ${currentRole === 'STUDENT' ? 'student-portal-main' : ''}`}>
         {currentRole === 'STUDENT' ? (
-          <>
-            {activeTab === 'dashboard' && (
-              <StudentDashboard 
-                onNavigateTab={(tab) => setActiveTab(tab)} 
-                userSession={session}
-                onLogout={handleLogout}
-              />
-            )}
-            {activeTab === 'timetable' && <SmartTimetable />}
-            {activeTab === 'grades' && <GradebookView />}
-            {activeTab === 'fees' && <FeeReceiptsView />}
-            {activeTab === 'gatepass' && <HostelGatePassView />}
-            {activeTab === 'leaves' && <LeaveODManager />}
-            {activeTab === 'lms' && <LMSAssignments />}
-            {activeTab === 'notices' && <NoticeBoardView />}
-          </>
+          <StudentDashboard 
+            activeTab={activeTab}
+            onNavigateTab={(tab) => setActiveTab(tab)} 
+            userSession={session}
+            onLogout={handleLogout}
+          />
         ) : (
           <>
             {activeTab === 'faculty-attendance' && <FacultyAttendanceView />}
@@ -506,26 +490,28 @@ export function App() {
         </div>
       )}
 
-      {/* University Footer */}
-      <footer className="portal-footer">
-        <div className="footer-content">
-          <div className="footer-left">
-            <span className="footer-brand">DBS GLOBAL UNIVERSITY</span>
-            <span className="footer-divider">&bull;</span>
-            <span className="footer-campus">
-              {currentRole === 'STUDENT' ? 'student.dgu.in' : 'teacher.dgu.in'} &bull; Dehradun Academic Campus
-            </span>
+      {/* University Footer - Only for Faculty Portal */}
+      {currentRole !== 'STUDENT' && (
+        <footer className="portal-footer">
+          <div className="footer-content">
+            <div className="footer-left">
+              <span className="footer-brand">DBS GLOBAL UNIVERSITY</span>
+              <span className="footer-divider">&bull;</span>
+              <span className="footer-campus">
+                teacher.dgu.in &bull; Dehradun Academic Campus
+              </span>
+            </div>
+            <div className="footer-right">
+              <span>
+                Signed in as <strong>{session.name}</strong> ({session.role}) &bull;{' '}
+                <button onClick={handleLogout} className="footer-signout-btn">
+                  Sign Out
+                </button>
+              </span>
+            </div>
           </div>
-          <div className="footer-right">
-            <span>
-              Signed in as <strong>{session.name}</strong> ({session.role}) &bull;{' '}
-              <button onClick={handleLogout} className="footer-signout-btn">
-                Sign Out
-              </button>
-            </span>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       <style>{`
         .app-layout {
@@ -595,6 +581,19 @@ export function App() {
 
         .main-content {
           flex: 1;
+        }
+
+        .student-portal-view {
+          background: #f4f5f8;
+          min-height: 100vh;
+        }
+
+        .student-portal-main {
+          padding: 0;
+          margin: 0;
+          flex: 1;
+          display: flex;
+          width: 100%;
         }
 
         .portal-footer {

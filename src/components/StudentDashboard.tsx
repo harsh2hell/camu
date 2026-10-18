@@ -24,21 +24,27 @@ import {
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
+import { SmartTimetable } from './SmartTimetable';
+import { GradebookView } from './GradebookView';
+import { FeeReceiptsView } from './FeeReceiptsView';
+import { HostelGatePassView } from './HostelGatePassView';
+import { LeaveODManager } from './LeaveODManager';
+import { LMSAssignments } from './LMSAssignments';
+import { NoticeBoardView } from './NoticeBoardView';
 
 interface StudentDashboardProps {
+  activeTab?: string;
   onNavigateTab: (tab: string) => void;
   userSession?: UserSession | null;
   onLogout?: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
+  activeTab = 'dashboard',
   onNavigateTab,
   userSession,
   onLogout,
 }) => {
-  // Navigation active state for left slim rail
-  const [activeNav, setActiveNav] = useState<'home' | 'chat' | 'academics' | 'analytics' | 'settings'>('home');
-
   // Dropdown states
   const [growthTimeframe, setGrowthTimeframe] = useState<'Monthly' | 'Weekly' | 'Semester'>('Monthly');
   const [showGrowthDropdown, setShowGrowthDropdown] = useState(false);
@@ -113,64 +119,64 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     { month: 'Dec', count: 2800, percent: 95, heightPx: 170 },
   ];
 
-  // Upcoming Events / Exams matching the image items
+  // Upcoming Events / Exams matching DBS Global University academic schedule
   const upcomingEvents = [
     {
       id: 'evt-1',
-      date: 'Monday 22nd Jun, 2025',
-      title: 'Model test of 11th class',
-      subtext: 'Engineering Mathematics & Logic Synthesis • Hall 302',
-      tag: 'Internal Test',
+      date: 'Monday 22nd Jun, 2026',
+      title: 'DBS Mid-Term Examination (CS302)',
+      subtext: 'Database Management Systems & Relational Theory • Hall 302',
+      tag: 'Mid-Term Exam',
     },
     {
       id: 'evt-2',
-      date: 'Friday 15th Aug, 2025',
-      title: 'Final project presentation',
-      subtext: 'Capstone AI & Distributed Systems • Seminar Hall A',
+      date: 'Friday 15th Aug, 2026',
+      title: 'Capstone AI Project Presentation',
+      subtext: 'Distributed Systems & Machine Learning Lab • Seminar Hall A',
       tag: 'Viva Voce',
     },
     {
       id: 'evt-3',
-      date: 'Tuesday 16th Aug, 2025',
-      title: 'Final exam for Introduction to Psychology',
-      subtext: 'Behavioral Sciences Core • Main Academic Auditorium',
+      date: 'Tuesday 16th Aug, 2026',
+      title: 'Operating Systems End-Term (CS304)',
+      subtext: 'Concurrency & Systems Programming • Main Academic Auditorium',
       tag: 'University Exam',
     },
     {
       id: 'evt-4',
-      date: 'Friday 3rd Sep, 2025',
-      title: 'Practical assessment in Chemistry',
-      subtext: 'Physical Chemistry & Spectroscopy Lab • Room 108',
-      tag: 'Practical Lab',
+      date: 'Thursday 28th Aug, 2026',
+      title: 'DBS Tech Innovators Conclave 2026',
+      subtext: 'DGU Incubation & Innovation Cell • Campus Amphitheatre',
+      tag: 'Campus Conclave',
     },
     {
       id: 'evt-5',
-      date: 'Wednesday 12th Oct, 2025',
-      title: 'Group project presentation for History 101',
-      subtext: 'Modern World Civilization & Ethics • Conference Suite 4',
-      tag: 'Group Project',
+      date: 'Wednesday 12th Oct, 2026',
+      title: 'Computer Networks Practical Assessment (CS308)',
+      subtext: 'Cloud Computing & Network Protocols Lab • Room 204',
+      tag: 'Practical Lab',
     },
   ];
 
-  // Top Teachers Data matching the image
+  // Top Teachers Data for DBS Faculty
   const topTeachers = [
     {
       id: 'teach-1',
-      name: 'Alex John',
-      title: 'Physics Teacher',
-      dept: 'Department of Applied Physics',
-      rating: '4.9/5.0',
+      name: 'Dr. Rajesh Sharma',
+      title: 'Head of Computer Science & AI',
+      dept: 'Department of Computing & Advanced Systems',
+      rating: '4.95/5.0',
       avatar: '/dbs_academic_guest_lecture.webp',
-      studentsMentored: 142,
+      studentsMentored: 184,
     },
     {
       id: 'teach-2',
-      name: 'Maria Smith',
-      title: 'Mathematics Tutor',
-      dept: 'Department of Computing & Discrete Math',
-      rating: '4.95/5.0',
+      name: 'Prof. Maria Smith',
+      title: 'Associate Professor',
+      dept: 'Distributed Systems & Database Architecture',
+      rating: '4.92/5.0',
       avatar: '/dbs_fresher.webp',
-      studentsMentored: 198,
+      studentsMentored: 212,
     },
   ];
 
@@ -180,13 +186,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       <aside className="oak-sidebar-rail">
         <div className="oak-rail-top">
           {/* Top Logo / University Emblem */}
-          <div className="oak-brand-mark" title="DBS Global University">
-            <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
-              <circle cx="20" cy="12" r="6" fill="#c3e843" />
-              <circle cx="12" cy="24" r="6" fill="#1b212d" />
-              <circle cx="28" cy="24" r="6" fill="#c3e843" />
-              <path d="M16 28L20 22L24 28H16Z" fill="#1b212d" />
-            </svg>
+          <div 
+            className="oak-brand-mark" 
+            title="DBS Global University"
+            onClick={() => onNavigateTab('dashboard')}
+          >
+            <img 
+              src="/dbs_logo_transparent.png" 
+              alt="DBS Global University" 
+              className="oak-brand-logo-img" 
+            />
           </div>
 
           {/* Navigation Icon List */}
@@ -194,12 +203,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             {/* Dashboard (Home) */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeNav === 'home' ? 'is-active' : ''}`}
-              onClick={() => {
-                setActiveNav('home');
-                onNavigateTab('dashboard');
-              }}
-              title="Dashboard"
+              className={`oak-rail-btn ${activeTab === 'dashboard' ? 'is-active' : ''}`}
+              onClick={() => onNavigateTab('dashboard')}
+              title="Dashboard Overview"
             >
               <Home size={19} />
             </button>
@@ -207,11 +213,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             {/* Chat / Notices */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeNav === 'chat' ? 'is-active' : ''}`}
-              onClick={() => {
-                setActiveNav('chat');
-                onNavigateTab('notices');
-              }}
+              className={`oak-rail-btn ${activeTab === 'notices' ? 'is-active' : ''}`}
+              onClick={() => onNavigateTab('notices')}
               title="Campus Notices & Messages"
             >
               <MessageSquare size={19} />
@@ -220,11 +223,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             {/* Academics / LMS */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeNav === 'academics' ? 'is-active' : ''}`}
-              onClick={() => {
-                setActiveNav('academics');
-                onNavigateTab('lms');
-              }}
+              className={`oak-rail-btn ${activeTab === 'lms' ? 'is-active' : ''}`}
+              onClick={() => onNavigateTab('lms')}
               title="Academics & Assignments"
             >
               <GraduationCap size={19} />
@@ -233,11 +233,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             {/* Timetable / Schedule */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeNav === 'analytics' ? 'is-active' : ''}`}
-              onClick={() => {
-                setActiveNav('analytics');
-                onNavigateTab('timetable');
-              }}
+              className={`oak-rail-btn ${activeTab === 'timetable' ? 'is-active' : ''}`}
+              onClick={() => onNavigateTab('timetable')}
               title="Smart Timetable"
             >
               <BarChart2 size={19} />
@@ -249,11 +246,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         <div className="oak-rail-bottom">
           <button
             type="button"
-            className={`oak-rail-btn ${activeNav === 'settings' ? 'is-active' : ''}`}
-            onClick={() => {
-              setActiveNav('settings');
-              onNavigateTab('leaves');
-            }}
+            className={`oak-rail-btn ${(activeTab === 'leaves' || activeTab === 'gatepass') ? 'is-active' : ''}`}
+            onClick={() => onNavigateTab('leaves')}
             title="Leave / OD & Settings"
           >
             <Settings size={19} />
@@ -273,7 +267,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             tabIndex={0}
           >
             <Search size={17} className="oak-search-icon" />
-            <span className="oak-search-placeholder">Search here</span>
+            <span className="oak-search-placeholder">Search courses, teachers, exams, timetable...</span>
             <div className="oak-kbd-badge">⌘+K</div>
           </div>
 
@@ -331,6 +325,26 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       <GraduationCap size={14} />
                       <span>Academic Gradebook</span>
                     </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        onNavigateTab('fees');
+                        setShowProfileMenu(false);
+                      }}
+                    >
+                      <FileText size={14} />
+                      <span>Fee Receipts & Clearance</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        onNavigateTab('gatepass');
+                        setShowProfileMenu(false);
+                      }}
+                    >
+                      <ShieldCheck size={14} />
+                      <span>Hostel Digital Gatepass</span>
+                    </button>
                     {onLogout && (
                       <button 
                         type="button" 
@@ -351,160 +365,165 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           </div>
         </header>
 
-        {/* 3. HERO PANORAMIC CARD */}
-        <section className="oak-hero-banner-card">
-          <div 
-            className="oak-hero-backdrop" 
-            style={{ backgroundImage: `url('/university_hero_banner.jpg')` }}
-          >
-            <div className="oak-hero-gradient-overlay" />
-            
-            {/* University Title Heading */}
-            <div className="oak-hero-header-text">
-              <h1 className="oak-university-title">OAK University</h1>
-            </div>
+        {activeTab === 'dashboard' ? (
+          <>
+            {/* 3. HERO PANORAMIC CARD */}
+            <section className="oak-hero-banner-card">
+              <div 
+                className="oak-hero-backdrop" 
+                style={{ backgroundImage: `url('/dbs_panoramic_campus.jpg')` }}
+              >
+                <div className="oak-hero-gradient-overlay" />
+                
+                {/* University Title Heading */}
+                <div className="oak-hero-header-text">
+                  <h1 className="oak-university-title">DBS Global University</h1>
+                  <p className="oak-university-subline">Dehradun Himalayan Campus &bull; School of Technology &amp; Computing</p>
+                </div>
 
-            {/* Floating Widgets inside the Hero Banner */}
-            <div className="oak-hero-floating-row">
-              {/* Stat Card 1: Students */}
-              <div className="oak-stat-glass-card">
-                <div className="oak-stat-top">
-                  <div className="oak-stat-label-wrap">
-                    <Trophy size={14} className="oak-stat-icon" />
-                    <span className="oak-stat-label">Students</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="oak-dots-btn"
-                    onClick={() => setActiveMenuId(activeMenuId === 'students' ? null : 'students')}
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                  {activeMenuId === 'students' && (
-                    <div className="oak-menu-popover">
-                      <button onClick={() => onNavigateTab('dashboard')}>View Active Students</button>
-                      <button onClick={() => onNavigateTab('fees')}>Batch Analytics</button>
+                {/* Floating Widgets inside the Hero Banner */}
+                <div className="oak-hero-floating-row">
+                  {/* Stat Card 1: Students */}
+                  <div className="oak-stat-glass-card">
+                    <div className="oak-stat-top">
+                      <div className="oak-stat-label-wrap">
+                        <Trophy size={14} className="oak-stat-icon" />
+                        <span className="oak-stat-label">Students</span>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="oak-dots-btn"
+                        onClick={() => setActiveMenuId(activeMenuId === 'students' ? null : 'students')}
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {activeMenuId === 'students' && (
+                        <div className="oak-menu-popover">
+                          <button onClick={() => onNavigateTab('dashboard')}>View Active Students</button>
+                          <button onClick={() => onNavigateTab('fees')}>Batch Analytics</button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="oak-stat-bottom">
-                  <span className="oak-stat-number">2,635</span>
-                  <button 
-                    type="button" 
-                    className="oak-stat-arrow-btn"
-                    onClick={() => setSelectedCardDetail({
-                      title: 'Active Students Enrollment',
-                      subtitle: 'DBS Global University Directory',
-                      metric: '2,635 Students',
-                      description: 'Total verified undergraduates and postgraduates registered for Academic Session 2026-27 across Computer Science, Business Analytics, and Mechanical Engineering.',
-                    })}
-                  >
-                    <ArrowUpRight size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Stat Card 2: Teachers */}
-              <div className="oak-stat-glass-card">
-                <div className="oak-stat-top">
-                  <div className="oak-stat-label-wrap">
-                    <GraduationCap size={14} className="oak-stat-icon" />
-                    <span className="oak-stat-label">Teachers</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="oak-dots-btn"
-                    onClick={() => setActiveMenuId(activeMenuId === 'teachers' ? null : 'teachers')}
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                  {activeMenuId === 'teachers' && (
-                    <div className="oak-menu-popover">
-                      <button onClick={() => setTeacherTab('This year')}>Top Mentors</button>
-                      <button onClick={() => onNavigateTab('timetable')}>Faculty Schedule</button>
+                    <div className="oak-stat-bottom">
+                      <span className="oak-stat-number">2,635</span>
+                      <button 
+                        type="button" 
+                        className="oak-stat-arrow-btn"
+                        onClick={() => setSelectedCardDetail({
+                          title: 'Active Students Enrollment',
+                          subtitle: 'DBS Global University Directory',
+                          metric: '2,635 Students',
+                          description: 'Total verified undergraduates and postgraduates registered for Academic Session 2026-27 across Computer Science, Business Analytics, and Mechanical Engineering.',
+                        })}
+                      >
+                        <ArrowUpRight size={15} />
+                      </button>
                     </div>
-                  )}
-                </div>
-                <div className="oak-stat-bottom">
-                  <span className="oak-stat-number">29</span>
-                  <button 
-                    type="button" 
-                    className="oak-stat-arrow-btn"
-                    onClick={() => setSelectedCardDetail({
-                      title: 'Core Department Professorship',
-                      subtitle: 'Faculty of Engineering & Computing',
-                      metric: '29 Full-time Professors',
-                      description: 'Senior professors and PhD advisors dedicated to undergraduate coursework, research thesis supervision, and practical laboratory guidance.',
-                    })}
-                  >
-                    <ArrowUpRight size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Stat Card 3: Faculty */}
-              <div className="oak-stat-glass-card">
-                <div className="oak-stat-top">
-                  <div className="oak-stat-label-wrap">
-                    <Users size={14} className="oak-stat-icon" />
-                    <span className="oak-stat-label">Faculty</span>
                   </div>
-                  <button 
-                    type="button" 
-                    className="oak-dots-btn"
-                    onClick={() => setActiveMenuId(activeMenuId === 'faculty' ? null : 'faculty')}
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                  {activeMenuId === 'faculty' && (
-                    <div className="oak-menu-popover">
-                      <button onClick={() => onNavigateTab('lms')}>Department Courses</button>
-                      <button onClick={() => onNavigateTab('leaves')}>Academic Approvals</button>
-                    </div>
-                  )}
-                </div>
-                <div className="oak-stat-bottom">
-                  <span className="oak-stat-number">60</span>
-                  <button 
-                    type="button" 
-                    className="oak-stat-arrow-btn"
-                    onClick={() => setSelectedCardDetail({
-                      title: 'Visiting Scholars & Academic Faculty',
-                      subtitle: 'Dehradun Academic Campus',
-                      metric: '60 Academic Members',
-                      description: 'Including visiting industry fellows, adjunct research faculty, guest lecturers, and laboratory technical instructors.',
-                    })}
-                  >
-                    <ArrowUpRight size={15} />
-                  </button>
-                </div>
-              </div>
 
-              {/* Pastel Lime Card: Add New Members */}
-              <div className="oak-lime-action-card">
-                <h3 className="oak-lime-card-title">Add New Members</h3>
-                <div className="oak-lime-buttons-row">
-                  <button 
-                    type="button" 
-                    className="oak-lime-pill-btn"
-                    onClick={() => setActiveActionModal('student')}
-                  >
-                    <Plus size={14} />
-                    <span>Add Student</span>
-                  </button>
-                  <button 
-                    type="button" 
-                    className="oak-lime-pill-btn"
-                    onClick={() => setActiveActionModal('teacher')}
-                  >
-                    <Plus size={14} />
-                    <span>Add Teacher</span>
-                  </button>
+                  {/* Stat Card 2: Teachers */}
+                  <div className="oak-stat-glass-card">
+                    <div className="oak-stat-top">
+                      <div className="oak-stat-label-wrap">
+                        <GraduationCap size={14} className="oak-stat-icon" />
+                        <span className="oak-stat-label">Teachers</span>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="oak-dots-btn"
+                        onClick={() => setActiveMenuId(activeMenuId === 'teachers' ? null : 'teachers')}
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {activeMenuId === 'teachers' && (
+                        <div className="oak-menu-popover">
+                          <button onClick={() => setTeacherTab('This year')}>Top Mentors</button>
+                          <button onClick={() => onNavigateTab('timetable')}>Faculty Schedule</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="oak-stat-bottom">
+                      <span className="oak-stat-number">29</span>
+                      <button 
+                        type="button" 
+                        className="oak-stat-arrow-btn"
+                        onClick={() => setSelectedCardDetail({
+                          title: 'Core Department Professorship',
+                          subtitle: 'DBS Faculty of Engineering & Computing',
+                          metric: '29 Full-time Professors',
+                          description: 'Senior professors and PhD advisors dedicated to undergraduate coursework, research thesis supervision, and practical laboratory guidance.',
+                        })}
+                      >
+                        <ArrowUpRight size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stat Card 3: Faculty */}
+                  <div className="oak-stat-glass-card">
+                    <div className="oak-stat-top">
+                      <div className="oak-stat-label-wrap">
+                        <Users size={14} className="oak-stat-icon" />
+                        <span className="oak-stat-label">Faculty</span>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="oak-dots-btn"
+                        onClick={() => setActiveMenuId(activeMenuId === 'faculty' ? null : 'faculty')}
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {activeMenuId === 'faculty' && (
+                        <div className="oak-menu-popover">
+                          <button onClick={() => onNavigateTab('lms')}>Department Courses</button>
+                          <button onClick={() => onNavigateTab('leaves')}>Academic Approvals</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="oak-stat-bottom">
+                      <span className="oak-stat-number">60</span>
+                      <button 
+                        type="button" 
+                        className="oak-stat-arrow-btn"
+                        onClick={() => setSelectedCardDetail({
+                          title: 'Visiting Scholars & Academic Faculty',
+                          subtitle: 'DBS Dehradun Academic Campus',
+                          metric: '60 Academic Members',
+                          description: 'Including visiting industry fellows, adjunct research faculty, guest lecturers, and laboratory technical instructors.',
+                        })}
+                      >
+                        <ArrowUpRight size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pastel Lime Card: Quick DBS Services */}
+                  <div className="oak-lime-action-card">
+                    <h3 className="oak-lime-card-title">Quick Student Services</h3>
+                    <div className="oak-lime-buttons-row">
+                      <button 
+                        type="button" 
+                        className="oak-lime-pill-btn"
+                        onClick={() => onNavigateTab('gatepass')}
+                        title="Apply Hostel Digital Gatepass"
+                      >
+                        <Plus size={14} />
+                        <span>Apply Gatepass</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="oak-lime-pill-btn"
+                        onClick={() => onNavigateTab('leaves')}
+                        title="Request On-Duty (OD) / Leave"
+                      >
+                        <Plus size={14} />
+                        <span>Request OD</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
 
         {/* 4. THREE-COLUMN DASHBOARD GRID */}
         <div className="oak-content-grid">
@@ -837,7 +856,44 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           </div>
         </div>
+      </>
+    ) : (
+      <div className="oak-subview-panel animate-fade-in">
+        <div className="oak-subview-header-bar">
+          <button
+            type="button"
+            className="oak-subview-back-pill"
+            onClick={() => onNavigateTab('dashboard')}
+          >
+            &larr; Back to Dashboard
+          </button>
+          <div className="oak-subview-title-tag">
+            <span>DBS Global University</span>
+            <span className="oak-subview-sep">&bull;</span>
+            <span className="oak-subview-current-label">
+              {activeTab === 'timetable' && 'Smart Timetable & Schedules'}
+              {activeTab === 'grades' && 'Academic Gradebook & SGPA'}
+              {activeTab === 'fees' && 'Fee Receipts & Online Clearance'}
+              {activeTab === 'gatepass' && 'Hostel Digital Gatepass'}
+              {activeTab === 'leaves' && 'Leave & On-Duty (OD) Management'}
+              {activeTab === 'lms' && 'LMS Course Assignments'}
+              {activeTab === 'notices' && 'Campus Notice Board'}
+            </span>
+          </div>
+        </div>
+
+        <div className="oak-subview-body">
+          {activeTab === 'timetable' && <SmartTimetable />}
+          {activeTab === 'grades' && <GradebookView />}
+          {activeTab === 'fees' && <FeeReceiptsView />}
+          {activeTab === 'gatepass' && <HostelGatePassView />}
+          {activeTab === 'leaves' && <LeaveODManager />}
+          {activeTab === 'lms' && <LMSAssignments />}
+          {activeTab === 'notices' && <NoticeBoardView />}
+        </div>
       </div>
+    )}
+  </div>
 
       {/* 5. SPOTLIGHT / SEARCH MODAL (⌘+K) */}
       {showSearchModal && (
@@ -1077,6 +1133,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
         .oak-brand-mark {
           cursor: pointer;
+        }
+
+        .oak-brand-logo-img {
+          width: 36px;
+          height: 36px;
+          object-fit: contain;
+          display: block;
         }
 
         .oak-rail-nav {
@@ -1342,6 +1405,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           margin: 0;
           letter-spacing: -0.02em;
           text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .oak-university-subline {
+          font-size: 0.84rem;
+          color: rgba(255, 255, 255, 0.92);
+          margin: 4px 0 0 0;
+          font-weight: 500;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
         }
 
         /* Overlaid floating row inside Hero */
@@ -2264,6 +2335,66 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           font-size: 0.78rem;
           color: #64748b;
           margin: 4px 0 0 0;
+        }
+
+        /* SUBVIEW PANEL */
+        .oak-subview-panel {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .oak-subview-header-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #ffffff;
+          padding: 12px 20px;
+          border-radius: 18px;
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .oak-subview-back-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #f1f5f9;
+          color: #0f172a;
+          border: 1px solid #e2e8f0;
+          padding: 8px 16px;
+          border-radius: 9999px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .oak-subview-back-pill:hover {
+          background: #e2e8f0;
+          color: #000000;
+        }
+
+        .oak-subview-title-tag {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.82rem;
+          color: #64748b;
+        }
+
+        .oak-subview-sep {
+          color: #cbd5e1;
+        }
+
+        .oak-subview-current-label {
+          color: #0f172a;
+          font-weight: 700;
+        }
+
+        .oak-subview-body {
+          width: 100%;
         }
 
         /* RESPONSIVE BREAKPOINTS */
