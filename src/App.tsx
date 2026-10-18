@@ -41,10 +41,52 @@ function isTeacherAttempt(): boolean {
   );
 }
 
+function isRootDomain(): boolean {
+  const hostname = window.location.hostname.toLowerCase();
+  const pathname = window.location.pathname.toLowerCase();
+  const query = new URLSearchParams(window.location.search).get('portal');
+
+  // Subdomains are NOT root domain
+  if (
+    hostname.startsWith('student.') || 
+    hostname.startsWith('teacher.') || 
+    hostname.startsWith('faculty.') ||
+    hostname === 'student.localhost' || 
+    hostname === 'teacher.localhost'
+  ) {
+    return false;
+  }
+
+  // Explicit paths are NOT root domain
+  if (
+    pathname === '/student' || 
+    pathname.startsWith('/student/') || 
+    pathname === '/teacher' || 
+    pathname.startsWith('/teacher/') || 
+    pathname === '/faculty' || 
+    pathname.startsWith('/faculty/')
+  ) {
+    return false;
+  }
+
+  // Explicit query parameters
+  if (query === 'student' || query === 'teacher' || query === 'faculty') {
+    return false;
+  }
+
+  // Root domain (autonex.studio/, dgu.ac.in/, localhost:5173/)
+  return true;
+}
+
 function detectInitialView(): PortalView {
   const hostname = window.location.hostname.toLowerCase();
   const pathname = window.location.pathname.toLowerCase();
   const query = new URLSearchParams(window.location.search).get('portal');
+
+  // Root domain always shows the Portal Choice Page
+  if (isRootDomain()) {
+    return 'choice';
+  }
 
   // Subdomain detection
   if (hostname.startsWith('student.') || hostname === 'student.localhost') {
@@ -62,26 +104,10 @@ function detectInitialView(): PortalView {
     return 'teacher-login';
   }
 
-  // Explicit choice route (only when specifically navigated to /choice)
-  if (pathname === '/choice' || query === 'choice') {
-    return 'choice';
-  }
-
   // Query parameter detection
   if (query === 'student') return 'student-login';
   if (query === 'teacher' || query === 'faculty') return 'teacher-login';
 
-  // Fallback for returning users whose session/token/cookie expired or who logged out:
-  // Directly fallback to their respective login page instead of the first-timer choice page!
-  const lastRole = localStorage.getItem('dbs_last_user_role');
-  if (lastRole === 'FACULTY') {
-    return 'teacher-login';
-  }
-  if (lastRole === 'STUDENT' || localStorage.getItem('dbs_last_user_email')) {
-    return 'student-login';
-  }
-
-  // Default root domain: choice between Student and Faculty portal strictly for brand-new visitors
   return 'choice';
 }
 
@@ -347,12 +373,13 @@ export function App() {
     );
   }
 
-  // 1. Unauthenticated Gateway: Choice, Student Login, or Teacher Login
-  if (!session) {
-    if (portalView === 'choice') {
-      return <PortalChoicePage onSelectPortal={handleSelectPortal} />;
-    }
+  // 1. Root Domain: ALWAYS show Portal Choice Page on the main university gateway (autonex.studio or localhost:5173/)
+  if (isRootDomain() || portalView === 'choice') {
+    return <PortalChoicePage onSelectPortal={handleSelectPortal} />;
+  }
 
+  // 2. Unauthenticated Gateway: Student Login or Teacher Login
+  if (!session) {
     if (portalView === 'teacher-login') {
       return (
         <TeacherLoginPage 
@@ -372,7 +399,7 @@ export function App() {
     );
   }
 
-  // 2. Authenticated Dashboard: Strictly isolated by role
+  // 3. Authenticated Dashboard: Strictly displayed on respective student / teacher portals
   return (
     <div className="app-layout">
       {/* Top Security & Domain Strip */}
