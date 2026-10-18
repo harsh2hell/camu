@@ -364,7 +364,11 @@ export function App() {
         {currentRole === 'STUDENT' ? (
           <>
             {activeTab === 'dashboard' && (
-              <StudentDashboard onNavigateTab={(tab) => setActiveTab(tab)} />
+              <StudentDashboard 
+                onNavigateTab={(tab) => setActiveTab(tab)} 
+                userSession={session}
+                onLogout={handleLogout}
+              />
             )}
             {activeTab === 'timetable' && <SmartTimetable />}
             {activeTab === 'grades' && <GradebookView />}
