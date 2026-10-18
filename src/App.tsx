@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { PortalChoicePage } from './components/PortalChoicePage';
 import { CamuLoginPage } from './components/CamuLoginPage';
+import { TeacherLoginPage } from './components/TeacherLoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
 import { SmartTimetable } from './components/SmartTimetable';
 import { LeaveODManager } from './components/LeaveODManager';
@@ -13,11 +15,42 @@ import { GradebookView } from './components/GradebookView';
 import { HostelGatePassView } from './components/HostelGatePassView';
 import { authApi, type UserSession } from './api/auth';
 
+type PortalView = 'choice' | 'student-login' | 'teacher-login';
+
+function detectInitialView(): PortalView {
+  const hostname = window.location.hostname.toLowerCase();
+  const pathname = window.location.pathname.toLowerCase();
+  const query = new URLSearchParams(window.location.search).get('portal');
+
+  // 1. Subdomain detection (e.g. student.autonex.studio, teacher.autonex.studio)
+  if (hostname.startsWith('student.') || hostname === 'student.localhost') {
+    return 'student-login';
+  }
+  if (hostname.startsWith('teacher.') || hostname.startsWith('faculty.') || hostname === 'teacher.localhost') {
+    return 'teacher-login';
+  }
+
+  // 2. URL Pathname detection (e.g. /student, /teacher)
+  if (pathname === '/student' || pathname.startsWith('/student/')) {
+    return 'student-login';
+  }
+  if (pathname === '/teacher' || pathname === '/faculty' || pathname.startsWith('/teacher/')) {
+    return 'teacher-login';
+  }
+
+  // 3. Query Parameter detection (e.g. ?portal=student)
+  if (query === 'student') return 'student-login';
+  if (query === 'teacher' || query === 'faculty') return 'teacher-login';
+
+  // 4. Default for root domain (autonex.studio, dgu-eight.vercel.app, localhost): Show Choice Page
+  return 'choice';
+}
+
 export function App() {
+  const [portalView, setPortalView] = useState<PortalView>(detectInitialView);
   const [portalMode, setPortalMode] = useState<'student' | 'teacher'>(() => {
-    const query = new URLSearchParams(window.location.search).get('portal');
-    if (query === 'teacher' || query === 'faculty') return 'teacher';
-    return (localStorage.getItem('dbs_portal_mode') as 'student' | 'teacher') || 'student';
+    const initial = detectInitialView();
+    return initial === 'teacher-login' ? 'teacher' : 'student';
   });
 
   const [session, setSession] = useState<UserSession | null>(null);
@@ -33,13 +66,40 @@ export function App() {
       const role = existing.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
       setCurrentRole(role);
       setPortalMode(role === 'FACULTY' ? 'teacher' : 'student');
+      setPortalView(role === 'FACULTY' ? 'teacher-login' : 'student-login');
     }
     setIsInitializing(false);
   }, []);
 
+  const handleSelectPortal = (target: 'student' | 'teacher') => {
+    const currentHostname = window.location.hostname.toLowerCase();
+    const isCustomDomain = currentHostname.includes('autonex.studio') || currentHostname.includes('dgu.');
+
+    // If live on a domain with subdomains configured
+    if (isCustomDomain && !currentHostname.startsWith('student.') && !currentHostname.startsWith('teacher.')) {
+      const baseDomain = currentHostname.replace(/^www\./, '');
+      const sub = target === 'student' ? 'student.' : 'teacher.';
+      window.location.href = `${window.location.protocol}//${sub}${baseDomain}`;
+      return;
+    }
+
+    // Client-side routing transition
+    if (target === 'student') {
+      setPortalView('student-login');
+      setPortalMode('student');
+      window.history.pushState({}, '', '/student');
+    } else {
+      setPortalView('teacher-login');
+      setPortalMode('teacher');
+      window.history.pushState({}, '', '/teacher');
+    }
+  };
+
   const handlePortalChange = (mode: 'student' | 'teacher') => {
     setPortalMode(mode);
+    setPortalView(mode === 'student' ? 'student-login' : 'teacher-login');
     localStorage.setItem('dbs_portal_mode', mode);
+    window.history.pushState({}, '', mode === 'student' ? '/student' : '/teacher');
   };
 
   const handleLoginSuccess = (newSession: UserSession) => {
@@ -54,6 +114,14 @@ export function App() {
   const handleLogout = () => {
     authApi.logout();
     setSession(null);
+    const currentHostname = window.location.hostname.toLowerCase();
+    const isSubdomain = currentHostname.startsWith('student.') || currentHostname.startsWith('teacher.');
+    
+    // If not locked to a specific subdomain, return cleanly to the main choice page
+    if (!isSubdomain) {
+      setPortalView('choice');
+      window.history.pushState({}, '', '/');
+    }
   };
 
   if (isInitializing) {
@@ -64,12 +132,34 @@ export function App() {
     );
   }
 
-  // 1. If not authenticated, show separate student.dgu.in / teacher.dgu.in Login Screen
+  // 1. If not authenticated: Route between Main Choice, Student Login, or Teacher Login
   if (!session) {
+    if (portalView === 'choice') {
+      return <PortalChoicePage onSelectPortal={handleSelectPortal} />;
+    }
+
+    if (portalView === 'teacher-login') {
+      return (
+        <TeacherLoginPage 
+          onLoginSuccess={handleLoginSuccess}
+          onSwitchToStudent={() => {
+            setPortalView('student-login');
+            setPortalMode('student');
+            window.history.pushState({}, '', '/student');
+          }}
+        />
+      );
+    }
+
+    // Default to student login
     return (
       <CamuLoginPage 
-        portalMode={portalMode}
-        onTogglePortal={handlePortalChange}
+        portalMode="student"
+        onTogglePortal={() => {
+          setPortalView('teacher-login');
+          setPortalMode('teacher');
+          window.history.pushState({}, '', '/teacher');
+        }}
         onLoginSuccess={handleLoginSuccess} 
       />
     );
@@ -83,7 +173,7 @@ export function App() {
         <div className="banner-inner">
           <div className="subdomain-badge-active">
             <span className="dot-pulse"></span>
-            <strong>{currentRole === 'STUDENT' ? 'student.dgu.in' : 'teacher.dgu.in'}</strong>
+            <strong>{currentRole === 'STUDENT' ? 'student.autonex.studio' : 'teacher.autonex.studio'}</strong>
             <span className="badge-sep">&bull;</span>
             <span>{currentRole === 'STUDENT' ? 'Student & Parent Portal' : 'Faculty & Staff Administration Gateway'}</span>
           </div>
@@ -97,7 +187,7 @@ export function App() {
                 handlePortalChange(nextMode);
               }}
             >
-              Switch to {portalMode === 'student' ? 'teacher.dgu.in' : 'student.dgu.in'} &rarr;
+              Switch to {portalMode === 'student' ? 'teacher.autonex.studio' : 'student.autonex.studio'} &rarr;
             </button>
           </div>
         </div>
