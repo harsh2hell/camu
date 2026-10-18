@@ -489,7 +489,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                 className={`freshy-campus-photo-layer ${idx === activeSlide ? 'photo-active' : ''}`}
               >
                 <img 
-                  src={slide.image} 
+                  src={slide.desktopImage || slide.image} 
                   alt={slide.title} 
                   className="freshy-campus-photo"
                 />
