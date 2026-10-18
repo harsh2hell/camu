@@ -29,6 +29,16 @@
 
   --purple-500: #8b5cf6;
 
+  /* DBS Official Brand Identity (Imperial Plum to Magenta-Pink) */
+  --dbs-plum: #390c46;
+  --dbs-purple: #562b63;
+  --dbs-magenta: #7f2672;
+  --dbs-pink: #a46497;
+  --dbs-rose: #c92039;
+  --dbs-gradient: linear-gradient(135deg, #390c46 0%, #562b63 50%, #7f2672 100%);
+  --dbs-gradient-pink: linear-gradient(135deg, #562b63 0%, #7f2672 55%, #c92039 100%);
+  --dbs-glow: 0 4px 18px rgba(86, 43, 99, 0.32);
+
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
   --slate-200: #e2e8f0;

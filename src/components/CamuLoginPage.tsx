@@ -702,8 +702,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-text-input:focus {
-          border-color: #0f172a;
-          box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+          border-color: #7f2672;
+          box-shadow: 0 0 0 3px rgba(127, 38, 114, 0.15);
         }
 
         .freshy-password-wrap {
@@ -725,14 +725,14 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-eye-btn:hover {
-          color: #0f172a;
+          color: #562b63;
         }
 
-        /* 6. Deep Black Log in Button */
+        /* 6. DBS Imperial Plum to Magenta-Pink Gradient Log In Button */
         .freshy-submit-btn {
           width: 100%;
           height: 44px;
-          background: #0f172a;
+          background: linear-gradient(135deg, #390c46 0%, #562b63 50%, #7f2672 100%);
           color: #ffffff;
           border: none;
           border-radius: 10px;
@@ -740,11 +740,19 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           font-weight: 600;
           cursor: pointer;
           margin-top: 8px;
-          transition: background 0.15s ease;
+          box-shadow: 0 4px 16px rgba(86, 43, 99, 0.28);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .freshy-submit-btn:hover:not(:disabled) {
-          background: #1e293b;
+          background: linear-gradient(135deg, #481058 0%, #682977 50%, #942b85 100%);
+          box-shadow: 0 6px 20px rgba(127, 38, 114, 0.38);
+          transform: translateY(-1px);
+        }
+
+        .freshy-submit-btn:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(86, 43, 99, 0.25);
         }
 
         .freshy-submit-btn:disabled {
@@ -761,13 +769,18 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-signup-link {
-          color: #0f172a;
+          color: #562b63;
           font-weight: 700;
           background: none;
           border: none;
           cursor: pointer;
           text-decoration: underline;
           padding: 0;
+          transition: color 0.15s ease;
+        }
+
+        .freshy-signup-link:hover {
+          color: #7f2672;
         }
 
         /* 8. Bottom Terms Disclaimer with Generous Breathing Room */
@@ -780,9 +793,14 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-legal-disclaimer a {
-          color: #0f172a;
+          color: #562b63;
           font-weight: 600;
           text-decoration: underline;
+          transition: color 0.15s ease;
+        }
+
+        .freshy-legal-disclaimer a:hover {
+          color: #7f2672;
         }
 
         /* ==========================================================================
@@ -803,7 +821,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           height: 100%;
           border-radius: 16px;
           overflow: hidden;
-          background: #0f172a;
+          background: #1f0727;
           display: flex;
           flex-direction: column;
           justify-content: flex-end;
@@ -839,9 +857,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           background: linear-gradient(
             to bottom,
             rgba(0, 0, 0, 0.0) 0%,
-            rgba(0, 0, 0, 0.12) 40%,
-            rgba(0, 0, 0, 0.80) 75%,
-            rgba(0, 0, 0, 0.95) 100%
+            rgba(31, 7, 39, 0.15) 40%,
+            rgba(31, 7, 39, 0.85) 75%,
+            rgba(31, 7, 39, 0.98) 100%
           );
           z-index: 3;
           pointer-events: none;
@@ -884,17 +902,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           background: rgba(255, 255, 255, 0.3);
         }
 
-        /* Animated Progress Fill */
+        /* Animated Progress Fill with DBS Vibrant Magenta-Pink Gradient */
         .carousel-bar-progress {
           position: absolute;
           top: 0;
           left: 0;
           bottom: 0;
           width: 0%;
-          background: #ffffff;
+          background: linear-gradient(90deg, #d946ef, #ff3366);
           border-radius: 9999px;
           animation: fillProgress linear forwards;
-          box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+          box-shadow: 0 0 8px rgba(217, 70, 239, 0.8);
         }
 
         @keyframes fillProgress {
@@ -1057,7 +1075,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             height: 130px;
             width: 100%;
             overflow: hidden;
-            background: #0f172a;
+            background: #1f0727;
           }
 
           .freshy-mobile-banner-img {
@@ -1079,8 +1097,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             inset: 0;
             background: linear-gradient(
               to bottom,
-              rgba(15, 23, 42, 0.25) 0%,
-              rgba(15, 23, 42, 0.85) 100%
+              rgba(31, 7, 39, 0.25) 0%,
+              rgba(31, 7, 39, 0.88) 100%
             );
           }
 
@@ -1119,9 +1137,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           }
 
           .mobile-dot.dot-active {
-            width: 12px;
+            width: 14px;
             border-radius: 9999px;
-            background: #ffffff;
+            background: linear-gradient(90deg, #d946ef, #ff3366);
+            box-shadow: 0 0 6px rgba(217, 70, 239, 0.7);
           }
 
           .freshy-image-column {
