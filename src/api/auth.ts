@@ -19,6 +19,9 @@ export const authApi = {
       const response = await apiClient.post<UserSession>('/auth/login', { username, password });
       localStorage.setItem('dbs_auth_token', response.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(response));
+      localStorage.setItem('dbs_last_user_email', response.email || username);
+      if (response.name) localStorage.setItem('dbs_last_user_name', response.name);
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return response;
     } catch {
       // Local simulated response for testing before backend connection
@@ -34,8 +37,8 @@ export const authApi = {
           }
         : {
             id: 'STU-042',
-            name: CURRENT_STUDENT.name,
-            email: 'harsh.23cse@dbs.edu.in',
+            name: username.split('@')[0] ? username.split('@')[0].replace('.', ' ').toUpperCase() : CURRENT_STUDENT.name,
+            email: username.includes('@') ? username : `${username}@dbs.edu.in`,
             role: 'STUDENT',
             rollNo: CURRENT_STUDENT.rollNo,
             department: 'B.Tech CSE',
@@ -45,6 +48,9 @@ export const authApi = {
 
       localStorage.setItem('dbs_auth_token', session.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(session));
+      localStorage.setItem('dbs_last_user_email', session.email || username);
+      if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return session;
     }
   },
@@ -70,6 +76,9 @@ export const authApi = {
       const response = await apiClient.post<UserSession>('/auth/register', data);
       localStorage.setItem('dbs_auth_token', response.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(response));
+      localStorage.setItem('dbs_last_user_email', response.email || data.email);
+      localStorage.setItem('dbs_last_user_name', response.name || data.fullName);
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return response;
     } catch {
       const session: UserSession = {
@@ -83,6 +92,9 @@ export const authApi = {
       };
       localStorage.setItem('dbs_auth_token', session.token);
       localStorage.setItem('dbs_user_session', JSON.stringify(session));
+      localStorage.setItem('dbs_last_user_email', session.email);
+      localStorage.setItem('dbs_last_user_name', session.name);
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
       return session;
     }
   },
@@ -91,13 +103,47 @@ export const authApi = {
     const raw = localStorage.getItem('dbs_user_session');
     if (!raw) return null;
     try {
-      return JSON.parse(raw);
+      const session: UserSession = JSON.parse(raw);
+      
+      // Inactivity check: 7 days session inactivity expiration
+      const INACTIVITY_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
+      const lastActive = localStorage.getItem('dbs_last_active_time');
+      if (lastActive) {
+        const elapsed = Date.now() - parseInt(lastActive, 10);
+        if (elapsed > INACTIVITY_TIMEOUT_MS) {
+          // Expired due to inactivity: preserve email for "Welcome Back" greeting
+          if (session.email) {
+            localStorage.setItem('dbs_last_user_email', session.email);
+            if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
+          }
+          localStorage.removeItem('dbs_auth_token');
+          localStorage.removeItem('dbs_user_session');
+          return null;
+        }
+      }
+      
+      // Heartbeat update
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
+      return session;
     } catch {
       return null;
     }
   },
 
   logout(): void {
+    // Retain previous session email so login screen greets returning user
+    const raw = localStorage.getItem('dbs_user_session');
+    if (raw) {
+      try {
+        const session: UserSession = JSON.parse(raw);
+        if (session.email) {
+          localStorage.setItem('dbs_last_user_email', session.email);
+          if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
+        }
+      } catch {
+        // ignore
+      }
+    }
     localStorage.removeItem('dbs_auth_token');
     localStorage.removeItem('dbs_user_session');
   },

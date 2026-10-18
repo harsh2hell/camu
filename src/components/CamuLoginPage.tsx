@@ -15,8 +15,24 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   const isStudent = portalMode === 'student';
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [emailOrRoll, setEmailOrRoll] = useState(isStudent ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
-  const [password, setPassword] = useState(isStudent ? 'DBS@2026' : 'Faculty@DBS');
+
+  // Dynamic user detection: Returning vs. First-Time visitor
+  const [savedEmail, setSavedEmail] = useState<string>(() => {
+    return localStorage.getItem('dbs_last_user_email') || '';
+  });
+  const [savedName, setSavedName] = useState<string>(() => {
+    return localStorage.getItem('dbs_last_user_name') || '';
+  });
+
+  const isReturningUser = Boolean(savedEmail.trim());
+
+  // Email/Roll: Pre-filled ONLY for returning users; strictly empty for new users
+  const [emailOrRoll, setEmailOrRoll] = useState<string>(() => {
+    return savedEmail.trim();
+  });
+
+  // Password: MUST ALWAYS BE EMPTY BY DEFAULT (for both new and returning users)
+  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -100,6 +116,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     setProgressKey((prev) => prev + 1);
   };
 
+  const handleSwitchAccount = () => {
+    localStorage.removeItem('dbs_last_user_email');
+    localStorage.removeItem('dbs_last_user_name');
+    setSavedEmail('');
+    setSavedName('');
+    setEmailOrRoll('');
+    setPassword('');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailOrRoll.trim()) {
@@ -111,6 +136,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
     try {
       const session = await authApi.login(emailOrRoll, password);
+      // Persist email & name for returning user detection
+      localStorage.setItem('dbs_last_user_email', emailOrRoll.trim());
+      if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
+
       onLoginSuccess({
         ...session,
         role: isStudent ? 'STUDENT' : 'FACULTY',
@@ -126,6 +156,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
     setIsLoading(true);
     try {
       const session = await authApi.loginWithGoogle();
+      localStorage.setItem('dbs_last_user_email', session.email || 'harsh.23cse@dbs.edu.in');
+      if (session.name) localStorage.setItem('dbs_last_user_name', session.name);
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
       onLoginSuccess({ ...session, role: isStudent ? 'STUDENT' : 'FACULTY' });
     } catch {
       setErrorMessage('Google SSO failed.');
@@ -205,12 +238,18 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
               />
             </div>
 
-            {/* 2. Titles */}
-            <h1 className="freshy-title">Welcome Back!</h1>
+            {/* 2. Dynamic Titles: Returning User vs. New First-Time Customer */}
+            <h1 className="freshy-title">
+              {isReturningUser 
+                ? (savedName ? `Welcome back, ${savedName.split(' ')[0]}!` : 'Welcome Back!')
+                : (isStudent ? 'Welcome!' : 'Faculty Gateway')}
+            </h1>
             <p className="freshy-subtitle">
-              {isStudent 
-                ? 'Sign in to continue where you left off.' 
-                : 'Sign in to DBS Global University Faculty Suite.'}
+              {isReturningUser
+                ? 'Sign in to continue where you left off.'
+                : (isStudent 
+                    ? 'Sign in to access your student portal.' 
+                    : 'Sign in to access DBS Global University Faculty Suite.')}
             </p>
 
             {/* Error Message */}
@@ -250,14 +289,25 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                 {/* 5. Inputs Form */}
                 <form onSubmit={handleLogin} className="freshy-fields-form">
                   <div className="freshy-input-group">
-                    <label className="freshy-input-label">Email address</label>
+                    <div className="freshy-label-row">
+                      <label className="freshy-input-label">Email address</label>
+                      {isReturningUser && (
+                        <button
+                          type="button"
+                          className="freshy-switch-user-btn"
+                          onClick={handleSwitchAccount}
+                        >
+                          Switch account
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="email"
                       inputMode="email"
                       autoCapitalize="none"
                       autoCorrect="off"
                       className="freshy-text-input"
-                      placeholder="Example@gmail.com"
+                      placeholder={isReturningUser ? savedEmail : "name@dbs.edu.in"}
                       value={emailOrRoll}
                       onChange={(e) => setEmailOrRoll(e.target.value)}
                       required
@@ -683,8 +733,24 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-forgot-link:hover {
-          color: #0f172a;
+          color: #7f2672;
           text-decoration: underline;
+        }
+
+        .freshy-switch-user-btn {
+          font-size: 0.74rem;
+          color: #7f2672;
+          font-weight: 600;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          text-decoration: underline;
+          transition: color 0.15s ease;
+        }
+
+        .freshy-switch-user-btn:hover {
+          color: #390c46;
         }
 
         .freshy-text-input {
