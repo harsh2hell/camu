@@ -50,8 +50,16 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
 
-  // 9 Academic Campus & Faculty Slides (Curated for natural portrait & 4:3 vertical card display)
-  const slides = [
+  // Academic Slides interface supporting dedicated vertical desktop photos vs horizontal mobile photos
+  interface SlideItem {
+    desktopImage?: string;
+    mobileImage?: string;
+    image: string;
+    title: string;
+    desc: string;
+  }
+
+  const slides: SlideItem[] = [
     {
       image: '/dbs_campus_real.jpg',
       title: 'Himalayan Academic Campus',
@@ -202,7 +210,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           {slides.map((slide, idx) => (
             <img 
               key={idx}
-              src={slide.image} 
+              src={slide.mobileImage || slide.image} 
               alt={slide.title} 
               className={`freshy-mobile-banner-img ${idx === activeSlide ? 'banner-active' : ''}`}
             />
@@ -558,15 +566,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-auth-card {
           width: 100%;
-          max-width: 1140px;
+          max-width: 1020px;
           height: calc(100dvh - 36px);
-          max-height: 590px;
+          max-height: 600px;
           min-height: 480px;
           background: #ffffff;
           border-radius: 20px;
           box-shadow: 0 16px 48px -12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
           display: grid;
-          grid-template-columns: 420px 1fr;
+          grid-template-columns: 1fr 1fr;
           overflow: hidden;
           position: relative;
         }
@@ -733,13 +741,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-forgot-link:hover {
-          color: #7f2672;
+          color: #0f172a;
           text-decoration: underline;
         }
 
         .freshy-switch-user-btn {
           font-size: 0.74rem;
-          color: #7f2672;
+          color: #475569;
           font-weight: 600;
           background: none;
           border: none;
@@ -750,7 +758,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-switch-user-btn:hover {
-          color: #390c46;
+          color: #0f172a;
         }
 
         .freshy-text-input {
@@ -768,8 +776,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-text-input:focus {
-          border-color: #7f2672;
-          box-shadow: 0 0 0 3px rgba(127, 38, 114, 0.15);
+          border-color: #562b63;
+          box-shadow: 0 0 0 3px rgba(86, 43, 99, 0.12);
         }
 
         .freshy-password-wrap {
@@ -791,14 +799,14 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-eye-btn:hover {
-          color: #562b63;
+          color: #0f172a;
         }
 
-        /* 6. DBS Imperial Plum to Magenta-Pink Gradient Log In Button */
+        /* 6. Solid DBS Plain Purple Log In Button (No gradient mix) */
         .freshy-submit-btn {
           width: 100%;
           height: 44px;
-          background: linear-gradient(135deg, #390c46 0%, #562b63 50%, #7f2672 100%);
+          background: #562b63;
           color: #ffffff;
           border: none;
           border-radius: 10px;
@@ -806,19 +814,20 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           font-weight: 600;
           cursor: pointer;
           margin-top: 8px;
-          box-shadow: 0 4px 16px rgba(86, 43, 99, 0.28);
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 14px rgba(86, 43, 99, 0.22);
+          transition: all 0.18s ease;
         }
 
         .freshy-submit-btn:hover:not(:disabled) {
-          background: linear-gradient(135deg, #481058 0%, #682977 50%, #942b85 100%);
-          box-shadow: 0 6px 20px rgba(127, 38, 114, 0.38);
+          background: #461f52;
+          box-shadow: 0 6px 18px rgba(86, 43, 99, 0.32);
           transform: translateY(-1px);
         }
 
         .freshy-submit-btn:active:not(:disabled) {
           transform: translateY(0);
-          box-shadow: 0 2px 8px rgba(86, 43, 99, 0.25);
+          background: #3b1746;
+          box-shadow: 0 2px 8px rgba(86, 43, 99, 0.2);
         }
 
         .freshy-submit-btn:disabled {
@@ -826,7 +835,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           cursor: not-allowed;
         }
 
-        /* 7. Sign up switcher with clear separation */
+        /* 7. Sign up switcher with clear separation & normal black color */
         .freshy-signup-row {
           text-align: center;
           font-size: 0.82rem;
@@ -835,7 +844,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-signup-link {
-          color: #562b63;
+          color: #0f172a;
           font-weight: 700;
           background: none;
           border: none;
@@ -846,10 +855,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-signup-link:hover {
-          color: #7f2672;
+          color: #334155;
         }
 
-        /* 8. Bottom Terms Disclaimer with Generous Breathing Room */
+        /* 8. Bottom Terms Disclaimer with normal black link colors */
         .freshy-legal-disclaimer {
           text-align: center;
           font-size: 0.68rem;
@@ -859,14 +868,14 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-legal-disclaimer a {
-          color: #562b63;
+          color: #0f172a;
           font-weight: 600;
           text-decoration: underline;
           transition: color 0.15s ease;
         }
 
         .freshy-legal-disclaimer a:hover {
-          color: #7f2672;
+          color: #334155;
         }
 
         /* ==========================================================================
@@ -1028,9 +1037,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
            ========================================================================== */
         @media (min-height: 760px) and (min-width: 821px) {
           .freshy-auth-card {
-            max-width: 1180px;
-            max-height: 660px;
-            grid-template-columns: 430px 1fr;
+            max-width: 1040px;
+            max-height: 640px;
+            grid-template-columns: 1fr 1fr;
             border-radius: 24px;
           }
           .freshy-form-column {
