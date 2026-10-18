@@ -686,11 +686,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-glass-pill-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(255, 255, 255, 0.92);
-          border-color: rgba(57, 12, 70, 0.25);
+          background: rgba(255, 255, 255, 0.95);
+          border-color: rgba(57, 12, 70, 0.3);
           color: #210529;
-          box-shadow: 0 12px 28px -4px rgba(57, 12, 70, 0.16);
         }
 
         .glass-btn-icon {
@@ -1113,14 +1111,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-submit-btn:hover:not(:disabled) {
           background: #461f52;
-          box-shadow: 0 6px 18px rgba(86, 43, 99, 0.32);
-          transform: translateY(-1px);
         }
 
         .freshy-submit-btn:active:not(:disabled) {
-          transform: translateY(0);
           background: #3b1746;
-          box-shadow: 0 2px 8px rgba(86, 43, 99, 0.2);
         }
 
         .freshy-submit-btn:disabled {

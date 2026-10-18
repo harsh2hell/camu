@@ -480,59 +480,48 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
           position: relative;
         }
 
-        /* FLOATING TOP GLASS BAR */
+        /* FLOATING TOP GLASS BAR - ALIGNED TO RIGHT OF CARD */
         .faculty-floating-top-bar {
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-end;
+          width: 1040px;
+          max-width: 95vw;
           gap: 12px;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
           z-index: 20;
-          animation: fadeInDown 0.3s ease;
         }
 
-        @keyframes fadeInDown {
-          from { opacity: 0; transform: translateY(-8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* LIQUID GLASS CYLINDRICAL BUTTON */
+        /* LIQUID GLASS CYLINDRICAL BUTTON (NO HOVER ZOOM / POPUP) */
         .liquid-glass-btn {
-          height: 42px;
-          padding: 0 20px;
+          height: 40px;
+          padding: 0 18px;
           border-radius: 9999px;
           background: rgba(255, 255, 255, 0.78);
           backdrop-filter: blur(20px) saturate(180%);
           -webkit-backdrop-filter: blur(20px) saturate(180%);
           border: 1.5px solid rgba(255, 255, 255, 0.95);
           box-shadow: 
-            0 8px 24px -4px rgba(57, 12, 70, 0.08),
-            0 2px 6px 0 rgba(0, 0, 0, 0.04),
-            inset 0 1px 1px rgba(255, 255, 255, 0.9);
+            0 4px 14px -2px rgba(57, 12, 70, 0.08),
+            0 1px 3px 0 rgba(0, 0, 0, 0.04);
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          font-size: 0.86rem;
+          font-size: 0.84rem;
           font-weight: 600;
           color: #390c46;
           cursor: pointer;
-          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         }
 
         .liquid-glass-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(255, 255, 255, 0.92);
-          border-color: rgba(57, 12, 70, 0.25);
-          box-shadow: 
-            0 12px 28px -4px rgba(57, 12, 70, 0.16),
-            0 4px 10px 0 rgba(0, 0, 0, 0.06),
-            inset 0 1px 2px rgba(255, 255, 255, 1);
+          background: rgba(255, 255, 255, 0.95);
+          border-color: rgba(57, 12, 70, 0.3);
           color: #210529;
         }
 
         .liquid-glass-btn:active {
-          transform: translateY(0);
-          box-shadow: 0 4px 12px rgba(57, 12, 70, 0.1);
+          background: #ffffff;
         }
 
         .glass-btn-icon {
@@ -541,11 +530,6 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
 
         .glass-btn-arrow {
           font-weight: 700;
-          transition: transform 0.18s ease;
-        }
-
-        .liquid-glass-btn:hover .glass-btn-arrow {
-          transform: translateX(3px);
         }
 
         /* MAIN CARD */
@@ -862,14 +846,10 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
 
         .faculty-submit-btn:hover:not(:disabled) {
           background: #2a0834;
-          box-shadow: 0 6px 18px rgba(57, 12, 70, 0.35);
-          transform: translateY(-1px);
         }
 
         .faculty-submit-btn:active:not(:disabled) {
-          transform: translateY(0);
           background: #210529;
-          box-shadow: 0 2px 8px rgba(57, 12, 70, 0.2);
         }
 
         .faculty-submit-btn:disabled {
@@ -1165,7 +1145,6 @@ export const TeacherLoginPage: React.FC<TeacherLoginPageProps> = ({
 
         .direct-mail-cta:hover {
           background: #2a0834;
-          transform: translateY(-1px);
         }
 
         /* RESPONSIVE DESIGN */

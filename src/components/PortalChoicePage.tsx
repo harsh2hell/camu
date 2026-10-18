@@ -407,13 +407,8 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
         }
 
         .liquid-glass-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(255, 255, 255, 0.92);
-          border-color: rgba(57, 12, 70, 0.25);
-          box-shadow: 
-            0 12px 28px -4px rgba(57, 12, 70, 0.16),
-            0 4px 10px 0 rgba(0, 0, 0, 0.06),
-            inset 0 1px 2px rgba(255, 255, 255, 1);
+          background: rgba(255, 255, 255, 0.95);
+          border-color: rgba(57, 12, 70, 0.3);
           color: #210529;
         }
 
@@ -572,8 +567,6 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
         .portal-choice-tile:hover {
           border-color: #390c46;
           background: #faf5ff;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 22px -4px rgba(57, 12, 70, 0.12);
         }
 
         .tile-left-icon {
@@ -584,7 +577,7 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          transition: all 0.2s ease;
+          transition: background 0.15s ease, color 0.15s ease;
         }
 
         .student-icon-bg {
@@ -602,14 +595,12 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
         .portal-choice-tile:hover .student-icon-bg {
           background: #390c46;
           color: #ffffff;
-          transform: scale(1.05);
         }
 
         .portal-choice-tile:hover .faculty-icon-bg {
           background: #390c46;
           color: #ffffff;
           border-color: #390c46;
-          transform: scale(1.05);
         }
 
         .tile-content {
@@ -639,14 +630,13 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
           justify-content: center;
           color: #64748b;
           flex-shrink: 0;
-          transition: all 0.2s ease;
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }
 
         .portal-choice-tile:hover .tile-arrow-circle {
           background: #390c46;
           border-color: #390c46;
           color: #ffffff;
-          transform: translateX(3px);
         }
 
         /* BOTTOM SUPPORT */
@@ -958,7 +948,6 @@ export const PortalChoicePage: React.FC<PortalChoicePageProps> = ({ onSelectPort
 
         .direct-mail-cta:hover {
           background: #2a0834;
-          transform: translateY(-1px);
         }
 
         /* RESPONSIVE DESIGN */

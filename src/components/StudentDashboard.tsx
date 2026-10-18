@@ -533,8 +533,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigateTa
 
         .primary-plum:hover {
           background: #461f52;
-          box-shadow: 0 6px 18px rgba(86, 43, 99, 0.32);
-          transform: translateY(-1px);
         }
 
         .secondary-btn {
@@ -1247,8 +1245,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigateTa
         .launchpad-tile:hover {
           background: #ffffff;
           border-color: #562b63;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px -4px rgba(86, 43, 99, 0.12);
+          box-shadow: 0 4px 12px -2px rgba(86, 43, 99, 0.1);
         }
 
         .tile-icon {

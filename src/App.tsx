@@ -597,7 +597,6 @@ export function App() {
 
         .btn-security-primary:hover {
           background: #461f52;
-          transform: translateY(-1px);
         }
 
         .btn-security-secondary {
