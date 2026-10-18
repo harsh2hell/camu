@@ -10,7 +10,6 @@ interface CamuLoginPageProps {
 
 export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   portalMode,
-  onTogglePortal,
   onLoginSuccess,
 }) => {
   const isStudent = portalMode === 'student';
@@ -167,24 +166,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             />
           ))}
           <div className="freshy-mobile-banner-scrim"></div>
-          <div className="freshy-mobile-banner-content">
-            <div className="portal-indicator-chip chip-dark">
-              <span className="dot-live"></span>
-              <span>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
-            </div>
-            <button
-              type="button"
-              className="portal-switch-subtle-btn switch-on-dark"
-              onClick={() => {
-                const next = isStudent ? 'teacher' : 'student';
-                onTogglePortal(next);
-                setEmailOrRoll(next === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
-                setPassword(next === 'student' ? 'DBS@2026' : 'Faculty@DBS');
-                setErrorMessage(null);
-              }}
-            >
-              Switch to {isStudent ? 'teacher.dgu.in' : 'student.dgu.in'}
-            </button>
+          <div className="freshy-mobile-banner-brand">
+            <span className="mobile-banner-title">DBS Global University</span>
+            <span className="mobile-banner-subtitle">Official Academic Portal</span>
           </div>
           {/* Mobile slide indicator dots */}
           <div className="freshy-mobile-dots">
@@ -197,29 +181,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           </div>
         </div>
 
-        {/* LEFT COLUMN: Clean Form */}
+        {/* LEFT COLUMN: Clean Form with Generous Breathing Room */}
         <div className="freshy-form-column">
-          {/* Top Portal Toggle (Student vs Teacher) - Hidden on Mobile since shown in banner */}
-          <div className="portal-subdomain-pill-row desktop-only-flex">
-            <div className="portal-indicator-chip">
-              <span className="dot-live"></span>
-              <span>{isStudent ? 'student.dgu.in' : 'teacher.dgu.in'}</span>
-            </div>
-            <button
-              type="button"
-              className="portal-switch-subtle-btn"
-              onClick={() => {
-                const next = isStudent ? 'teacher' : 'student';
-                onTogglePortal(next);
-                setEmailOrRoll(next === 'student' ? 'harsh.23cse@dbs.edu.in' : 'rajesh.sharma@dbs.edu.in');
-                setPassword(next === 'student' ? 'DBS@2026' : 'Faculty@DBS');
-                setErrorMessage(null);
-              }}
-            >
-              Switch to {isStudent ? 'teacher.dgu.in' : 'student.dgu.in'}
-            </button>
-          </div>
-
           <div className="freshy-form-inner">
             {/* 1. Radiating Sun / Concentric Arch Emblem Logo */}
             <div className="freshy-brand-emblem-wrap">
@@ -356,7 +319,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
                     {isLoading ? 'Signing in...' : 'Log in'}
                   </button>
 
-                  {/* 7. Sign up switcher */}
+                  {/* 7. Sign up switcher with clear separation */}
                   <div className="freshy-signup-row">
                     <span>Don't have account yet? </span>
                     <button
@@ -454,7 +417,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
               </form>
             )}
 
-            {/* 8. Bottom Terms Disclaimer */}
+            {/* 8. Bottom Terms Disclaimer with Generous Breathing Room */}
             <div className="freshy-legal-disclaimer">
               <span>By continuing you agree to our </span>
               <a href="#terms" onClick={(e) => { e.preventDefault(); alert('DBS Terms & Conditions'); }}>
@@ -538,8 +501,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
       <style>{`
         /* ==========================================================================
            FULLSCREEN VIEWPORT & ADAPTIVE SIZING ARCHITECTURE
-           Fits standard desktop & laptop viewports completely without vertical scroll,
-           while gracefully falling back to scroll on small displays & mobile devices.
+           Clean, airy spacing matching reference mockup.
+           No cramped bottom elements; generous breathing room throughout.
            ========================================================================== */
         
         .freshy-auth-viewport {
@@ -550,7 +513,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 12px;
+          padding: 16px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           color: #0f172a;
           box-sizing: border-box;
@@ -561,10 +524,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-auth-card {
           width: 100%;
           max-width: 980px;
-          /* Fits inside available window height with safety margins */
-          height: calc(100dvh - 24px);
-          max-height: 600px;
-          min-height: 470px;
+          height: calc(100dvh - 32px);
+          max-height: 620px;
+          min-height: 480px;
           background: #ffffff;
           border-radius: 20px;
           box-shadow: 0 16px 48px -12px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
@@ -579,75 +541,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           display: none;
         }
 
-        .desktop-only-flex {
-          display: flex;
-        }
-
-        /* LEFT FORM COLUMN */
+        /* LEFT FORM COLUMN: Centered vertically with comfortable padding */
         .freshy-form-column {
-          padding: 14px 34px 12px;
+          padding: 24px 38px 20px;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          box-sizing: border-box;
           overflow-y: auto;
           scrollbar-width: thin;
-        }
-
-        .portal-subdomain-pill-row {
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 6px;
-        }
-
-        .portal-indicator-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          padding: 2.5px 8.5px;
-          border-radius: 9999px;
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: #334155;
-          letter-spacing: -0.01em;
-        }
-
-        .portal-indicator-chip.chip-dark {
-          background: rgba(15, 23, 42, 0.75);
-          backdrop-filter: blur(8px);
-          border-color: rgba(255, 255, 255, 0.15);
-          color: #f8fafc;
-        }
-
-        .dot-live {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #f97316;
-          box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
-        }
-
-        .portal-switch-subtle-btn {
-          background: none;
-          border: none;
-          font-size: 0.72rem;
-          color: #64748b;
-          font-weight: 600;
-          cursor: pointer;
-          text-decoration: underline;
-          padding: 2px 4px;
-        }
-
-        .portal-switch-subtle-btn:hover {
-          color: #0f172a;
-        }
-
-        .portal-switch-subtle-btn.switch-on-dark {
-          color: #e2e8f0;
-        }
-        .portal-switch-subtle-btn.switch-on-dark:hover {
-          color: #ffffff;
         }
 
         .freshy-form-inner {
@@ -661,28 +565,28 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-brand-emblem-wrap {
           display: flex;
           justify-content: center;
-          margin-bottom: 4px;
+          margin-bottom: 8px;
         }
 
         .freshy-sun-logo {
-          width: 34px;
-          height: 34px;
+          width: 38px;
+          height: 38px;
         }
 
         /* 2. Titles */
         .freshy-title {
-          font-size: 1.45rem;
+          font-size: 1.55rem;
           font-weight: 800;
           color: #0f172a;
           letter-spacing: -0.025em;
-          margin-bottom: 2px;
+          margin-bottom: 4px;
           line-height: 1.2;
         }
 
         .freshy-subtitle {
-          font-size: 0.78rem;
+          font-size: 0.82rem;
           color: #64748b;
-          margin-bottom: 8px;
+          margin-bottom: 14px;
           line-height: 1.35;
         }
 
@@ -690,10 +594,10 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           background: #fef2f2;
           border: 1px solid #fecaca;
           color: #b91c1c;
-          padding: 6px 10px;
+          padding: 6px 12px;
           border-radius: 8px;
           font-size: 0.74rem;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
           text-align: center;
         }
 
@@ -701,21 +605,21 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-sso-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          margin-bottom: 6px;
+          gap: 8px;
+          margin-bottom: 12px;
         }
 
         .freshy-sso-btn {
           width: 100%;
-          height: 36px;
+          height: 38px;
           background: #ffffff;
           border: 1.5px solid #e2e8f0;
-          border-radius: 9px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 9px;
-          font-size: 0.81rem;
+          gap: 10px;
+          font-size: 0.83rem;
           font-weight: 600;
           color: #1e293b;
           cursor: pointer;
@@ -736,8 +640,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-or-divider {
           display: flex;
           align-items: center;
-          gap: 10px;
-          margin: 6px 0;
+          gap: 12px;
+          margin: 10px 0;
         }
 
         .or-line {
@@ -750,25 +654,25 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           font-size: 0.68rem;
           color: #94a3b8;
           font-weight: 600;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.05em;
         }
 
         /* 5. Form Fields */
         .freshy-fields-form {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
           text-align: left;
         }
 
         .freshy-input-group {
           display: flex;
           flex-direction: column;
-          gap: 3px;
+          gap: 4px;
         }
 
         .freshy-input-label {
-          font-size: 0.77rem;
+          font-size: 0.79rem;
           font-weight: 600;
           color: #0f172a;
         }
@@ -780,7 +684,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .freshy-forgot-link {
-          font-size: 0.73rem;
+          font-size: 0.74rem;
           color: #64748b;
           font-weight: 500;
           background: none;
@@ -796,11 +700,11 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-text-input {
           width: 100%;
-          height: 36px;
-          padding: 6px 12px;
+          height: 38px;
+          padding: 8px 14px;
           border: 1.5px solid #e2e8f0;
-          border-radius: 9px;
-          font-size: 0.83rem;
+          border-radius: 10px;
+          font-size: 0.85rem;
           color: #0f172a;
           background: #ffffff;
           outline: none;
@@ -821,7 +725,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
         .freshy-eye-btn {
           position: absolute;
-          right: 10px;
+          right: 12px;
           background: none;
           border: none;
           color: #94a3b8;
@@ -838,15 +742,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         /* 6. Deep Black Log in Button */
         .freshy-submit-btn {
           width: 100%;
-          height: 38px;
+          height: 42px;
           background: #0f172a;
           color: #ffffff;
           border: none;
-          border-radius: 9px;
-          font-size: 0.88rem;
+          border-radius: 10px;
+          font-size: 0.91rem;
           font-weight: 600;
           cursor: pointer;
-          margin-top: 3px;
+          margin-top: 6px;
           transition: background 0.15s ease;
         }
 
@@ -859,12 +763,12 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           cursor: not-allowed;
         }
 
-        /* 7. Sign up switcher */
+        /* 7. Sign up switcher with clear separation */
         .freshy-signup-row {
           text-align: center;
-          font-size: 0.77rem;
+          font-size: 0.8rem;
           color: #64748b;
-          margin-top: 3px;
+          margin-top: 10px;
         }
 
         .freshy-signup-link {
@@ -877,13 +781,13 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           padding: 0;
         }
 
-        /* 8. Bottom Terms Disclaimer */
+        /* 8. Bottom Terms Disclaimer with Generous Breathing Room */
         .freshy-legal-disclaimer {
           text-align: center;
-          font-size: 0.65rem;
+          font-size: 0.68rem;
           color: #94a3b8;
-          line-height: 1.35;
-          margin-top: 8px;
+          line-height: 1.45;
+          margin-top: 18px;
         }
 
         .freshy-legal-disclaimer a {
@@ -963,7 +867,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         .freshy-image-overlay-content {
           position: relative;
           z-index: 10;
-          padding: 20px 22px;
+          padding: 22px 24px;
           color: #ffffff;
         }
 
@@ -1061,54 +965,54 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             border-radius: 24px;
           }
           .freshy-form-column {
-            padding: 24px 40px 18px;
+            padding: 30px 42px 24px;
           }
           .freshy-sun-logo {
             width: 42px;
             height: 42px;
           }
           .freshy-brand-emblem-wrap {
-            margin-bottom: 8px;
-          }
-          .freshy-title {
-            font-size: 1.6rem;
-            margin-bottom: 4px;
-          }
-          .freshy-subtitle {
-            font-size: 0.84rem;
-            margin-bottom: 12px;
-          }
-          .freshy-sso-group {
-            gap: 8px;
             margin-bottom: 10px;
           }
+          .freshy-title {
+            font-size: 1.65rem;
+            margin-bottom: 6px;
+          }
+          .freshy-subtitle {
+            font-size: 0.86rem;
+            margin-bottom: 16px;
+          }
+          .freshy-sso-group {
+            gap: 10px;
+            margin-bottom: 14px;
+          }
           .freshy-sso-btn {
-            height: 40px;
-            font-size: 0.84rem;
+            height: 42px;
+            font-size: 0.86rem;
           }
           .freshy-or-divider {
-            margin: 10px 0;
+            margin: 12px 0;
           }
           .freshy-fields-form {
-            gap: 11px;
+            gap: 12px;
           }
           .freshy-text-input {
-            height: 40px;
-            font-size: 0.86rem;
-            padding: 8px 14px;
+            height: 42px;
+            font-size: 0.88rem;
+            padding: 9px 14px;
           }
           .freshy-submit-btn {
-            height: 42px;
-            font-size: 0.92rem;
-            margin-top: 5px;
+            height: 44px;
+            font-size: 0.93rem;
+            margin-top: 8px;
           }
           .freshy-signup-row {
-            margin-top: 6px;
-            font-size: 0.8rem;
+            margin-top: 12px;
+            font-size: 0.84rem;
           }
           .freshy-legal-disclaimer {
-            margin-top: 14px;
-            font-size: 0.68rem;
+            margin-top: 22px;
+            font-size: 0.7rem;
           }
           .freshy-image-overlay-content {
             padding: 28px 30px;
@@ -1162,10 +1066,6 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
           }
 
-          .desktop-only-flex {
-            display: none !important;
-          }
-
           /* Show sleek mobile campus hero banner */
           .freshy-mobile-banner {
             display: block;
@@ -1200,15 +1100,28 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             );
           }
 
-          .freshy-mobile-banner-content {
+          .freshy-mobile-banner-brand {
             position: absolute;
             bottom: 12px;
             left: 14px;
             right: 14px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 2px;
             z-index: 5;
+            color: #ffffff;
+          }
+
+          .mobile-banner-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+          }
+
+          .mobile-banner-subtitle {
+            font-size: 0.7rem;
+            color: #cbd5e1;
+            font-weight: 500;
           }
 
           .freshy-mobile-dots {
@@ -1239,7 +1152,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           }
 
           .freshy-form-column {
-            padding: 18px 18px 22px;
+            padding: 22px 20px 24px;
             overflow-y: visible;
           }
 
@@ -1248,17 +1161,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           }
 
           .freshy-sun-logo {
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
           }
 
           .freshy-title {
-            font-size: 1.5rem;
+            font-size: 1.55rem;
           }
 
           .freshy-subtitle {
-            font-size: 0.82rem;
-            margin-bottom: 14px;
+            font-size: 0.84rem;
+            margin-bottom: 16px;
           }
 
           /* Mobile Touch Targets: 46px height + 16px font to prevent iOS zoom */
@@ -1280,17 +1193,17 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             height: 46px;
             font-size: 0.94rem;
             border-radius: 11px;
-            margin-top: 6px;
+            margin-top: 8px;
           }
 
           .freshy-signup-row {
-            margin-top: 6px;
-            font-size: 0.82rem;
+            margin-top: 10px;
+            font-size: 0.84rem;
           }
 
           .freshy-legal-disclaimer {
-            margin-top: 14px;
-            font-size: 0.7rem;
+            margin-top: 18px;
+            font-size: 0.72rem;
           }
         }
       `}</style>
