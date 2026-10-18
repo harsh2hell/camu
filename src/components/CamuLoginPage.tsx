@@ -28,41 +28,62 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
   const [regPin, setRegPin] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
-  // Carousel slide state (3.5s per photo, time-card progress bar)
-  const SLIDE_DURATION = 3500; // 3.5 seconds
+  // 2.5s Academic Carousel transition
+  const SLIDE_DURATION = 2500; // 2.5 seconds per slide
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
 
+  // 9 Curated Academic & Faculty Slides
   const slides = [
-    {
-      image: '/dbs_campus_real.jpg',
-      title: 'Discover your next journey',
-      desc: 'Explore ideas, academic excellence, and campus experiences designed to inspire your future at DBS Global University.',
-    },
     {
       image: '/dbs_computing_lab.webp',
       title: 'Advanced AI & Computing Labs',
       desc: 'High-performance computing workstations, cloud architecture, and next-gen technology incubation centers.',
     },
     {
-      image: '/dbs_life_campus.webp',
-      title: 'Scenic Himalayan Campus Life',
-      desc: 'Nestled in the lush Doon Valley with world-class residential facilities, sports complexes, and vibrant student clubs.',
+      image: '/dbs_academic_guest_lecture.webp',
+      title: 'Distinguished Academic Keynotes',
+      desc: 'Global business leaders and academic scholars conducting masterclasses in our state-of-the-art auditoriums.',
     },
     {
       image: '/dbs_campus_hero.webp',
-      title: 'Global Industry Immersion',
-      desc: 'Direct corporate mentorship, international academic collaborations, and live industry project incubators.',
+      title: 'DBS Global University Faculty',
+      desc: 'Distinguished professorship, multidisciplinary schools of thought, and world-class academic governance.',
+    },
+    {
+      image: '/dbs_academic_ai_summit.webp',
+      title: 'National AI & Tech Conclaves',
+      desc: 'Undergraduate and postgraduate research symposiums tackling real-world computational challenges.',
+    },
+    {
+      image: '/dbs_academic_computing2.webp',
+      title: 'Software Systems & Robotics Lab',
+      desc: 'Hands-on programming incubators, intelligent automation suites, and applied machine learning research.',
+    },
+    {
+      image: '/dbs_academic_finance_suite.webp',
+      title: 'Financial Analytics & Modeling Suite',
+      desc: 'Simulated institutional trading floors, algorithmic market analytics, and quantitative FinTech pedagogy.',
     },
     {
       image: '/dbs_campus_teamwork.webp',
-      title: "Empowering Tomorrow's Leaders",
-      desc: 'Fostering innovation, leadership, and entrepreneurial mindsets across engineering, management, and technology.',
+      title: 'Collaborative Scholarly Research',
+      desc: 'Fostering peer collaboration, innovation fellowships, and entrepreneurial incubation across departments.',
+    },
+    {
+      image: '/dbs_academic_seminar.webp',
+      title: 'Executive Seminar Amphitheatres',
+      desc: 'Interactive case-study roundtables equipped with smart acoustic systems and hybrid digital lecture capture.',
+    },
+    {
+      image: '/dbs_campus_real.jpg',
+      title: 'Himalayan Campus Academic Life',
+      desc: 'An inspiring academic sanctuary nestled in the serene Doon Valley, engineered for holistic intellectual growth.',
     },
   ];
 
-  // Auto-advance timer: smoothly changes photos every 3.5 seconds
+  // Auto-advance timer: changes photos every 2.5s with silky cross-fade
   useEffect(() => {
     if (isPaused) return;
 
@@ -420,7 +441,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Interactive Timed Carousel Card with Cross-fading Photos */}
+        {/* RIGHT COLUMN: Interactive 2.5s Academic Cross-fading Carousel */}
         <div 
           className="freshy-image-column"
           onMouseEnter={() => setIsPaused(true)}
@@ -436,7 +457,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
               />
             </div>
 
-            {/* Cross-fading stacked photos with gentle cinematic pan zoom */}
+            {/* Cross-fading stacked academic photos with gentle cinematic pan zoom */}
             {slides.map((slide, idx) => (
               <div 
                 key={idx}
@@ -455,7 +476,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
 
             {/* Overlaid Captions and Time-Card Pagination Lines */}
             <div className="freshy-image-overlay-content">
-              {/* Story / Time-Card Dash Indicators */}
+              {/* 9-Dot/Dash Academic Progress Indicators */}
               <div className="freshy-carousel-bars">
                 {slides.map((_, idx) => (
                   <button
@@ -798,9 +819,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         /* ==========================================================================
-           RIGHT COLUMN: TIMED CAROUSEL PHOTO CARD
-           Stacked cross-fading photos with subtle pan-zoom, gradient scrim,
-           and Instagram/Apple style progress timer dashes.
+           RIGHT COLUMN: 2.5S TIMED ACADEMIC CAROUSEL
+           Smooth cross-fading photos with subtle pan-zoom, gradient scrim,
+           and university story-style progress timer dashes.
            ========================================================================== */
         .freshy-image-column {
           padding: 10px;
@@ -850,7 +871,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           position: absolute;
           inset: 0;
           opacity: 0;
-          transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1);
           pointer-events: none;
           z-index: 1;
         }
@@ -865,8 +886,8 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transform: scale(1.05);
-          transition: transform 4.5s cubic-bezier(0.25, 1, 0.5, 1);
+          transform: scale(1.04);
+          transition: transform 3.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .freshy-campus-photo-layer.photo-active .freshy-campus-photo {
@@ -880,9 +901,9 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           background: linear-gradient(
             to bottom,
             rgba(0, 0, 0, 0.02) 0%,
-            rgba(0, 0, 0, 0.15) 40%,
-            rgba(0, 0, 0, 0.82) 80%,
-            rgba(0, 0, 0, 0.94) 100%
+            rgba(0, 0, 0, 0.15) 35%,
+            rgba(0, 0, 0, 0.82) 75%,
+            rgba(0, 0, 0, 0.95) 100%
           );
           z-index: 3;
           pointer-events: none;
@@ -895,18 +916,18 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           color: #ffffff;
         }
 
-        /* Timed Progress Carousel Bars */
+        /* Timed Progress Carousel Bars (Compact for 9 slides) */
         .freshy-carousel-bars {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
           margin-bottom: 8px;
         }
 
         .carousel-bar-line {
           position: relative;
           height: 3px;
-          width: 12px;
+          width: 9px;
           border-radius: 9999px;
           background: rgba(255, 255, 255, 0.3);
           border: none;
@@ -921,7 +942,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
         }
 
         .carousel-bar-line.bar-active {
-          width: 32px;
+          width: 24px;
           background: rgba(255, 255, 255, 0.3);
         }
 
@@ -1049,7 +1070,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             font-size: 0.8rem;
           }
           .carousel-bar-line.bar-active {
-            width: 38px;
+            width: 28px;
           }
         }
 
@@ -1107,7 +1128,7 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
             height: 100%;
             object-fit: cover;
             opacity: 0;
-            transition: opacity 0.8s ease-in-out;
+            transition: opacity 0.75s ease-in-out;
           }
 
           .freshy-mobile-banner-img.banner-active {
@@ -1151,15 +1172,15 @@ export const CamuLoginPage: React.FC<CamuLoginPageProps> = ({
           }
 
           .mobile-dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.35);
             transition: all 0.3s ease;
           }
 
           .mobile-dot.dot-active {
-            width: 14px;
+            width: 12px;
             border-radius: 9999px;
             background: #ffffff;
           }
