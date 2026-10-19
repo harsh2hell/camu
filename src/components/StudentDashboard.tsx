@@ -2432,6 +2432,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         /* 1. LAYOUT ARCHITECTURE */
         .oak-dashboard-layout {
           display: flex;
+          width: 100%;
+          flex: 1;
           min-height: 100vh;
           background: #f4f5f8;
           font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
@@ -3246,10 +3248,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           flex: 1;
           display: flex;
           flex-direction: column;
-          padding: 16px 28px 40px 28px;
-          max-width: 1440px;
-          margin: 0 auto;
+          padding: 18px 32px 40px 32px;
           width: 100%;
+          min-width: 0;
           box-sizing: border-box;
         }
 

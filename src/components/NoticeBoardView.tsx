@@ -159,8 +159,8 @@ export const NoticeBoardView: React.FC = () => {
       <style>{`
         .dbs-notice-container {
           width: 100%;
-          max-width: 1320px;
-          margin: 0 auto;
+          max-width: 100%;
+          margin: 0;
           display: flex;
           flex-direction: column;
           gap: 18px;

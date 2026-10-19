@@ -338,8 +338,8 @@ export const LMSAssignments: React.FC = () => {
       <style>{`
         .lms-page-container {
           width: 100%;
-          max-width: 1320px;
-          margin: 0 auto;
+          max-width: 100%;
+          margin: 0;
           display: flex;
           flex-direction: column;
           gap: 18px;
