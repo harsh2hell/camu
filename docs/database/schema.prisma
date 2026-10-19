@@ -97,14 +97,17 @@ model Section {
 model User {
   id                 String              @id @default(uuid())
   email              String              @unique
-  fullName           String
+  fullName           String              @map("full_name")
   phone              String?
-  avatarUrl          String?
+  avatarUrl          String?             @map("avatar_url")
   role               UserRole            @default(STUDENT)
-  isActive           Boolean             @default(true)
-  lastLoginAt        DateTime?
-  createdAt          DateTime            @default(now())
+  passwordHash       String              @map("password_hash")
+  isActive           Boolean             @default(true) @map("is_active")
+  lastLoginAt        DateTime?           @map("last_login_at")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @default(now()) @map("updated_at")
 
+  sessions           Session[]
   studentProfile     StudentProfile?
   facultyProfile     FacultyProfile?
   mentoredStudents   StudentProfile[]    @relation("FacultyMentor")
@@ -115,127 +118,147 @@ model User {
   leaveApplications  LeaveApplication[]  @relation("StudentLeaves")
   submissions        AssignmentSubmission[]
   noticesPosted      Notice[]
+
+  @@map("users")
 }
 
 model StudentProfile {
   id               String   @id @default(uuid())
-  userId           String   @unique
+  userId           String   @unique @map("user_id")
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rollNumber       String   @unique
-  registrationNo   String   @unique
-  batchId          String
+  rollNumber       String   @unique @map("roll_number")
+  registrationNo   String   @unique @map("registration_no")
+  batchId          String   @map("batch_id")
   batch            Batch    @relation(fields: [batchId], references: [id])
-  sectionId        String
+  sectionId        String   @map("section_id")
   section          Section  @relation(fields: [sectionId], references: [id])
-  currentSemester  Int      @default(1)
-  currentCgpa      Decimal  @default(0.00) @db.Decimal(4, 2)
-  mentorFacultyId  String?
+  currentSemester  Int      @default(1) @map("current_semester")
+  currentCgpa      Decimal  @default(0.00) @map("current_cgpa") @db.Decimal(4, 2)
+  mentorFacultyId  String?  @map("mentor_faculty_id")
   mentor           User?    @relation("FacultyMentor", fields: [mentorFacultyId], references: [id])
-  bloodGroup       String?
-  emergencyContact String?
-  guardianName     String?
-  createdAt        DateTime @default(now())
+  bloodGroup       String?  @map("blood_group")
+  emergencyContact String?  @map("emergency_contact")
+  guardianName     String?  @map("guardian_name")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("student_profiles")
 }
 
 model FacultyProfile {
   id             String     @id @default(uuid())
-  userId         String     @unique
+  userId         String     @unique @map("user_id")
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employeeCode   String     @unique
-  departmentId   String
+  employeeCode   String     @unique @map("employee_code")
+  departmentId   String     @map("department_id")
   department     Department @relation(fields: [departmentId], references: [id])
   designation    String
-  cabinLocation  String?
+  cabinLocation  String?    @map("cabin_location")
   specialization String?
-  createdAt      DateTime   @default(now())
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  @@map("faculty_profiles")
 }
 
 model Course {
   id             String           @id @default(uuid())
-  departmentId   String
+  departmentId   String           @map("department_id")
   department     Department       @relation(fields: [departmentId], references: [id])
   code           String           @unique
   title          String
   credits        Int              @default(4)
-  lectureHours   Int              @default(3)
-  tutorialHours  Int              @default(0)
-  practicalHours Int              @default(2)
-  syllabusDocUrl String?
+  lectureHours   Int              @default(3) @map("lecture_hours")
+  tutorialHours  Int              @default(0) @map("tutorial_hours")
+  practicalHours Int              @default(2) @map("practical_hours")
+  syllabusDocUrl String?          @map("syllabus_doc_url")
   offerings      CourseOffering[]
-  createdAt      DateTime         @default(now())
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@map("courses")
 }
 
 model CourseOffering {
   id               String              @id @default(uuid())
-  courseId         String
+  courseId         String              @map("course_id")
   course           Course              @relation(fields: [courseId], references: [id])
-  sectionId        String
+  sectionId        String              @map("section_id")
   section          Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  primaryFacultyId String
+  primaryFacultyId String              @map("primary_faculty_id")
   primaryFaculty   User                @relation("CourseTeacher", fields: [primaryFacultyId], references: [id])
-  academicYear     String
+  academicYear     String              @map("academic_year")
   semester         Int
-  isActive         Boolean             @default(true)
+  isActive         Boolean             @default(true) @map("is_active")
   enrollments      Enrollment[]
   timetableSlots   TimetableSlot[]
   sessions         AttendanceSession[]
   assignments      Assignment[]
-  createdAt        DateTime            @default(now())
+  createdAt        DateTime            @default(now()) @map("created_at")
 
   @@unique([courseId, sectionId, academicYear, semester])
+  @@map("course_offerings")
 }
 
 model Enrollment {
   id               String         @id @default(uuid())
-  studentId        String
+  studentId        String         @map("student_id")
   student          User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseOfferingId String
+  courseOfferingId String         @map("course_offering_id")
   courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  enrolledAt       DateTime       @default(now())
+  enrolledAt       DateTime       @default(now()) @map("enrolled_at")
 
   @@unique([studentId, courseOfferingId])
+  @@map("enrollments")
 }
 
 model TimetableSlot {
   id               String              @id @default(uuid())
-  courseOfferingId String
+  courseOfferingId String              @map("course_offering_id")
   courseOffering   CourseOffering      @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  dayName          DayOfWeek
-  startTime        String
-  endTime          String
-  roomNumber       String
-  isLab            Boolean             @default(false)
+  dayName          DayOfWeek           @map("day_name")
+  startTime        String              @map("start_time")
+  endTime          String              @map("end_time")
+  roomNumber       String              @map("room_number")
+  isLab            Boolean             @default(false) @map("is_lab")
   sessions         AttendanceSession[]
-  createdAt        DateTime            @default(now())
+  createdAt        DateTime            @default(now()) @map("created_at")
+
+  @@map("timetable_slots")
 }
 
 model AttendanceSession {
   id               String             @id @default(uuid())
-  courseOfferingId String
+  courseOfferingId String             @map("course_offering_id")
   courseOffering   CourseOffering     @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  slotId           String?
+  slotId           String?            @map("slot_id")
   slot             TimetableSlot?     @relation(fields: [slotId], references: [id])
-  facultyId        String
+  facultyId        String             @map("faculty_id")
   faculty          User               @relation("SessionTeacher", fields: [facultyId], references: [id])
-  sessionDate      DateTime           @default(now())
-  startTime        String
-  topicTaught      String?
-  markedAt         DateTime           @default(now())
-  isLocked         Boolean            @default(false)
+  sessionDate      DateTime           @default(now()) @map("session_date")
+  startTime        String             @map("start_time")
+  topicTaught      String?            @map("topic_taught")
+  markedAt         DateTime           @default(now()) @map("marked_at")
+  isLocked         Boolean            @default(false) @map("is_locked")
   records          AttendanceRecord[]
+
+  @@index([courseOfferingId])
+  @@index([facultyId])
+  @@index([sessionDate])
+  @@map("attendance_sessions")
 }
 
 model AttendanceRecord {
   id        String            @id @default(uuid())
-  sessionId String
+  sessionId String            @map("session_id")
   session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  studentId String
+  studentId String            @map("student_id")
   student   User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
   status    AttendanceStatus  @default(PRESENT)
   remarks   String?
-  updatedAt DateTime          @default(now())
+  updatedAt DateTime          @default(now()) @map("updated_at")
 
   @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@index([sessionId])
+  @@map("attendance_records")
 }
 
 model LeaveApplication {
@@ -338,5 +361,22 @@ model HostelGatePass {
   actualInTime           DateTime?
   qrHash                 String?
   createdAt              DateTime  @default(now())
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  sessionToken String    @unique @map("session_token")
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @default(now()) @map("updated_at")
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@map("sessions")
 }
 

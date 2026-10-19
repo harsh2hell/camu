@@ -43,6 +43,9 @@ import {
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
+import { attendanceApi } from '../api/attendance';
+import type { OverallAttendanceSummary } from '../../server/src/utils/attendanceCalculator';
+
 import { SmartTimetable } from './SmartTimetable';
 import { GradebookView } from './GradebookView';
 import { FeeReceiptsView } from './FeeReceiptsView';
@@ -111,8 +114,30 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [activeFloatingCategory, setActiveFloatingCategory] = useState<string | null>(null);
   const [floatingBarTop, setFloatingBarTop] = useState<number>(100);
   const [activeCamuModal, setActiveCamuModal] = useState<
-    'profile' | 'exams' | 'counselling' | 'transcripts' | 'clearance' | 'feedback' | 'activities' | 'messages' | 'enrollment' | 'institution' | 'settings' | null
+    'profile' | 'attendance' | 'exams' | 'counselling' | 'transcripts' | 'clearance' | 'feedback' | 'activities' | 'messages' | 'enrollment' | 'institution' | 'settings' | null
   >(null);
+  const [liveAttendanceSummary, setLiveAttendanceSummary] = useState<OverallAttendanceSummary | null>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+
+  const fetchAttendanceSummary = async () => {
+    setAttendanceLoading(true);
+    setAttendanceError(null);
+    try {
+      const summary = await attendanceApi.getMySummary();
+      setLiveAttendanceSummary(summary);
+    } catch (err: any) {
+      console.warn('Attendance summary fetch failed:', err);
+      setAttendanceError(err.message || 'Unable to retrieve live attendance records.');
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendanceSummary();
+  }, []);
+
   const [camuToastText, setCamuToastText] = useState<string | null>(null);
 
   const showCamuToast = (msg: string) => {
@@ -189,9 +214,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Attendance Analytics & Biometrics',
           sub: '75% mandatory criteria tracker & eligibility',
           icon: <BarChart2 size={16} />,
-          badge: '86.4% Safe',
-          badgeColor: 'badge-emerald',
-          onClick: () => onNavigateTab('dashboard'),
+          badge: liveAttendanceSummary ? `${liveAttendanceSummary.overallPercentage}% ${liveAttendanceSummary.isExamEligible ? 'Safe' : 'Debarred'}` : '86.4% Safe',
+          badgeColor: liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'badge-rose' : 'badge-emerald',
+          onClick: () => setActiveCamuModal('attendance'),
         },
         {
           id: 'leaves',
@@ -1836,6 +1861,111 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               >
                 <Sliders size={15} />
                 <span>Preferences</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 1b: Live Attendance Analytics & Biometric Audit */}
+      {activeCamuModal === 'attendance' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Biometric &amp; Academic Sync</span>
+                <h3 className="camu-modal-title">Attendance Analytics &amp; Examination Eligibility</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Attendance Eligibility & Overall KPI Banner */}
+            <div className="camu-eligibility-box" style={{
+              background: liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+              borderColor: liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)',
+            }}>
+              {liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? (
+                <AlertCircle size={22} className="text-danger" />
+              ) : (
+                <CheckCircle2 size={22} className="text-emerald" />
+              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong>
+                    {liveAttendanceSummary ? `${liveAttendanceSummary.overallPercentage}% Overall Attendance` : '86.4% Overall Attendance'}
+                  </strong>
+                  <span className={`badge ${liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'badge-danger' : 'badge-emerald'}`}>
+                    {liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'Debarment Risk (<75%)' : 'Exam Eligible (>=75%)'}
+                  </span>
+                </div>
+                <p style={{ marginTop: '4px', fontSize: '0.85rem' }}>
+                  {liveAttendanceSummary && !liveAttendanceSummary.isExamEligible
+                    ? 'Current attendance is below the mandatory UGC/AICTE 75% threshold. Hall ticket generation will be blocked unless shortfalls are rectified.'
+                    : 'Congratulations! You meet the mandatory 75% university attendance threshold for Odd Semester Examinations.'}
+                </p>
+              </div>
+            </div>
+
+            {attendanceLoading && (
+              <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Clock size={20} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                <span>Synchronizing biometric class logs from database...</span>
+              </div>
+            )}
+
+            {attendanceError && (
+              <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', color: 'var(--rose-400)', fontSize: '0.88rem', margin: '12px 0' }}>
+                <AlertCircle size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                <span>Notice: {attendanceError}</span>
+              </div>
+            )}
+
+            {/* Subject Breakdown List */}
+            <div className="camu-exam-schedule-list" style={{ marginTop: '16px' }}>
+              {(liveAttendanceSummary?.subjects ?? []).map((sub) => (
+                <div key={sub.code} className="camu-exam-row" style={{ alignItems: 'center' }}>
+                  <div className="camu-exam-date" style={{ background: sub.status === 'danger' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: sub.status === 'danger' ? 'var(--rose-400)' : 'var(--emerald-400)' }}>
+                    <span className="exam-day" style={{ fontSize: '1.1rem' }}>{sub.percentage}%</span>
+                    <span className="exam-mo" style={{ fontSize: '0.65rem' }}>{sub.status.toUpperCase()}</span>
+                  </div>
+                  <div className="camu-exam-info" style={{ flex: 1 }}>
+                    <strong>{sub.code} &bull; {sub.title}</strong>
+                    <span>Faculty: {sub.faculty} &bull; Attended: {sub.attended}/{sub.conducted} lectures {sub.onDuty > 0 ? `(${sub.onDuty} OD credited)` : ''}</span>
+                    <span style={{ fontSize: '0.78rem', color: sub.status === 'danger' ? 'var(--rose-400)' : 'var(--text-muted)' }}>
+                      {sub.percentage >= 75.0 
+                        ? `Bunk capacity: Can safely miss ${sub.bunkCapacity} more class(es).` 
+                        : `Shortfall recovery: Must attend ${sub.classesToRecover} consecutive class(es) to reach 75%.`}
+                    </span>
+                  </div>
+                  <span className={`camu-exam-badge ${sub.status === 'danger' ? 'badge-danger' : 'badge-emerald'}`}>
+                    {sub.percentage >= 75.0 ? 'Compliant' : 'Shortfall'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={fetchAttendanceSummary}
+              >
+                <Clock size={15} />
+                <span>Refresh Biometrics</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="camu-btn-secondary"
+                onClick={() => {
+                  setActiveCamuModal(null);
+                  onNavigateTab('leaves');
+                }}
+              >
+                <FileText size={15} />
+                <span>Apply for On-Duty (OD)</span>
               </button>
             </div>
           </div>

@@ -1,22 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   CheckCheck, 
   UserX, 
   ShieldAlert, 
   Send, 
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { FACULTY_STUDENT_LIST, type FacultyClassStudent } from '../data/mockData';
+import { attendanceApi } from '../api/attendance';
 
 export const FacultyAttendanceView: React.FC = () => {
   const [students, setStudents] = useState<FacultyClassStudent[]>(FACULTY_STUDENT_LIST);
   const [sessionTopic, setSessionTopic] = useState('Graph Algorithms: Dijkstra Shortest Path Proof');
   const selectedSection = 'B.Tech CSE 5th Sem - Section A';
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Load authorized roster from backend
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRoster() {
+      try {
+        const roster = await attendanceApi.getRoster('dev-offering-cs302-001');
+        if (isMounted && roster && roster.length > 0) {
+          setStudents(
+            roster.map((r) => ({
+              id: r.studentUserId,
+              rollNo: r.rollNumber,
+              name: r.fullName,
+              currentAttendance: r.currentAttendancePercent,
+              status: 'PRESENT',
+            }))
+          );
+        }
+      } catch (err) {
+        // Fall back gracefully to local fixture list in dev
+        console.warn('Backend roster load failed, using fallback list:', err);
+      }
+    }
+    loadRoster();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Toggle individual status
   const cycleStatus = (id: string) => {
-    if (isSubmitted) return;
+    if (isSubmitted || isSubmitting) return;
     setStudents(prev => prev.map(student => {
       if (student.id !== id) return student;
       const nextStatus = 
@@ -27,7 +61,7 @@ export const FacultyAttendanceView: React.FC = () => {
   };
 
   const markAll = (status: 'PRESENT' | 'ABSENT') => {
-    if (isSubmitted) return;
+    if (isSubmitted || isSubmitting) return;
     setStudents(prev => prev.map(s => ({ ...s, status })));
   };
 
@@ -36,9 +70,38 @@ export const FacultyAttendanceView: React.FC = () => {
   const odCount = students.filter(s => s.status === 'ON_DUTY').length;
   const defaulterCount = students.filter(s => s.currentAttendance < 75).length;
 
-  const handleSubmit = () => {
-    setIsSubmitted(true);
+  const handleSubmit = async () => {
+    if (isSubmitted || isSubmitting) return;
+    setIsSubmitting(true);
+    setErrorMsg(null);
+
+    try {
+      // 1. Create attendance session
+      const session = await attendanceApi.createSession({
+        courseOfferingId: 'dev-offering-cs302-001',
+        startTime: '10:00 AM',
+        topicTaught: sessionTopic,
+      });
+
+      // 2. Record student attendance records in batch
+      const batchPayload = students.map((s) => ({
+        studentId: s.id,
+        status: s.status as any,
+      }));
+
+      const result = await attendanceApi.recordBatch(session.id, batchPayload, true);
+
+      setIsSubmitted(true);
+      setSuccessMsg(
+        `Session synchronized! Attendance records for ${result.recordsMarked} student(s) locked to central database.`
+      );
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to submit attendance session. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   return (
     <div className="faculty-view-container animate-fade-in">
@@ -122,9 +185,13 @@ export const FacultyAttendanceView: React.FC = () => {
             type="button" 
             className={`btn ${isSubmitted ? 'btn-ghost' : 'btn-primary'}`}
             onClick={handleSubmit}
-            disabled={isSubmitted}
+            disabled={isSubmitted || isSubmitting}
           >
-            {isSubmitted ? (
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Submitting...
+              </>
+            ) : isSubmitted ? (
               <>
                 <CheckCircle2 size={16} className="text-success" /> Attendance Locked
               </>
@@ -137,11 +204,23 @@ export const FacultyAttendanceView: React.FC = () => {
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="submission-alert glass-panel" style={{ borderLeft: '4px solid var(--rose-500)', color: 'var(--rose-400)' }}>
+          <AlertCircle size={20} className="text-danger" />
+          <div style={{ flex: 1 }}>
+            <strong>Submission Failed:</strong> {errorMsg}
+          </div>
+          <button type="button" className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: '0.85rem' }} onClick={handleSubmit}>
+            Retry
+          </button>
+        </div>
+      )}
+
       {isSubmitted && (
         <div className="submission-alert glass-panel">
           <CheckCircle2 size={20} className="text-success" />
           <div>
-            <strong>Session Synchronized Successfully!</strong> Attendance records for 10 students locked to the DBS University central database. Automated SMS/App notifications dispatched to absent students.
+            <strong>Session Synchronized Successfully!</strong> {successMsg || 'Attendance records locked to central database.'}
           </div>
         </div>
       )}

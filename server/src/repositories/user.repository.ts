@@ -1,0 +1,223 @@
+import { prisma } from '../lib/prisma.js';
+import type { SafeUser } from '../types/auth.js';
+import { passwordService } from '../services/password.service.js';
+import type { UserRole } from '@prisma/client';
+import { config } from '../config/env.js';
+import { ServiceUnavailableError } from '../errors/AppError.js';
+
+export interface UserWithPassword {
+  id: string;
+  email: string;
+  passwordHash: string;
+  fullName: string;
+  role: UserRole;
+  isActive: boolean;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  lastLoginAt?: Date | null;
+  createdAt: Date;
+  studentProfile?: {
+    rollNumber: string;
+    registrationNo: string;
+    currentSemester: number;
+    currentCgpa: number;
+  } | null;
+  facultyProfile?: {
+    employeeCode: string;
+    designation: string;
+    departmentId: string;
+  } | null;
+}
+
+// Explicitly identified development fixture accounts for isolated development & automated testing
+const DEV_STUDENT_HASH = await passwordService.hashPassword('Password@Dev123');
+const DEV_FACULTY_HASH = await passwordService.hashPassword('Password@Dev123');
+
+const DEV_ACCOUNTS: UserWithPassword[] = [
+  {
+    id: 'dev-student-uuid-001',
+    email: 'student.dev@dgu.ac.in',
+    passwordHash: DEV_STUDENT_HASH,
+    fullName: 'Harendra Pratap Singh (Dev Fixture)',
+    role: 'STUDENT',
+    isActive: true,
+    avatarUrl: '/harendra_avatar.png',
+    phone: '+91 9876543210',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: {
+      rollNumber: '0251BTCS097',
+      registrationNo: 'DBS25UG25234',
+      currentSemester: 3,
+      currentCgpa: 8.64,
+    },
+    facultyProfile: null,
+  },
+  {
+    id: 'dev-faculty-uuid-002',
+    email: 'faculty.dev@dgu.ac.in',
+    passwordHash: DEV_FACULTY_HASH,
+    fullName: 'Dr. Rajesh Sharma (Dev Fixture)',
+    role: 'FACULTY',
+    isActive: true,
+    phone: '+91 9876543211',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: {
+      employeeCode: 'FAC-108',
+      designation: 'Head of Computer Science & AI',
+      departmentId: 'dept-cse-01',
+    },
+  },
+];
+
+export class UserRepository {
+  async findByIdentifier(identifier: string): Promise<UserWithPassword | null> {
+    const trimmed = identifier.trim().toLowerCase();
+
+    let dbError: unknown = null;
+    // 1. Attempt PostgreSQL lookup via Prisma if database is available
+    try {
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: { equals: trimmed, mode: 'insensitive' } },
+            { studentProfile: { rollNumber: { equals: trimmed, mode: 'insensitive' } } },
+            { facultyProfile: { employeeCode: { equals: trimmed, mode: 'insensitive' } } },
+          ],
+        },
+        include: {
+          studentProfile: true,
+          facultyProfile: true,
+        },
+      });
+
+      if (dbUser) {
+        return {
+          id: dbUser.id,
+          email: dbUser.email,
+          passwordHash: dbUser.passwordHash,
+          fullName: dbUser.fullName,
+          role: dbUser.role,
+          isActive: dbUser.isActive,
+          avatarUrl: dbUser.avatarUrl,
+          phone: dbUser.phone,
+          lastLoginAt: dbUser.lastLoginAt,
+          createdAt: dbUser.createdAt,
+          studentProfile: dbUser.studentProfile
+            ? {
+                rollNumber: dbUser.studentProfile.rollNumber,
+                registrationNo: dbUser.studentProfile.registrationNo,
+                currentSemester: dbUser.studentProfile.currentSemester,
+                currentCgpa: Number(dbUser.studentProfile.currentCgpa),
+              }
+            : null,
+          facultyProfile: dbUser.facultyProfile
+            ? {
+                employeeCode: dbUser.facultyProfile.employeeCode,
+                designation: dbUser.facultyProfile.designation,
+                departmentId: dbUser.facultyProfile.departmentId,
+              }
+            : null,
+        };
+      }
+    } catch (err) {
+      dbError = err;
+    }
+
+    // In production, reject development fixtures and fail safely on DB error
+    if (config.NODE_ENV === 'production') {
+      if (dbError) {
+        throw new ServiceUnavailableError('Database service is unavailable in production');
+      }
+      return null;
+    }
+
+    // 2. Fallback to isolated development accounts for tests & dev mode
+    const devUser = DEV_ACCOUNTS.find(
+      (u) =>
+        u.email.toLowerCase() === trimmed ||
+        u.studentProfile?.rollNumber.toLowerCase() === trimmed ||
+        u.facultyProfile?.employeeCode.toLowerCase() === trimmed
+    );
+
+    return devUser ?? null;
+  }
+
+  async findById(id: string): Promise<SafeUser | null> {
+    let dbError: unknown = null;
+    // 1. Attempt database lookup
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id },
+        include: {
+          studentProfile: true,
+          facultyProfile: true,
+        },
+      });
+
+      if (dbUser) {
+        return {
+          id: dbUser.id,
+          email: dbUser.email,
+          fullName: dbUser.fullName,
+          role: dbUser.role,
+          isActive: dbUser.isActive,
+          avatarUrl: dbUser.avatarUrl,
+          phone: dbUser.phone,
+          lastLoginAt: dbUser.lastLoginAt,
+          createdAt: dbUser.createdAt,
+          studentProfile: dbUser.studentProfile
+            ? {
+                rollNumber: dbUser.studentProfile.rollNumber,
+                registrationNo: dbUser.studentProfile.registrationNo,
+                currentSemester: dbUser.studentProfile.currentSemester,
+                currentCgpa: Number(dbUser.studentProfile.currentCgpa),
+              }
+            : null,
+          facultyProfile: dbUser.facultyProfile
+            ? {
+                employeeCode: dbUser.facultyProfile.employeeCode,
+                designation: dbUser.facultyProfile.designation,
+                departmentId: dbUser.facultyProfile.departmentId,
+              }
+            : null,
+        };
+      }
+    } catch (err) {
+      dbError = err;
+    }
+
+    // In production, reject development fixtures and fail safely on DB error
+    if (config.NODE_ENV === 'production') {
+      if (dbError) {
+        throw new ServiceUnavailableError('Database service is unavailable in production');
+      }
+      return null;
+    }
+
+    // 2. Dev fixture lookup (development / test only)
+    const devUser = DEV_ACCOUNTS.find((u) => u.id === id);
+    if (!devUser) return null;
+
+    const { passwordHash: _, ...safeUser } = devUser;
+    return safeUser;
+  }
+
+  async updateLastLogin(id: string): Promise<void> {
+    try {
+      await prisma.user.update({
+        where: { id },
+        data: { lastLoginAt: new Date() },
+      });
+    } catch {
+      // Ignore if DB offline
+    }
+  }
+
+  toSafeUser(user: UserWithPassword): SafeUser {
+    const { passwordHash: _, ...safeUser } = user;
+    return safeUser;
+  }
+}
+
+export const userRepository = new UserRepository();

@@ -29,16 +29,24 @@ class ApiClient {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'GET',
         headers: this.getAuthHeaders(),
+        credentials: 'include',
       });
       if (!response.ok) {
         if (response.status === 401) {
           window.dispatchEvent(new CustomEvent('dbs-session-expired', { detail: { status: 401 } }));
         }
-        throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+        let errMsg = `HTTP Error: ${response.status} ${response.statusText}`;
+        try {
+          const errData = await response.json();
+          if (errData?.error?.message) errMsg = errData.error.message;
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errMsg);
       }
       return await response.json();
     } catch (err) {
-      console.warn(`[API GET Failed: ${endpoint}] Falling back to local offline handler`, err);
+      console.warn(`[API GET Failed: ${endpoint}]`, err);
       throw err;
     }
   }
@@ -48,19 +56,31 @@ class ApiClient {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
+        credentials: 'include',
         body: JSON.stringify(body),
       });
       if (!response.ok) {
         if (response.status === 401) {
           window.dispatchEvent(new CustomEvent('dbs-session-expired', { detail: { status: 401 } }));
         }
-        throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+        let errMsg = `HTTP Error: ${response.status} ${response.statusText}`;
+        try {
+          const errData = await response.json();
+          if (errData?.error?.message) errMsg = errData.error.message;
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errMsg);
       }
       return await response.json();
     } catch (err) {
-      console.warn(`[API POST Failed: ${endpoint}] Falling back to local offline handler`, err);
+      console.warn(`[API POST Failed: ${endpoint}]`, err);
       throw err;
     }
+  }
+
+  async checkHealth(): Promise<ApiResponse<{ status: string; timestamp: string; database: { status: string } }>> {
+    return this.get('/health');
   }
 }
 
