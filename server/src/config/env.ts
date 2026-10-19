@@ -20,6 +20,7 @@ export const envSchema = z
     JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters').default('placeholder_dev_jwt_secret_minimum_16_chars'),
     SESSION_COOKIE_NAME: z.string().default('dbs_session'),
     SESSION_MAX_AGE_DAYS: z.coerce.number().int().positive().default(7),
+    UPLOAD_DIR: z.string().default('server/uploads'),
   })
   .refine(
     (data) => {

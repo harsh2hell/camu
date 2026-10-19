@@ -51,6 +51,17 @@ enum DayOfWeek {
   @@map("day_of_week")
 }
 
+enum AssignmentSubmissionStatus {
+  PENDING
+  SUBMITTED_ON_TIME
+  SUBMITTED_LATE
+  GRADED
+  MISSED
+
+  @@map("assignment_submission_status")
+}
+
+
 model Department {
   id          String    @id @default(uuid())
   code        String    @unique
@@ -132,6 +143,7 @@ model User {
   leaveApplications  LeaveApplication[]  @relation("StudentLeaves")
   submissions        AssignmentSubmission[]
   noticesPosted      Notice[]
+  uploadedFiles      UploadedFile[]
 
   @@map("users")
 }
@@ -232,6 +244,7 @@ model TimetableSlot {
   endTime          String              @map("end_time")
   roomNumber       String              @map("room_number")
   isLab            Boolean             @default(false) @map("is_lab")
+  note             String?
   sessions         AttendanceSession[]
   createdAt        DateTime            @default(now()) @map("created_at")
 
@@ -302,6 +315,7 @@ model Assignment {
   attachmentUrl    String?                @map("attachment_url")
   dueDate          DateTime               @map("due_date")
   totalMarks       Int                    @default(100) @map("total_marks")
+  isPublished      Boolean                @default(true) @map("is_published")
   submissions      AssignmentSubmission[]
   createdAt        DateTime               @default(now()) @map("created_at")
 
@@ -309,16 +323,19 @@ model Assignment {
 }
 
 model AssignmentSubmission {
-  id                String     @id @default(uuid())
-  assignmentId      String     @map("assignment_id")
-  assignment        Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  studentId         String     @map("student_id")
-  student           User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  submissionFileUrl String     @map("submission_file_url")
-  submittedAt       DateTime   @default(now()) @map("submitted_at")
-  score             Decimal?   @db.Decimal(5, 2)
+  id                String                     @id @default(uuid())
+  assignmentId      String                     @map("assignment_id")
+  assignment        Assignment                 @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId         String                     @map("student_id")
+  student           User                       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  submissionFileUrl String?                    @map("submission_file_url")
+  submissionText    String?                    @map("submission_text")
+  submittedAt       DateTime                   @default(now()) @map("submitted_at")
+  status            AssignmentSubmissionStatus @default(SUBMITTED_ON_TIME)
+  score             Decimal?                   @db.Decimal(5, 2)
   feedback          String?
-  gradedBy          String?    @map("graded_by")
+  gradedBy          String?                    @map("graded_by")
+  gradedAt          DateTime?                  @map("graded_at")
 
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
@@ -336,6 +353,7 @@ model Notice {
   attachmentUrl String?   @map("attachment_url")
   postedById    String    @map("posted_by")
   postedBy      User      @relation(fields: [postedById], references: [id])
+  eventDate     DateTime? @map("event_date")
   createdAt     DateTime  @default(now()) @map("created_at")
 
   @@map("notices")
@@ -405,5 +423,20 @@ model Session {
   @@index([userId])
   @@index([sessionToken])
   @@map("sessions")
+}
+
+model UploadedFile {
+  id           String   @id @default(uuid())
+  fileKey      String   @unique @map("file_key")
+  originalName String   @map("original_name")
+  sizeBytes    Int      @map("size_bytes")
+  mimeType     String   @map("mime_type")
+  uploadedById String   @map("user_id")
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([uploadedById])
+  @@index([fileKey])
+  @@map("uploaded_files")
 }
 

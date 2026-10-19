@@ -14,10 +14,10 @@ export function createApp(): Application {
   // 1. Security & CORS
   app.use(corsMiddleware);
 
-  // 2. Cookie Parser & Body Parser with explicit payload size limits
+  // 2. Cookie Parser & Body Parser with explicit payload size limits (15mb for assignment submissions)
   app.use(cookieParser());
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // 3. Request Logging & Correlation (without logging passwords or secrets)
   app.use((req: Request, res: Response, next: NextFunction) => {

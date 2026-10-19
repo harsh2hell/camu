@@ -25,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Uploads & Test Artifacts
+server/uploads/*
+!server/uploads/.gitkeep
+.vitest/

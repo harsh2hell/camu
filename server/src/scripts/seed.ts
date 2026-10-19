@@ -8,15 +8,31 @@ export const DEV_DEPT_ID = 'd0000000-0000-4000-8000-000000000001';
 export const DEV_PROGRAM_ID = 'e0000000-0000-4000-8000-000000000001';
 export const DEV_BATCH_ID = 'f0000000-0000-4000-8000-000000000001';
 export const DEV_SECTION_ID = 'f0000000-0000-4000-8000-000000000002';
-export const DEV_COURSE_ID = 'c0000000-0000-4000-8000-000000000001';
-export const DEV_OFFERING_ID = 'b0000000-0000-4000-8000-000000000001';
 
+// Course Offerings
+export const DEV_OFFERING_CS302_ID = 'b0000000-0000-4000-8000-000000000001';
+export const DEV_OFFERING_CS304_ID = 'b0000000-0000-4000-8000-000000000002';
+export const DEV_OFFERING_CS306_ID = 'b0000000-0000-4000-8000-000000000003';
+export const DEV_OFFERING_CS308_ID = 'b0000000-0000-4000-8000-000000000004';
+export const DEV_OFFERING_CS310_ID = 'b0000000-0000-4000-8000-000000000005';
+export const DEV_OFFERING_CS312_ID = 'b0000000-0000-4000-8000-000000000006';
+export const DEV_OFFERING_ENG301_ID = 'b0000000-0000-4000-8000-000000000007';
+
+// Users
 export const DEV_STUDENT_ID = 'a0000000-0000-4000-8000-000000000001';
 export const DEV_FACULTY_ID = 'a0000000-0000-4000-8000-000000000002';
 export const DEV_STUDENT_2_ID = 'a0000000-0000-4000-8000-000000000003';
 export const DEV_STUDENT_3_ID = 'a0000000-0000-4000-8000-000000000004';
 export const DEV_STUDENT_4_ID = 'a0000000-0000-4000-8000-000000000005';
 export const DEV_STUDENT_5_ID = 'a0000000-0000-4000-8000-000000000006';
+
+// Other Faculty IDs
+export const FACULTY_ANANYA_ID = 'a0000000-0000-4000-8000-000000000010';
+export const FACULTY_VIVEK_ID = 'a0000000-0000-4000-8000-000000000011';
+export const FACULTY_MEENAKSHI_ID = 'a0000000-0000-4000-8000-000000000012';
+export const FACULTY_KUNAL_ID = 'a0000000-0000-4000-8000-000000000013';
+export const FACULTY_SUNITA_ID = 'a0000000-0000-4000-8000-000000000014';
+export const FACULTY_RITU_ID = 'a0000000-0000-4000-8000-000000000015';
 
 export const BASELINE_SESSION_1_ID = 'c0000000-0000-4000-8000-000000000001';
 export const BASELINE_SESSION_2_ID = 'c0000000-0000-4000-8000-000000000002';
@@ -40,7 +56,6 @@ export async function seedDevelopmentDatabase(): Promise<void> {
       name: 'School of Engineering & Technology',
     },
   });
-  logger.info('[SEED] Upserted Department', { id: department.id, code: department.code });
 
   // 2. Program
   const program = await prisma.program.upsert({
@@ -57,7 +72,6 @@ export async function seedDevelopmentDatabase(): Promise<void> {
       name: 'B.Tech in Computer Science & Engineering',
     },
   });
-  logger.info('[SEED] Upserted Program', { id: program.id, code: program.code });
 
   // 3. Batch
   const batch = await prisma.batch.upsert({
@@ -82,7 +96,6 @@ export async function seedDevelopmentDatabase(): Promise<void> {
       isActive: true,
     },
   });
-  logger.info('[SEED] Upserted Batch', { id: batch.id, name: batch.batchName });
 
   // 4. Section
   const section = await prisma.section.upsert({
@@ -99,93 +112,224 @@ export async function seedDevelopmentDatabase(): Promise<void> {
     },
     update: {},
   });
-  logger.info('[SEED] Upserted Section', { id: section.id, name: section.name });
 
-  // 5. Course
-  const course = await prisma.course.upsert({
-    where: { code: 'CS302' },
-    create: {
-      id: DEV_COURSE_ID,
-      departmentId: department.id,
+  // 5. Faculty & Users
+  const passwordHash = await passwordService.hashPassword('Password@Dev123');
+
+  const facultyData = [
+    {
+      id: DEV_FACULTY_ID,
+      email: 'faculty.dev@dgu.ac.in',
+      name: 'Dr. Rajesh Sharma (Dev Fixture)',
+      code: 'FAC-108',
+      designation: 'Head of Computer Science & AI',
+      cabin: 'Academic Block 3, Room 304',
+      spec: 'Distributed Systems & Algorithms',
+    },
+    {
+      id: FACULTY_ANANYA_ID,
+      email: 'ananya.dev@dgu.ac.in',
+      name: 'Prof. Ananya Sen',
+      code: 'FAC-109',
+      designation: 'Associate Professor',
+      cabin: 'Academic Block 3, Room 208',
+      spec: 'Database Management Systems',
+    },
+    {
+      id: FACULTY_VIVEK_ID,
+      email: 'vivek.dev@dgu.ac.in',
+      name: 'Dr. Vivek Bhatt',
+      code: 'FAC-110',
+      designation: 'Associate Professor',
+      cabin: 'Academic Block 3, Room 212',
+      spec: 'Computer Networks & Security',
+    },
+    {
+      id: FACULTY_MEENAKSHI_ID,
+      email: 'meenakshi.dev@dgu.ac.in',
+      name: 'Prof. Meenakshi Joshi',
+      code: 'FAC-111',
+      designation: 'Assistant Professor',
+      cabin: 'Academic Block 2, Room 105',
+      spec: 'Operating Systems & Architecture',
+    },
+    {
+      id: FACULTY_KUNAL_ID,
+      email: 'kunal.dev@dgu.ac.in',
+      name: 'Er. Kunal Rawat',
+      code: 'FAC-112',
+      designation: 'Assistant Professor',
+      cabin: 'Academic Block 2, Room 114',
+      spec: 'Cloud Computing & DevOps',
+    },
+    {
+      id: FACULTY_SUNITA_ID,
+      email: 'sunita.dev@dgu.ac.in',
+      name: 'Dr. Sunita Negi',
+      code: 'FAC-113',
+      designation: 'Assistant Professor',
+      cabin: 'Academic Block 1, Room 301',
+      spec: 'Machine Learning Foundations',
+    },
+    {
+      id: FACULTY_RITU_ID,
+      email: 'ritu.dev@dgu.ac.in',
+      name: 'Ms. Ritu Saxena',
+      code: 'FAC-114',
+      designation: 'Lecturer',
+      cabin: 'Humanities Block, Room 102',
+      spec: 'Corporate Communication',
+    },
+  ];
+
+  for (const f of facultyData) {
+    const user = await prisma.user.upsert({
+      where: { email: f.email },
+      create: {
+        id: f.id,
+        email: f.email,
+        fullName: f.name,
+        role: 'FACULTY',
+        passwordHash,
+        isActive: true,
+      },
+      update: {
+        fullName: f.name,
+        passwordHash,
+        isActive: true,
+      },
+    });
+
+    await prisma.facultyProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        employeeCode: f.code,
+        departmentId: department.id,
+        designation: f.designation,
+        cabinLocation: f.cabin,
+        specialization: f.spec,
+      },
+      update: {
+        designation: f.designation,
+        cabinLocation: f.cabin,
+        specialization: f.spec,
+      },
+    });
+  }
+
+  // 6. Courses & Course Offerings
+  const coursesData = [
+    {
       code: 'CS302',
       title: 'Design & Analysis of Algorithms',
       credits: 4,
-      lectureHours: 3,
-      tutorialHours: 0,
-      practicalHours: 2,
+      lecture: 3,
+      practical: 2,
+      facultyId: DEV_FACULTY_ID,
+      offeringId: DEV_OFFERING_CS302_ID,
     },
-    update: {
-      title: 'Design & Analysis of Algorithms',
+    {
+      code: 'CS304',
+      title: 'Database Management Systems',
+      credits: 4,
+      lecture: 3,
+      practical: 2,
+      facultyId: FACULTY_ANANYA_ID,
+      offeringId: DEV_OFFERING_CS304_ID,
     },
-  });
-  logger.info('[SEED] Upserted Course', { id: course.id, code: course.code });
+    {
+      code: 'CS306',
+      title: 'Computer Networks',
+      credits: 4,
+      lecture: 3,
+      practical: 2,
+      facultyId: FACULTY_VIVEK_ID,
+      offeringId: DEV_OFFERING_CS306_ID,
+    },
+    {
+      code: 'CS308',
+      title: 'Operating Systems & Architecture',
+      credits: 4,
+      lecture: 3,
+      practical: 2,
+      facultyId: FACULTY_MEENAKSHI_ID,
+      offeringId: DEV_OFFERING_CS308_ID,
+    },
+    {
+      code: 'CS310',
+      title: 'Cloud Computing & DevOps',
+      credits: 3,
+      lecture: 3,
+      practical: 0,
+      facultyId: FACULTY_KUNAL_ID,
+      offeringId: DEV_OFFERING_CS310_ID,
+    },
+    {
+      code: 'CS312',
+      title: 'Machine Learning Foundations',
+      credits: 4,
+      lecture: 3,
+      practical: 2,
+      facultyId: FACULTY_SUNITA_ID,
+      offeringId: DEV_OFFERING_CS312_ID,
+    },
+    {
+      code: 'ENG301',
+      title: 'Corporate Communication & Soft Skills',
+      credits: 2,
+      lecture: 2,
+      practical: 0,
+      facultyId: FACULTY_RITU_ID,
+      offeringId: DEV_OFFERING_ENG301_ID,
+    },
+  ];
 
-  // 6. Users & Credentials
-  const passwordHash = await passwordService.hashPassword('Password@Dev123');
+  for (const c of coursesData) {
+    const course = await prisma.course.upsert({
+      where: { code: c.code },
+      create: {
+        departmentId: department.id,
+        code: c.code,
+        title: c.title,
+        credits: c.credits,
+        lectureHours: c.lecture,
+        practicalHours: c.practical,
+      },
+      update: {
+        title: c.title,
+        credits: c.credits,
+        lectureHours: c.lecture,
+        practicalHours: c.practical,
+      },
+    });
 
-  // 6a. Faculty
-  const faculty = await prisma.user.upsert({
-    where: { email: 'faculty.dev@dgu.ac.in' },
-    create: {
-      id: DEV_FACULTY_ID,
-      email: 'faculty.dev@dgu.ac.in',
-      fullName: 'Dr. Rajesh Sharma (Dev Fixture)',
-      role: 'FACULTY',
-      passwordHash,
-      isActive: true,
-      phone: '+91 9876543211',
-    },
-    update: {
-      fullName: 'Dr. Rajesh Sharma (Dev Fixture)',
-      passwordHash,
-      isActive: true,
-    },
-  });
-
-  await prisma.facultyProfile.upsert({
-    where: { userId: faculty.id },
-    create: {
-      userId: faculty.id,
-      employeeCode: 'FAC-108',
-      departmentId: department.id,
-      designation: 'Head of Computer Science & AI',
-      cabinLocation: 'Academic Block 3, Room 304',
-      specialization: 'Distributed Systems & Algorithms',
-    },
-    update: {
-      designation: 'Head of Computer Science & AI',
-      departmentId: department.id,
-    },
-  });
-  logger.info('[SEED] Upserted Faculty User & Profile', { id: faculty.id, email: faculty.email });
-
-  // 6b. Course Offering
-  const offering = await prisma.courseOffering.upsert({
-    where: {
-      courseId_sectionId_academicYear_semester: {
+    await prisma.courseOffering.upsert({
+      where: {
+        courseId_sectionId_academicYear_semester: {
+          courseId: course.id,
+          sectionId: section.id,
+          academicYear: '2026-27',
+          semester: 3,
+        },
+      },
+      create: {
+        id: c.offeringId,
         courseId: course.id,
         sectionId: section.id,
+        primaryFacultyId: c.facultyId,
         academicYear: '2026-27',
         semester: 3,
+        isActive: true,
       },
-    },
-    create: {
-      id: DEV_OFFERING_ID,
-      courseId: course.id,
-      sectionId: section.id,
-      primaryFacultyId: faculty.id,
-      academicYear: '2026-27',
-      semester: 3,
-      isActive: true,
-    },
-    update: {
-      primaryFacultyId: faculty.id,
-      isActive: true,
-    },
-  });
-  logger.info('[SEED] Upserted Course Offering', { id: offering.id });
+      update: {
+        primaryFacultyId: c.facultyId,
+        isActive: true,
+      },
+    });
+  }
 
-  // 6c. Students
+  // 7. Students & Enrollments across all offerings
   const studentsData = [
     {
       id: DEV_STUDENT_ID,
@@ -266,39 +410,404 @@ export async function seedDevelopmentDatabase(): Promise<void> {
       },
     });
 
-    // Enrollment
-    await prisma.enrollment.upsert({
-      where: {
-        studentId_courseOfferingId: {
-          studentId: studentUser.id,
-          courseOfferingId: offering.id,
+    // Enroll each student in each course offering
+    for (const c of coursesData) {
+      await prisma.enrollment.upsert({
+        where: {
+          studentId_courseOfferingId: {
+            studentId: studentUser.id,
+            courseOfferingId: c.offeringId,
+          },
         },
-      },
+        create: {
+          studentId: studentUser.id,
+          courseOfferingId: c.offeringId,
+        },
+        update: {},
+      });
+    }
+  }
+
+  // 8. Timetable Slots (Weekly schedule from Monday to Saturday)
+  const slotsData = [
+    // Monday
+    {
+      id: 'f0000001-0000-4000-8000-000000000001',
+      offeringId: DEV_OFFERING_CS302_ID,
+      day: 'MONDAY' as const,
+      startTime: '09:00 AM',
+      endTime: '09:55 AM',
+      room: 'LT-204 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000002',
+      offeringId: DEV_OFFERING_CS304_ID,
+      day: 'MONDAY' as const,
+      startTime: '10:00 AM',
+      endTime: '10:55 AM',
+      room: 'LT-201 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000003',
+      offeringId: DEV_OFFERING_CS302_ID,
+      day: 'MONDAY' as const,
+      startTime: '11:15 AM',
+      endTime: '01:05 PM',
+      room: 'Computing Lab 3 (Block 2)',
+      isLab: true,
+      note: 'Carry your Dynamic Programming assignment sheets',
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000004',
+      offeringId: DEV_OFFERING_CS306_ID,
+      day: 'MONDAY' as const,
+      startTime: '02:00 PM',
+      endTime: '02:55 PM',
+      room: 'LT-305 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000005',
+      offeringId: DEV_OFFERING_CS310_ID,
+      day: 'MONDAY' as const,
+      startTime: '03:00 PM',
+      endTime: '03:55 PM',
+      room: 'Seminar Hall B',
+      isLab: false,
+      note: null,
+    },
+
+    // Tuesday
+    {
+      id: 'f0000001-0000-4000-8000-000000000006',
+      offeringId: DEV_OFFERING_CS308_ID,
+      day: 'TUESDAY' as const,
+      startTime: '09:00 AM',
+      endTime: '09:55 AM',
+      room: 'LT-102 (Block 2)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000007',
+      offeringId: DEV_OFFERING_CS306_ID,
+      day: 'TUESDAY' as const,
+      startTime: '10:00 AM',
+      endTime: '11:55 AM',
+      room: 'Cisco Networking Lab (Block 3)',
+      isLab: true,
+      note: 'Packet Tracer simulation files will be checked at 10:15 AM',
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000008',
+      offeringId: DEV_OFFERING_CS312_ID,
+      day: 'TUESDAY' as const,
+      startTime: '01:30 PM',
+      endTime: '02:25 PM',
+      room: 'LT-201 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000009',
+      offeringId: DEV_OFFERING_CS304_ID,
+      day: 'TUESDAY' as const,
+      startTime: '02:30 PM',
+      endTime: '03:25 PM',
+      room: 'LT-204 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+
+    // Wednesday
+    {
+      id: 'f0000001-0000-4000-8000-000000000010',
+      offeringId: DEV_OFFERING_CS302_ID,
+      day: 'WEDNESDAY' as const,
+      startTime: '09:00 AM',
+      endTime: '09:55 AM',
+      room: 'LT-204 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000011',
+      offeringId: DEV_OFFERING_CS310_ID,
+      day: 'WEDNESDAY' as const,
+      startTime: '10:00 AM',
+      endTime: '10:55 AM',
+      room: 'Seminar Hall B',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000012',
+      offeringId: DEV_OFFERING_CS304_ID,
+      day: 'WEDNESDAY' as const,
+      startTime: '11:15 AM',
+      endTime: '01:05 PM',
+      room: 'Computing Lab 2 (Block 2)',
+      isLab: true,
+      note: 'Submit Normalization 3NF query scripts before leaving',
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000013',
+      offeringId: DEV_OFFERING_ENG301_ID,
+      day: 'WEDNESDAY' as const,
+      startTime: '02:00 PM',
+      endTime: '03:00 PM',
+      room: 'Conference Room 1',
+      isLab: false,
+      note: null,
+    },
+
+    // Thursday
+    {
+      id: 'f0000001-0000-4000-8000-000000000014',
+      offeringId: DEV_OFFERING_CS308_ID,
+      day: 'THURSDAY' as const,
+      startTime: '09:00 AM',
+      endTime: '09:55 AM',
+      room: 'LT-102 (Block 2)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000015',
+      offeringId: DEV_OFFERING_CS302_ID,
+      day: 'THURSDAY' as const,
+      startTime: '10:00 AM',
+      endTime: '10:55 AM',
+      room: 'LT-204 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000016',
+      offeringId: DEV_OFFERING_CS312_ID,
+      day: 'THURSDAY' as const,
+      startTime: '11:15 AM',
+      endTime: '12:10 PM',
+      room: 'LT-201 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000017',
+      offeringId: DEV_OFFERING_CS310_ID,
+      day: 'THURSDAY' as const,
+      startTime: '01:30 PM',
+      endTime: '03:25 PM',
+      room: 'Cloud Virtualization Lab (Block 2)',
+      isLab: true,
+      note: 'AWS Learner Lab vouchers will be distributed',
+    },
+
+    // Friday
+    {
+      id: 'f0000001-0000-4000-8000-000000000018',
+      offeringId: DEV_OFFERING_CS306_ID,
+      day: 'FRIDAY' as const,
+      startTime: '09:00 AM',
+      endTime: '09:55 AM',
+      room: 'LT-305 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000019',
+      offeringId: DEV_OFFERING_CS304_ID,
+      day: 'FRIDAY' as const,
+      startTime: '10:00 AM',
+      endTime: '10:55 AM',
+      room: 'LT-201 (Block 1)',
+      isLab: false,
+      note: null,
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000020',
+      offeringId: DEV_OFFERING_CS308_ID,
+      day: 'FRIDAY' as const,
+      startTime: '11:15 AM',
+      endTime: '01:05 PM',
+      room: 'Systems Programming Lab (Block 2)',
+      isLab: true,
+      note: 'Kernel compile scripts evaluation',
+    },
+    {
+      id: 'f0000001-0000-4000-8000-000000000021',
+      offeringId: DEV_OFFERING_ENG301_ID,
+      day: 'FRIDAY' as const,
+      startTime: '02:00 PM',
+      endTime: '03:30 PM',
+      room: 'Auditorium',
+      isLab: false,
+      note: null,
+    },
+
+    // Saturday
+    {
+      id: 'f0000001-0000-4000-8000-000000000022',
+      offeringId: DEV_OFFERING_CS312_ID,
+      day: 'SATURDAY' as const,
+      startTime: '09:30 AM',
+      endTime: '12:30 PM',
+      room: 'AI Innovation Center (Block 3)',
+      isLab: true,
+      note: 'Optional enrichment module on Graph DP & Tree Traversal',
+    },
+  ];
+
+  for (const slot of slotsData) {
+    await prisma.timetableSlot.upsert({
+      where: { id: slot.id },
       create: {
-        studentId: studentUser.id,
-        courseOfferingId: offering.id,
+        id: slot.id,
+        courseOfferingId: slot.offeringId,
+        dayName: slot.day,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        roomNumber: slot.room,
+        isLab: slot.isLab,
+        note: slot.note,
       },
-      update: {},
+      update: {
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        roomNumber: slot.room,
+        isLab: slot.isLab,
+        note: slot.note,
+      },
     });
   }
-  logger.info('[SEED] Upserted 5 Enrolled Students in Course Offering');
+  logger.info(`[SEED] Upserted ${slotsData.length} Timetable Slots`);
 
-  // 7. Baseline Attendance Sessions & Records
-  // Session 1: 2026-10-10
+  // 9. Academic Calendar Events (Notices with event_date)
+  const noticesData = [
+    {
+      id: 'd0000001-0000-4000-8000-000000000001',
+      title: 'Continuous Assessment 1 (CA-1)',
+      content: 'All undergraduate examinations begin on 22nd June 2026 across departmental halls.',
+      category: 'EXAM',
+      eventDate: new Date('2026-06-22T09:30:00Z'),
+      isPinned: true,
+      postedById: DEV_FACULTY_ID,
+    },
+    {
+      id: 'd0000001-0000-4000-8000-000000000002',
+      title: 'Annual University Research Conclave',
+      content: 'Faculty and student paper presentations in the Himalayan Academic Amphitheatre.',
+      category: 'EVENT',
+      eventDate: new Date('2026-08-15T10:00:00Z'),
+      isPinned: false,
+      postedById: DEV_FACULTY_ID,
+    },
+    {
+      id: 'd0000001-0000-4000-8000-000000000003',
+      title: 'Mid-Semester Examinations (Odd Sem 2026-27)',
+      content: 'Datesheet for B.Tech, MBA, and BBA Mid-Terms released by Office of the Controller of Examinations. Hall tickets will be issued only to students with >= 75% attendance.',
+      category: 'EXAM',
+      eventDate: new Date('2026-10-22T09:00:00Z'),
+      isPinned: true,
+      postedById: DEV_FACULTY_ID,
+    },
+    {
+      id: 'd0000001-0000-4000-8000-000000000004',
+      title: 'Deepawali & Autumn Semester Recess',
+      content: 'University campus remains closed for academic festivities and institutional break.',
+      category: 'HOLIDAY',
+      eventDate: new Date('2026-11-01T00:00:00Z'),
+      isPinned: false,
+      postedById: DEV_FACULTY_ID,
+    },
+  ];
+
+  for (const n of noticesData) {
+    await prisma.notice.upsert({
+      where: { id: n.id },
+      create: {
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        category: n.category,
+        eventDate: n.eventDate,
+        isPinned: n.isPinned,
+        postedById: n.postedById,
+      },
+      update: {
+        title: n.title,
+        content: n.content,
+        category: n.category,
+        eventDate: n.eventDate,
+        isPinned: n.isPinned,
+      },
+    });
+  }
+  logger.info(`[SEED] Upserted ${noticesData.length} Academic Calendar Notices`);
+
+  // 10. Academic Assignments (Deadlines)
+  const assignmentsData = [
+    {
+      id: 'a5900001-0000-4000-8000-000000000001',
+      offeringId: DEV_OFFERING_CS302_ID,
+      title: 'Problem Set 4: Bellman-Ford & Dijkstra Graph Implementations',
+      description: 'Implement single-source shortest path algorithms in C++ with adjacency list representation.',
+      dueDate: new Date('2026-10-22T23:59:00Z'),
+      totalMarks: 25,
+    },
+    {
+      id: 'a5900001-0000-4000-8000-000000000002',
+      offeringId: DEV_OFFERING_CS304_ID,
+      title: 'Mini Project: University ER Modeling & Normalization (3NF/BCNF)',
+      description: 'Submit normalized relational schema design and SQL DDL scripts with foreign keys.',
+      dueDate: new Date('2026-10-26T17:00:00Z'),
+      totalMarks: 50,
+    },
+  ];
+
+  for (const a of assignmentsData) {
+    await prisma.assignment.upsert({
+      where: { id: a.id },
+      create: {
+        id: a.id,
+        courseOfferingId: a.offeringId,
+        title: a.title,
+        description: a.description,
+        dueDate: a.dueDate,
+        totalMarks: a.totalMarks,
+      },
+      update: {
+        title: a.title,
+        description: a.description,
+        dueDate: a.dueDate,
+        totalMarks: a.totalMarks,
+      },
+    });
+  }
+  logger.info(`[SEED] Upserted ${assignmentsData.length} Academic Assignments`);
+
+  // 11. Baseline Attendance Sessions & Records for CS302
   const session1 = await prisma.attendanceSession.upsert({
     where: { id: BASELINE_SESSION_1_ID },
     create: {
       id: BASELINE_SESSION_1_ID,
-      courseOfferingId: offering.id,
-      facultyId: faculty.id,
+      courseOfferingId: DEV_OFFERING_CS302_ID,
+      facultyId: DEV_FACULTY_ID,
       sessionDate: new Date('2026-10-10T10:00:00Z'),
       startTime: '10:00 AM',
       topicTaught: 'Divide & Conquer: Master Theorem Proof',
       markedAt: new Date('2026-10-10T11:00:00Z'),
       isLocked: true,
+      slotId: 'f0000001-0000-4000-8000-000000000001',
     },
     update: {
       isLocked: true,
+      slotId: 'f0000001-0000-4000-8000-000000000001',
     },
   });
 
@@ -329,21 +838,22 @@ export async function seedDevelopmentDatabase(): Promise<void> {
     });
   }
 
-  // Session 2: 2026-10-12
   const session2 = await prisma.attendanceSession.upsert({
     where: { id: BASELINE_SESSION_2_ID },
     create: {
       id: BASELINE_SESSION_2_ID,
-      courseOfferingId: offering.id,
-      facultyId: faculty.id,
+      courseOfferingId: DEV_OFFERING_CS302_ID,
+      facultyId: DEV_FACULTY_ID,
       sessionDate: new Date('2026-10-12T10:00:00Z'),
       startTime: '10:00 AM',
       topicTaught: 'Greedy Algorithms: Huffman Coding',
       markedAt: new Date('2026-10-12T11:00:00Z'),
       isLocked: true,
+      slotId: 'f0000001-0000-4000-8000-000000000003',
     },
     update: {
       isLocked: true,
+      slotId: 'f0000001-0000-4000-8000-000000000003',
     },
   });
 
@@ -376,7 +886,6 @@ export async function seedDevelopmentDatabase(): Promise<void> {
     });
   }
 
-  logger.info('[SEED] Upserted 2 Baseline Attendance Sessions with 10 records');
   logger.info('[SEED] Development database seeding completed successfully!');
 }
 

@@ -253,7 +253,7 @@ export class AttendanceRepository {
 
       return result;
     } catch (err) {
-      dbError = err;
+      logger.warn('attendance.repository: live query failed:', err);
     }
 
     if (config.NODE_ENV === 'production') {

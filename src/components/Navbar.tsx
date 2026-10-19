@@ -25,6 +25,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
+  currentRole,
   activeTab,
   onTabChange,
   unreadCount = 2,
@@ -32,13 +33,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
 }) => {
   const studentName = userSession?.name || CURRENT_STUDENT.name;
-  const studentRoll = userSession?.rollNo || CURRENT_STUDENT.rollNo;
+  const studentRoll = userSession?.rollNo || (currentRole === 'FACULTY' ? 'FACULTY ID: #DBS-FAC-019' : CURRENT_STUDENT.rollNo);
   const initials = studentName
     .split(' ')
     .map(n => n[0])
     .slice(0, 2)
     .join('')
     .toUpperCase();
+
+  const isFaculty = currentRole === 'FACULTY';
 
   return (
     <header className="dbs-navbar">
@@ -49,78 +52,120 @@ export const Navbar: React.FC<NavbarProps> = ({
             src="/dbs_logo_dark.png" 
             alt="DBS Global University" 
             className="dbs-nav-logo"
-            onClick={() => onTabChange('dashboard')}
+            onClick={() => onTabChange(isFaculty ? 'faculty-attendance' : 'dashboard')}
           />
           <span className="dbs-nav-portal-badge">
             <span className="dbs-pulse-dot" />
-            STUDENT PORTAL
+            {isFaculty ? 'FACULTY GATEWAY' : 'STUDENT PORTAL'}
           </span>
         </div>
 
         {/* CENTER: Clean Navigation Tabs */}
-        <nav className="dbs-nav-tabs" aria-label="Student Portal Navigation">
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'dashboard' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('dashboard')}
-          >
-            <CheckCircle2 size={16} className="tab-icon" />
-            <span>Attendance &amp; Home</span>
-          </button>
+        <nav className="dbs-nav-tabs" aria-label="Portal Navigation">
+          {isFaculty ? (
+            <>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'faculty-attendance' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('faculty-attendance')}
+              >
+                <CheckCircle2 size={16} className="tab-icon" />
+                <span>Attendance Marker</span>
+              </button>
 
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'timetable' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('timetable')}
-          >
-            <Calendar size={16} className="tab-icon" />
-            <span>Smart Timetable</span>
-          </button>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'defaulters' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('defaulters')}
+              >
+                <FileText size={16} className="tab-icon" />
+                <span>Defaulters List</span>
+              </button>
 
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'grades' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('grades')}
-          >
-            <Award size={16} className="tab-icon" />
-            <span>Grades &amp; SGPA</span>
-          </button>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'faculty-assignments' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('faculty-assignments')}
+              >
+                <BookOpen size={16} className="tab-icon" />
+                <span>Course Assignments &amp; LMS</span>
+              </button>
 
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'fees' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('fees')}
-          >
-            <Receipt size={16} className="tab-icon" />
-            <span>Fee Receipts</span>
-          </button>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'od-approvals' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('od-approvals')}
+              >
+                <Award size={16} className="tab-icon" />
+                <span>OD Approvals</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'dashboard' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('dashboard')}
+              >
+                <CheckCircle2 size={16} className="tab-icon" />
+                <span>Attendance &amp; Home</span>
+              </button>
 
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'leaves' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('leaves')}
-          >
-            <FileText size={16} className="tab-icon" />
-            <span>OD &amp; Leaves</span>
-          </button>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'timetable' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('timetable')}
+              >
+                <Calendar size={16} className="tab-icon" />
+                <span>Smart Timetable</span>
+              </button>
 
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'lms' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('lms')}
-          >
-            <BookOpen size={16} className="tab-icon" />
-            <span>LMS &amp; Tasks</span>
-          </button>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'grades' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('grades')}
+              >
+                <Award size={16} className="tab-icon" />
+                <span>Grades &amp; SGPA</span>
+              </button>
 
-          <button
-            type="button"
-            className={`dbs-tab-btn ${activeTab === 'gatepass' ? 'tab-active' : ''}`}
-            onClick={() => onTabChange('gatepass')}
-          >
-            <QrCode size={16} className="tab-icon" />
-            <span>Hostel Gate Pass</span>
-          </button>
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'fees' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('fees')}
+              >
+                <Receipt size={16} className="tab-icon" />
+                <span>Fee Receipts</span>
+              </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'leaves' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('leaves')}
+              >
+                <FileText size={16} className="tab-icon" />
+                <span>OD &amp; Leaves</span>
+              </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'lms' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('lms')}
+              >
+                <BookOpen size={16} className="tab-icon" />
+                <span>LMS &amp; Tasks</span>
+              </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'gatepass' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('gatepass')}
+              >
+                <QrCode size={16} className="tab-icon" />
+                <span>Hostel Gate Pass</span>
+              </button>
+            </>
+          )}
         </nav>
 
         {/* RIGHT: Notifications & Profile Pill */}

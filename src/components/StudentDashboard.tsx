@@ -40,10 +40,13 @@ import {
   ExternalLink,
   ChevronRight,
   Mail,
+  Loader2,
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
 import { attendanceApi } from '../api/attendance';
+import { calendarApi } from '../api/calendar';
+import type { CalendarEventDTO } from '../../server/src/types/calendar';
 import type { OverallAttendanceSummary } from '../../server/src/utils/attendanceCalculator';
 
 import { SmartTimetable } from './SmartTimetable';
@@ -137,6 +140,33 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   useEffect(() => {
     fetchAttendanceSummary();
   }, []);
+
+  // Academic Calendar State
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEventDTO[]>([]);
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState<boolean>(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+
+  const fetchCalendarEvents = async () => {
+    setIsLoadingCalendar(true);
+    setCalendarError(null);
+    try {
+      const res = await calendarApi.getEvents();
+      if (res && res.events) {
+        setCalendarEvents(res.events);
+      }
+    } catch (err: any) {
+      console.warn('Academic calendar fetch failed:', err);
+      setCalendarError(err.message || 'Unable to retrieve university calendar events.');
+    } finally {
+      setIsLoadingCalendar(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showCalendarModal) {
+      fetchCalendarEvents();
+    }
+  }, [showCalendarModal]);
 
   const [camuToastText, setCamuToastText] = useState<string | null>(null);
 
@@ -1480,22 +1510,57 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         <div className="oak-modal-overlay" onClick={() => setShowCalendarModal(false)}>
           <div className="oak-notif-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="oak-detail-modal-header">
-              <h3 className="oak-detail-title">University Academic Calendar</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 className="oak-detail-title">University Academic Calendar</h3>
+                {isLoadingCalendar && <Loader2 size={15} className="animate-spin text-blue" />}
+              </div>
               <button type="button" className="oak-modal-close-btn" onClick={() => setShowCalendarModal(false)}>
                 <X size={16} />
               </button>
             </div>
             <div className="oak-notif-items">
-              <div className="oak-notif-item">
-                <span className="oak-notif-time">June 2026</span>
-                <h4 className="oak-notif-heading">Continuous Assessment 1 (CA-1)</h4>
-                <p className="oak-notif-body">All undergraduate examinations begin on 22nd June 2026 across departmental halls.</p>
-              </div>
-              <div className="oak-notif-item">
-                <span className="oak-notif-time">August 2026</span>
-                <h4 className="oak-notif-heading">Annual University Research Conclave</h4>
-                <p className="oak-notif-body">Faculty and student paper presentations in the Himalayan Academic Amphitheatre.</p>
-              </div>
+              {calendarError && (
+                <div style={{ padding: '12px', color: '#f87171', fontSize: '13px' }}>
+                  <span>{calendarError}</span>
+                </div>
+              )}
+
+              {calendarEvents.length > 0 ? (
+                calendarEvents.map((evt) => (
+                  <div key={evt.id} className="oak-notif-item">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span className="oak-notif-time">{evt.monthYear}</span>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background:
+                          evt.category === 'EXAM' ? 'rgba(239, 68, 68, 0.15)' :
+                          evt.category === 'HOLIDAY' ? 'rgba(16, 185, 129, 0.15)' :
+                          evt.category === 'DEADLINE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                        color:
+                          evt.category === 'EXAM' ? '#f87171' :
+                          evt.category === 'HOLIDAY' ? '#34d399' :
+                          evt.category === 'DEADLINE' ? '#fbbf24' : '#38bdf8',
+                      }}>
+                        {evt.category}
+                      </span>
+                    </div>
+                    <h4 className="oak-notif-heading">{evt.title}</h4>
+                    <p className="oak-notif-body">{evt.description}</p>
+                  </div>
+                ))
+              ) : (
+                !isLoadingCalendar && (
+                  <div className="oak-notif-item">
+                    <span className="oak-notif-time">Academic Year 2026-27</span>
+                    <h4 className="oak-notif-heading">No Upcoming University Events</h4>
+                    <p className="oak-notif-body">Check back later for revised examination schedules and academic notices.</p>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>

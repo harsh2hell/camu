@@ -233,6 +233,7 @@ CREATE TABLE assignments (
     attachment_url TEXT,
     due_date TIMESTAMPTZ NOT NULL,
     total_marks INT NOT NULL DEFAULT 100,
+    is_published BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -240,7 +241,8 @@ CREATE TABLE assignment_submissions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    submission_file_url TEXT NOT NULL,
+    submission_file_url TEXT,
+    submission_text TEXT,
     submitted_at TIMESTAMPTZ DEFAULT NOW(),
     status assignment_submission_status DEFAULT 'SUBMITTED_ON_TIME',
     score NUMERIC(5, 2),
@@ -249,6 +251,10 @@ CREATE TABLE assignment_submissions (
     graded_at TIMESTAMPTZ,
     UNIQUE (assignment_id, student_id)
 );
+
+CREATE INDEX idx_assignments_offering_due ON assignments(course_offering_id, due_date);
+CREATE INDEX idx_submissions_student ON assignment_submissions(student_id);
+CREATE INDEX idx_submissions_assignment ON assignment_submissions(assignment_id);
 
 CREATE TABLE learning_materials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

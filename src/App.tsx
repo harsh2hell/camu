@@ -6,6 +6,7 @@ import { TeacherLoginPage } from './components/TeacherLoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
 import { LeaveODManager } from './components/LeaveODManager';
 import { FacultyAttendanceView } from './components/FacultyAttendanceView';
+import { FacultyAssignmentsView } from './components/FacultyAssignmentsView';
 import { DefaultersView } from './components/DefaultersView';
 import { authApi, type UserSession } from './api/auth';
 import { ShieldAlert, ShieldCheck, Lock, LogOut, ArrowLeft } from 'lucide-react';
@@ -442,6 +443,7 @@ export function App() {
           <>
             {activeTab === 'faculty-attendance' && <FacultyAttendanceView />}
             {activeTab === 'defaulters' && <DefaultersView />}
+            {activeTab === 'faculty-assignments' && <FacultyAssignmentsView />}
             {activeTab === 'od-approvals' && <LeaveODManager />}
           </>
         )}

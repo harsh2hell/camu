@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
   MapPin, 
@@ -10,9 +10,13 @@ import {
   Sparkles,
   Navigation,
   Calendar,
-  Layers
+  Layers,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { TODAY_CLASSES, type TimetableClass } from '../data/mockData';
+import { timetableApi } from '../api/timetable';
+import type { WeeklyScheduleDTO, TimetableSlotDTO } from '../../server/src/types/timetable';
 
 // Generate varied realistic schedule for other days
 const WEEKLY_SCHEDULE: Record<string, TimetableClass[]> = {
@@ -194,12 +198,60 @@ const WEEKLY_SCHEDULE: Record<string, TimetableClass[]> = {
   ]
 };
 
+function mapSlotToClass(slot: TimetableSlotDTO): TimetableClass {
+  return {
+    id: slot.id,
+    time: slot.timeRange,
+    subjectCode: slot.courseCode,
+    subjectTitle: slot.courseTitle,
+    faculty: slot.facultyName,
+    room: slot.roomNumber,
+    isLab: slot.isLab,
+    note: slot.note ?? undefined,
+    status: slot.status || 'upcoming',
+  };
+}
+
 export const SmartTimetable: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<string>('Monday');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [scheduleData, setScheduleData] = useState<Record<string, TimetableClass[]>>(WEEKLY_SCHEDULE);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [cohortInfo, setCohortInfo] = useState<string>('B.Tech CSE (Section A)');
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const currentSchedule = WEEKLY_SCHEDULE[selectedDay] || TODAY_CLASSES;
+
+  const fetchSchedule = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const data = await timetableApi.getStudentSchedule();
+      if ('schedule' in data && data.schedule) {
+        const weeklyDto = data as WeeklyScheduleDTO;
+        const converted: Record<string, TimetableClass[]> = {};
+        for (const d of days) {
+          const slotsForDay = weeklyDto.schedule[d] || [];
+          converted[d] = slotsForDay.map(mapSlotToClass);
+        }
+        setScheduleData(converted);
+        if (weeklyDto.academicYear) {
+          setCohortInfo(`B.Tech CSE &bull; Year ${weeklyDto.academicYear} (Sem ${weeklyDto.semester || 3})`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Live timetable fetch failed, using fallback:', err);
+      setErrorMsg(err.message || 'Unable to load real-time schedule from server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchedule();
+  }, []);
+
+  const currentSchedule = scheduleData[selectedDay] || [];
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -225,7 +277,7 @@ export const SmartTimetable: React.FC = () => {
         <div className="timetable-header-info">
           <div className="timetable-header-badge">
             <Sparkles size={13} className="text-blue" />
-            <span>Interactive Dynamic Timetable &bull; B.Tech CSE (Section A)</span>
+            <span dangerouslySetInnerHTML={{ __html: `Interactive Dynamic Timetable &bull; ${cohortInfo}` }} />
           </div>
           <h2 className="timetable-header-title">Weekly Lecture &amp; Lab Schedule</h2>
           <p className="timetable-header-desc">
@@ -260,13 +312,78 @@ export const SmartTimetable: React.FC = () => {
           </span>
         </div>
 
-        {selectedDay === 'Monday' && (
-          <div className="live-now-indicator">
-            <span className="live-dot-pulse"></span>
-            <span>Current Active: <strong>Database Management Systems</strong> (LT-201)</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {isLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#38bdf8' }}>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Syncing Live DB...</span>
+            </div>
+          )}
+
+          {selectedDay === 'Monday' && currentSchedule.length > 0 && (
+            <div className="live-now-indicator">
+              <span className="live-dot-pulse"></span>
+              <span>Current Active: <strong>{currentSchedule[0]?.subjectTitle || 'Algorithms'}</strong></span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Error state alert with retry */}
+      {errorMsg && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: '12px',
+          margin: '0 0 16px 0',
+          color: '#f87171',
+          fontSize: '13px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={16} />
+            <span>{errorMsg} (Displaying cached offline schedule)</span>
+          </div>
+          <button
+            type="button"
+            onClick={fetchSchedule}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            <RefreshCw size={13} />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && currentSchedule.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '48px 24px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          borderRadius: '16px',
+          border: '1px dashed rgba(255, 255, 255, 0.1)',
+          color: 'var(--text-muted)'
+        }}>
+          <Calendar size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+          <h4 style={{ color: '#f1f5f9', margin: '0 0 4px', fontSize: '15px' }}>No Sessions Scheduled</h4>
+          <p style={{ margin: 0, fontSize: '13px' }}>There are no scheduled lectures or practical labs for {selectedDay}.</p>
+        </div>
+      )}
 
       {/* Schedule Feed */}
       <div className="schedule-list">
