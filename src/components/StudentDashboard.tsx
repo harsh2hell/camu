@@ -22,6 +22,24 @@ import {
   LogOut,
   Sliders,
   Menu,
+  CheckCircle2,
+  BookOpen,
+  Award,
+  Layers,
+  Sparkles,
+  CreditCard,
+  Building,
+  HeartHandshake,
+  CheckSquare,
+  User,
+  CalendarCheck,
+  Download,
+  AlertCircle,
+  FileCheck,
+  KeyRound,
+  ExternalLink,
+  ChevronRight,
+  Mail,
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
@@ -89,6 +107,259 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   // 3-dots action menu dropdown per item
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
+  // Floating Bar Submenu Category State & Camu Modals
+  const [activeFloatingCategory, setActiveFloatingCategory] = useState<string | null>(null);
+  const [floatingBarTop, setFloatingBarTop] = useState<number>(100);
+  const [activeCamuModal, setActiveCamuModal] = useState<
+    'profile' | 'exams' | 'counselling' | 'transcripts' | 'clearance' | 'feedback' | 'activities' | 'messages' | 'enrollment' | 'institution' | 'settings' | null
+  >(null);
+  const [camuToastText, setCamuToastText] = useState<string | null>(null);
+
+  const showCamuToast = (msg: string) => {
+    setCamuToastText(msg);
+    setTimeout(() => setCamuToastText(null), 3600);
+  };
+
+  const handleCategoryClick = (catId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const topPos = rect.top - 10;
+    if (activeFloatingCategory === catId) {
+      setActiveFloatingCategory(null);
+    } else {
+      setActiveFloatingCategory(catId);
+      setFloatingBarTop(topPos);
+    }
+  };
+
+  // Curated Navigation Categories grouping all 23+ Camu functions
+  const navCategories = [
+    {
+      id: 'academics',
+      label: 'Academics & Learning',
+      shortLabel: 'LMS & Courses',
+      icon: <GraduationCap size={19} />,
+      items: [
+        {
+          id: 'lms',
+          title: 'Assignments & LMS Deliverables',
+          sub: 'Problem sets, submission deadlines & lab briefs',
+          icon: <FileText size={16} />,
+          badge: '2 Due Soon',
+          badgeColor: 'badge-amber',
+          onClick: () => onNavigateTab('lms'),
+        },
+        {
+          id: 'timetable',
+          title: 'Smart Timetable & Schedules',
+          sub: 'Interactive room allocations & lecture statuses',
+          icon: <Clock size={16} />,
+          badge: 'Live Session',
+          badgeColor: 'badge-blue',
+          onClick: () => onNavigateTab('timetable'),
+        },
+        {
+          id: 'grades',
+          title: 'Assessments & Gradebook',
+          sub: 'Continuous assessments, SGPA & term credits',
+          icon: <Trophy size={16} />,
+          badge: '8.64 CGPA',
+          badgeColor: 'badge-emerald',
+          onClick: () => onNavigateTab('grades'),
+        },
+        {
+          id: 'exams',
+          title: 'Exam Schedules & Datesheets',
+          sub: 'Mid-term, End-term datesheets & re-evaluation',
+          icon: <CheckSquare size={16} />,
+          badge: 'Odd Sem',
+          badgeColor: 'badge-purple',
+          onClick: () => setActiveCamuModal('exams'),
+        },
+      ],
+    },
+    {
+      id: 'attendance',
+      label: 'Attendance & Campus Passes',
+      shortLabel: 'Passes & Biometrics',
+      icon: <CalendarCheck size={19} />,
+      items: [
+        {
+          id: 'attendance',
+          title: 'Attendance Analytics & Biometrics',
+          sub: '75% mandatory criteria tracker & eligibility',
+          icon: <BarChart2 size={16} />,
+          badge: '86.4% Safe',
+          badgeColor: 'badge-emerald',
+          onClick: () => onNavigateTab('dashboard'),
+        },
+        {
+          id: 'leaves',
+          title: 'Leave & On-Duty (OD) Pass',
+          sub: 'Medical leave, sports OD & hackathon permissions',
+          icon: <CalendarIcon size={16} />,
+          badge: '1 Pending',
+          badgeColor: 'badge-amber',
+          onClick: () => onNavigateTab('leaves'),
+        },
+        {
+          id: 'gatepass',
+          title: 'Hostel Digital Gate Pass',
+          sub: 'Warden verification, digital QR pass & outings',
+          icon: <KeyRound size={16} />,
+          badge: 'Active QR',
+          badgeColor: 'badge-blue',
+          onClick: () => onNavigateTab('gatepass'),
+        },
+        {
+          id: 'activities',
+          title: 'Student Activities & Clubs',
+          sub: 'ACM Student Chapter, campus clubs & sports',
+          icon: <Users size={16} />,
+          badge: '3 Clubs',
+          badgeColor: 'badge-purple',
+          onClick: () => setActiveCamuModal('activities'),
+        },
+      ],
+    },
+    {
+      id: 'communication',
+      label: 'Noticeboard & Communication',
+      shortLabel: 'Notices & Messages',
+      icon: <MessageSquare size={19} />,
+      items: [
+        {
+          id: 'notices',
+          title: 'University Noticeboard & Circulars',
+          sub: 'Registrar, Dean Academics & exam circulars',
+          icon: <Bell size={16} />,
+          badge: 'Pinned Circular',
+          badgeColor: 'badge-blue',
+          onClick: () => onNavigateTab('notices'),
+        },
+        {
+          id: 'messages',
+          title: 'Official Department Messages',
+          sub: 'Direct faculty notices, alerts & announcements',
+          icon: <Mail size={16} />,
+          badge: '4 Unread',
+          badgeColor: 'badge-amber',
+          onClick: () => setActiveCamuModal('messages'),
+        },
+        {
+          id: 'counselling',
+          title: 'Student Counselling & Mentorship',
+          sub: 'Book 1-on-1 slot with advisor or wellness guide',
+          icon: <HeartHandshake size={16} />,
+          badge: 'Available',
+          badgeColor: 'badge-emerald',
+          onClick: () => setActiveCamuModal('counselling'),
+        },
+        {
+          id: 'feedback',
+          title: 'CAMU Feedback & Grievance Cell',
+          sub: 'Service requests, curriculum suggestions & helpdesk',
+          icon: <AlertCircle size={16} />,
+          badge: 'CAMU Desk',
+          badgeColor: 'badge-slate',
+          onClick: () => setActiveCamuModal('feedback'),
+        },
+      ],
+    },
+    {
+      id: 'services',
+      label: 'Services, Billing & Records',
+      shortLabel: 'Finance & Records',
+      icon: <Layers size={19} />,
+      items: [
+        {
+          id: 'fees',
+          title: 'Billing & Fee Receipts',
+          sub: 'Semester tuition dues, online fee clearance & receipts',
+          icon: <CreditCard size={16} />,
+          badge: '₹0 Dues',
+          badgeColor: 'badge-emerald',
+          onClick: () => onNavigateTab('fees'),
+        },
+        {
+          id: 'transcripts',
+          title: 'Official Transcripts & Grade Sheets',
+          sub: 'Semester marksheets, bonafide & document vault',
+          icon: <FileCheck size={16} />,
+          badge: 'Verified',
+          badgeColor: 'badge-blue',
+          onClick: () => setActiveCamuModal('transcripts'),
+        },
+        {
+          id: 'clearance',
+          title: 'Institutional Clearance (No-Dues)',
+          sub: 'Library, labs, sports & accounts no-dues clearance',
+          icon: <ShieldCheck size={16} />,
+          badge: '100% Cleared',
+          badgeColor: 'badge-emerald',
+          onClick: () => setActiveCamuModal('clearance'),
+        },
+        {
+          id: 'enrollment',
+          title: 'Course Enrollment & Electives',
+          sub: 'Semester course registration & elective tracks',
+          icon: <BookOpen size={16} />,
+          badge: '24.0 Credits',
+          badgeColor: 'badge-amber',
+          onClick: () => setActiveCamuModal('enrollment'),
+        },
+      ],
+    },
+    {
+      id: 'profile',
+      label: 'My Institution & Profile',
+      shortLabel: 'My Camu ID',
+      icon: <Settings size={19} />,
+      items: [
+        {
+          id: 'camu_profile',
+          title: 'My Camu Student Profile',
+          sub: 'Harendra Pratap Singh • Roll No: 0251BTCS097',
+          icon: <User size={16} />,
+          badge: 'Active',
+          badgeColor: 'badge-emerald',
+          onClick: () => setActiveCamuModal('profile'),
+        },
+        {
+          id: 'institution',
+          title: 'My Institution (DBS Global University)',
+          sub: 'Campus contacts, academic policies & accreditation',
+          icon: <Building size={16} />,
+          badge: 'Dehradun',
+          badgeColor: 'badge-blue',
+          onClick: () => setActiveCamuModal('institution'),
+        },
+        {
+          id: 'settings',
+          title: 'Security & Portal Preferences',
+          sub: 'Password change, biometric 2FA & alerts',
+          icon: <Sliders size={16} />,
+          badge: 'Security',
+          badgeColor: 'badge-slate',
+          onClick: () => setActiveCamuModal('settings'),
+        },
+        {
+          id: 'logout',
+          title: 'Sign Out of Session',
+          sub: 'Safely terminate student session and lock portal',
+          icon: <LogOut size={16} />,
+          badge: 'Logout',
+          badgeColor: 'badge-rose',
+          onClick: () => {
+            if (onLogout) onLogout();
+          },
+        },
+      ],
+    },
+  ];
+
+  const currentCategory = navCategories.find(c => c.id === activeFloatingCategory);
+
   // Keyboard shortcut listener for ⌘+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -97,6 +368,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         setShowSearchModal((prev) => !prev);
       } else if (e.key === 'Escape') {
         setShowMobileDrawer(false);
+        setActiveFloatingCategory(null);
+        setActiveCamuModal(null);
         setShowSearchModal(false);
         setShowNotifications(false);
         setShowCalendarModal(false);
@@ -194,7 +467,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           <div 
             className="oak-brand-mark" 
             title="DBS Global University"
-            onClick={() => onNavigateTab('dashboard')}
+            onClick={() => {
+              onNavigateTab('dashboard');
+              setActiveFloatingCategory(null);
+            }}
           >
             <img 
               src="/dbs_logo_transparent.png" 
@@ -205,60 +481,150 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
           {/* Navigation Icon List */}
           <nav className="oak-rail-nav">
-            {/* Dashboard (Home) */}
+            {/* 1. Dashboard (Home) */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeTab === 'dashboard' ? 'is-active' : ''}`}
-              onClick={() => onNavigateTab('dashboard')}
+              className={`oak-rail-btn ${activeTab === 'dashboard' && !activeFloatingCategory ? 'is-active' : ''}`}
+              onClick={() => {
+                onNavigateTab('dashboard');
+                setActiveFloatingCategory(null);
+              }}
               title="Dashboard Overview"
             >
               <Home size={19} />
             </button>
 
-            {/* Chat / Notices */}
+            {/* 2. Academics & LMS */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeTab === 'notices' ? 'is-active' : ''}`}
-              onClick={() => onNavigateTab('notices')}
-              title="Campus Notices & Messages"
-            >
-              <MessageSquare size={19} />
-            </button>
-
-            {/* Academics / LMS */}
-            <button
-              type="button"
-              className={`oak-rail-btn ${activeTab === 'lms' ? 'is-active' : ''}`}
-              onClick={() => onNavigateTab('lms')}
-              title="Academics & Assignments"
+              className={`oak-rail-btn ${['lms', 'timetable', 'grades'].includes(activeTab) ? 'is-active' : ''} ${activeFloatingCategory === 'academics' ? 'has-floating-open' : ''}`}
+              onClick={(e) => handleCategoryClick('academics', e)}
+              title="Academics & Learning"
             >
               <GraduationCap size={19} />
             </button>
 
-            {/* Timetable / Schedule */}
+            {/* 3. Attendance & Campus Passes */}
             <button
               type="button"
-              className={`oak-rail-btn ${activeTab === 'timetable' ? 'is-active' : ''}`}
-              onClick={() => onNavigateTab('timetable')}
-              title="Smart Timetable"
+              className={`oak-rail-btn ${['leaves', 'gatepass'].includes(activeTab) ? 'is-active' : ''} ${activeFloatingCategory === 'attendance' ? 'has-floating-open' : ''}`}
+              onClick={(e) => handleCategoryClick('attendance', e)}
+              title="Attendance & Campus Passes"
             >
-              <BarChart2 size={19} />
+              <CalendarCheck size={19} />
+            </button>
+
+            {/* 4. Noticeboard & Communication */}
+            <button
+              type="button"
+              className={`oak-rail-btn ${activeTab === 'notices' ? 'is-active' : ''} ${activeFloatingCategory === 'communication' ? 'has-floating-open' : ''}`}
+              onClick={(e) => handleCategoryClick('communication', e)}
+              title="Noticeboard & Messages"
+            >
+              <MessageSquare size={19} />
+            </button>
+
+            {/* 5. Services, Billing & Records */}
+            <button
+              type="button"
+              className={`oak-rail-btn ${activeTab === 'fees' ? 'is-active' : ''} ${activeFloatingCategory === 'services' ? 'has-floating-open' : ''}`}
+              onClick={(e) => handleCategoryClick('services', e)}
+              title="Services, Billing & Records"
+            >
+              <Layers size={19} />
             </button>
           </nav>
         </div>
 
-        {/* Rail Bottom Settings */}
+        {/* Rail Bottom Settings / Profile */}
         <div className="oak-rail-bottom">
           <button
             type="button"
-            className={`oak-rail-btn ${(activeTab === 'leaves' || activeTab === 'gatepass') ? 'is-active' : ''}`}
-            onClick={() => onNavigateTab('leaves')}
-            title="Leave / OD & Settings"
+            className={`oak-rail-btn ${activeFloatingCategory === 'profile' ? 'has-floating-open is-active' : ''}`}
+            onClick={(e) => handleCategoryClick('profile', e)}
+            title="My Institution & Profile"
           >
             <Settings size={19} />
           </button>
         </div>
       </aside>
+
+      {/* 1.5. FLOATING BAR SUBMENU */}
+      {activeFloatingCategory && currentCategory && (
+        <>
+          {/* Backdrop to dismiss when clicking outside */}
+          <div 
+            className="oak-floating-submenu-backdrop" 
+            onClick={() => setActiveFloatingCategory(null)}
+          />
+
+          <div 
+            className="oak-floating-submenu-bar animate-fade-in"
+            style={{ 
+              top: `${Math.max(20, Math.min((typeof window !== 'undefined' ? window.innerHeight : 800) - 460, floatingBarTop))}px` 
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Arrow pointer toward active rail button */}
+            <div className="oak-floating-bar-pointer" />
+
+            <div className="oak-floating-bar-header">
+              <div className="oak-floating-bar-title-wrap">
+                <span className="oak-floating-category-badge">
+                  {currentCategory.shortLabel}
+                </span>
+                <h4 className="oak-floating-bar-title">{currentCategory.label}</h4>
+              </div>
+              <button 
+                type="button" 
+                className="oak-floating-bar-close-btn"
+                onClick={() => setActiveFloatingCategory(null)}
+                aria-label="Close Submenu"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="oak-floating-bar-items">
+              {currentCategory.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="oak-floating-item-card"
+                  onClick={() => {
+                    item.onClick();
+                    setActiveFloatingCategory(null);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="oak-floating-item-icon-wrap">
+                    {item.icon}
+                  </div>
+                  <div className="oak-floating-item-text">
+                    <div className="oak-floating-item-top">
+                      <span className="oak-floating-item-title">{item.title}</span>
+                      {item.badge && (
+                        <span className={`oak-floating-item-badge ${item.badgeColor || ''}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="oak-floating-item-sub">{item.sub}</span>
+                  </div>
+                  <ChevronRight size={14} className="oak-floating-item-arrow" />
+                </div>
+              ))}
+            </div>
+
+            <div className="oak-floating-bar-footer">
+              <span className="oak-floating-camu-stamp">
+                <Sparkles size={12} className="text-blue" />
+                <span>MyCamu &bull; DBS Global University</span>
+              </span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 2. MAIN DASHBOARD CONTENT AREA */}
       <div className="oak-main-wrapper">
@@ -1327,6 +1693,740 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </button>
       </nav>
 
+      {/* ======================================================== */}
+      {/* 12. CAMU TOAST NOTIFICATION */}
+      {/* ======================================================== */}
+      {camuToastText && (
+        <div className="oak-camu-toast-pill animate-fade-in">
+          <CheckCircle2 size={16} className="text-emerald" />
+          <span>{camuToastText}</span>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 13. CAMU SERVICE MODALS */}
+      {/* ======================================================== */}
+
+      {/* Modal 1: Authentic Camu Student Profile (from Screenshot 1) */}
+      {activeCamuModal === 'profile' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-profile-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div className="oak-camu-brand-row">
+                <img src="/dbs_logo_transparent.png" alt="DBS Global University" className="camu-logo-mark" />
+                <div>
+                  <h3 className="camu-modal-title">DBS Global University &bull; Student Profile</h3>
+                  <span className="camu-modal-sub">MyCamu Academic Record &bull; Session 2026-2027</span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="oak-modal-close-btn"
+                onClick={() => setActiveCamuModal(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Announcement Banner matching Screenshot 1 */}
+            <div className="camu-announcement-banner">
+              <div className="camu-banner-left">
+                <Bell size={18} className="camu-banner-icon" />
+                <div>
+                  <strong>Result Published: MBA Summer Term 2026</strong>
+                  <p>Students having any result related issues should raise their grievances through Service Requests in CAMU.</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="camu-banner-btn"
+                onClick={() => showCamuToast('Opening Examination Grievance Portal')}
+              >
+                View all
+              </button>
+            </div>
+
+            {/* Profile Main Card */}
+            <div className="camu-profile-main-card">
+              <div className="camu-avatar-col">
+                <img 
+                  src="/harendra_avatar.png" 
+                  alt="Harendra Pratap Singh" 
+                  className="camu-avatar-img"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }} 
+                />
+                <span className="camu-verified-badge">
+                  <ShieldCheck size={13} className="text-emerald" />
+                  <span>Biometric Verified</span>
+                </span>
+              </div>
+
+              <div className="camu-details-col">
+                <div className="camu-name-row">
+                  <h2 className="camu-student-name">Harendra Pratap Singh</h2>
+                  <span className="camu-status-pill">Active</span>
+                </div>
+
+                <div className="camu-details-grid">
+                  <div className="camu-detail-row">
+                    <span className="camu-detail-label">Admission No.</span>
+                    <span className="camu-detail-colon">:</span>
+                    <strong className="camu-detail-value">DBS25UG25234</strong>
+                  </div>
+
+                  <div className="camu-detail-row">
+                    <span className="camu-detail-label">Admission Year</span>
+                    <span className="camu-detail-colon">:</span>
+                    <strong className="camu-detail-value">2025-2026</strong>
+                  </div>
+
+                  <div className="camu-detail-row">
+                    <span className="camu-detail-label">Roll No.</span>
+                    <span className="camu-detail-colon">:</span>
+                    <strong className="camu-detail-value">0251BTCS097</strong>
+                  </div>
+
+                  <div className="camu-detail-row">
+                    <span className="camu-detail-label">Degree</span>
+                    <span className="camu-detail-colon">:</span>
+                    <strong className="camu-detail-value">Undergraduate</strong>
+                  </div>
+
+                  <div className="camu-detail-row">
+                    <span className="camu-detail-label">Department</span>
+                    <span className="camu-detail-colon">:</span>
+                    <strong className="camu-detail-value">Doon School of Advance Computing</strong>
+                  </div>
+
+                  <div className="camu-detail-row">
+                    <span className="camu-detail-label">Semester</span>
+                    <span className="camu-detail-colon">:</span>
+                    <strong className="camu-detail-value">Third Semester | 2026-2027</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Action Buttons */}
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Downloading DBS Student ID Card (PDF)...')}
+              >
+                <Download size={15} />
+                <span>Download Digital ID Card</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="camu-btn-secondary"
+                onClick={() => showCamuToast('Generating Official Bonafide Certificate...')}
+              >
+                <FileCheck size={15} />
+                <span>Generate Bonafide</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="camu-btn-ghost"
+                onClick={() => setActiveCamuModal('settings')}
+              >
+                <Sliders size={15} />
+                <span>Preferences</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Exam Schedules & Re-Evaluation */}
+      {activeCamuModal === 'exams' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Controller of Examinations</span>
+                <h3 className="camu-modal-title">Exam Schedules &amp; Re-Evaluation</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-eligibility-box">
+              <CheckCircle2 size={18} className="text-emerald" />
+              <div>
+                <strong>Hall Ticket Status: Released &amp; Authorized</strong>
+                <p>Eligible for Odd Semester Examinations with 86.4% verified biometric attendance.</p>
+              </div>
+            </div>
+
+            <div className="camu-exam-schedule-list">
+              <div className="camu-exam-row">
+                <div className="camu-exam-date">
+                  <span className="exam-day">22</span>
+                  <span className="exam-mo">OCT</span>
+                </div>
+                <div className="camu-exam-info">
+                  <strong>CS302 &bull; Design &amp; Analysis of Algorithms</strong>
+                  <span>10:00 AM - 11:30 AM &bull; Room LT-204 (Block 1)</span>
+                </div>
+                <span className="camu-exam-badge">Theory Exam</span>
+              </div>
+
+              <div className="camu-exam-row">
+                <div className="camu-exam-date">
+                  <span className="exam-day">26</span>
+                  <span className="exam-mo">OCT</span>
+                </div>
+                <div className="camu-exam-info">
+                  <strong>CS304 &bull; Database Management Systems</strong>
+                  <span>02:00 PM - 03:30 PM &bull; Room LT-201 (Block 1)</span>
+                </div>
+                <span className="camu-exam-badge">Theory Exam</span>
+              </div>
+
+              <div className="camu-exam-row">
+                <div className="camu-exam-date">
+                  <span className="exam-day">30</span>
+                  <span className="exam-mo">OCT</span>
+                </div>
+                <div className="camu-exam-info">
+                  <strong>CS306 &bull; Computer Networks &amp; Security</strong>
+                  <span>10:00 AM - 11:30 AM &bull; Main Academic Auditorium</span>
+                </div>
+                <span className="camu-exam-badge">Theory Exam</span>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Downloading Official Hall Ticket (PDF)...')}
+              >
+                <Download size={15} />
+                <span>Download Hall Ticket (PDF)</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="camu-btn-secondary"
+                onClick={() => showCamuToast('Re-Evaluation portal open after result publication')}
+              >
+                <FileText size={15} />
+                <span>Apply for Re-Evaluation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Student Counselling & Mentor Appointment */}
+      {activeCamuModal === 'counselling' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Mentorship Program</span>
+                <h3 className="camu-modal-title">Student Counselling &amp; Book Appointment</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-mentor-profile-card">
+              <div className="mentor-avatar-badge">
+                <User size={22} className="text-blue" />
+              </div>
+              <div className="mentor-info">
+                <strong>Dr. Rajesh Sharma</strong>
+                <span>Associate Professor &bull; Doon School of Advance Computing</span>
+                <span className="mentor-email">rajesh.sharma@dgu.ac.in &bull; Cabin: Block 2, Rm 304</span>
+              </div>
+            </div>
+
+            <div className="camu-form-group">
+              <label>Select Appointment Slot</label>
+              <div className="camu-slots-row">
+                <button type="button" className="camu-slot-btn active">Today &bull; 03:30 PM</button>
+                <button type="button" className="camu-slot-btn">Tomorrow &bull; 11:00 AM</button>
+                <button type="button" className="camu-slot-btn">Friday &bull; 02:00 PM</button>
+              </div>
+            </div>
+
+            <div className="camu-form-group">
+              <label>Consultation Topic</label>
+              <input type="text" defaultValue="Capstone Project & System Architecture Review" className="camu-input" />
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => {
+                  showCamuToast('Mentorship appointment booked with Dr. Rajesh Sharma for Today 03:30 PM!');
+                  setActiveCamuModal(null);
+                }}
+              >
+                <CheckCircle2 size={15} />
+                <span>Confirm Appointment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: Transcripts & Document Records */}
+      {activeCamuModal === 'transcripts' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Institutional Vault</span>
+                <h3 className="camu-modal-title">Official Transcripts &amp; Document Records</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-records-list">
+              <div className="camu-record-card">
+                <FileCheck size={20} className="text-blue" />
+                <div className="camu-record-info">
+                  <strong>Semester 1 Grade Card (SGPA: 8.42)</strong>
+                  <span>Issued by Controller of Examinations &bull; Digital Signature Verified</span>
+                </div>
+                <button 
+                  type="button" 
+                  className="camu-record-dl"
+                  onClick={() => showCamuToast('Downloading Semester 1 Transcript...')}
+                >
+                  <Download size={14} />
+                </button>
+              </div>
+
+              <div className="camu-record-card">
+                <FileCheck size={20} className="text-emerald" />
+                <div className="camu-record-info">
+                  <strong>Semester 2 Grade Card (SGPA: 8.78)</strong>
+                  <span>Issued by Controller of Examinations &bull; Digital Signature Verified</span>
+                </div>
+                <button 
+                  type="button" 
+                  className="camu-record-dl"
+                  onClick={() => showCamuToast('Downloading Semester 2 Transcript...')}
+                >
+                  <Download size={14} />
+                </button>
+              </div>
+
+              <div className="camu-record-card">
+                <ShieldCheck size={20} className="text-amber" />
+                <div className="camu-record-info">
+                  <strong>Anti-Ragging Undertaking &amp; Police Verification</strong>
+                  <span>Reference: DGU/2025/REG/492 &bull; Active on Record</span>
+                </div>
+                <button 
+                  type="button" 
+                  className="camu-record-dl"
+                  onClick={() => showCamuToast('Viewing Undertaking Copy...')}
+                >
+                  <FileText size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Generating Consolidated Academic Transcript Pack...')}
+              >
+                <Download size={15} />
+                <span>Download Consolidated Transcript (PDF)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 5: Institutional Clearance (No-Dues) */}
+      {activeCamuModal === 'clearance' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Registrar Office</span>
+                <h3 className="camu-modal-title">Institutional Clearance &amp; No-Dues Status</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-eligibility-box">
+              <CheckCircle2 size={18} className="text-emerald" />
+              <div>
+                <strong>Overall Clearance: 100% Cleared</strong>
+                <p>Eligible for Semester Promotion, Examination Hall Ticket and Laboratory Access.</p>
+              </div>
+            </div>
+
+            <div className="camu-clearance-grid">
+              <div className="clearance-item">
+                <span className="clearance-name">Central University Library</span>
+                <span className="clearance-badge ok">Cleared &bull; 0 Books Due</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Computing &amp; Network Labs</span>
+                <span className="clearance-badge ok">Cleared &bull; Assets Verified</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Finance &amp; Accounts Department</span>
+                <span className="clearance-badge ok">Cleared &bull; ₹0 Outstanding</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Hostel Warden &amp; Mess</span>
+                <span className="clearance-badge ok">Cleared &bull; Room Verified</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Sports &amp; Gymkhana</span>
+                <span className="clearance-badge ok">Cleared &bull; Equipment Returned</span>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Downloading Official Clearance Certificate (PDF)...')}
+              >
+                <Download size={15} />
+                <span>Download Clearance Certificate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 6: Feedback & Grievance Cell */}
+      {activeCamuModal === 'feedback' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">CAMU Service Desk</span>
+                <h3 className="camu-modal-title">Student Feedback &amp; Grievance Cell</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-form-group">
+              <label>Grievance / Request Category</label>
+              <select className="camu-select">
+                <option>Service Request - Academic / Coursework</option>
+                <option>Examination &amp; Grading Grievance</option>
+                <option>Campus Infrastructure &amp; Wi-Fi Facilities</option>
+                <option>Hostel Accommodation &amp; Mess</option>
+              </select>
+            </div>
+
+            <div className="camu-form-group">
+              <label>Description &amp; Specific Details</label>
+              <textarea 
+                rows={4} 
+                placeholder="Describe your query or grievance in detail for Registrar review..." 
+                className="camu-textarea"
+              />
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => {
+                  showCamuToast('Service Request registered successfully! Ticket: #DGU-GRV-84920');
+                  setActiveCamuModal(null);
+                }}
+              >
+                <CheckCircle2 size={15} />
+                <span>Submit Grievance to Registrar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 7: Student Activities & Clubs */}
+      {activeCamuModal === 'activities' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Campus Life</span>
+                <h3 className="camu-modal-title">Student Activities &amp; Clubs</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-records-list">
+              <div className="camu-record-card">
+                <Users size={20} className="text-blue" />
+                <div className="camu-record-info">
+                  <strong>ACM Student Chapter (DBS Global University)</strong>
+                  <span>Technical Committee Lead &bull; Member Since Aug 2025</span>
+                </div>
+                <span className="camu-status-pill">Active</span>
+              </div>
+
+              <div className="camu-record-card">
+                <Award size={20} className="text-amber" />
+                <div className="camu-record-info">
+                  <strong>DBS Annual Hackathon 2026</strong>
+                  <span>Winner &bull; AI / Distributed Systems Track (Team NeuralFlow)</span>
+                </div>
+                <span className="camu-exam-badge">Awarded</span>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Opening Campus Clubs Registration Portal...')}
+              >
+                <Plus size={15} />
+                <span>Join New Club</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 8: Department Messages */}
+      {activeCamuModal === 'messages' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Inbox &bull; 4 Unread</span>
+                <h3 className="camu-modal-title">Department Announcements &amp; Messages</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-records-list">
+              <div className="camu-record-card">
+                <Mail size={18} className="text-blue" />
+                <div className="camu-record-info">
+                  <strong>Office of Controller of Examinations</strong>
+                  <span>Odd Semester Mid-Term Examination Datesheet published on noticeboard.</span>
+                </div>
+              </div>
+
+              <div className="camu-record-card">
+                <Mail size={18} className="text-emerald" />
+                <div className="camu-record-info">
+                  <strong>Training &amp; Placement Cell</strong>
+                  <span>TCS &amp; Deloitte Placement Drive registration closes on 25th October.</span>
+                </div>
+              </div>
+
+              <div className="camu-record-card">
+                <Mail size={18} className="text-amber" />
+                <div className="camu-record-info">
+                  <strong>Dr. Rajesh Sharma (Faculty Advisor)</strong>
+                  <span>Algorithms problem set 4 solutions due on 22nd October 11:59 PM.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => {
+                  showCamuToast('All messages marked as read');
+                  setActiveCamuModal(null);
+                }}
+              >
+                <CheckCircle2 size={15} />
+                <span>Mark All as Read</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 9: Course Enrollment */}
+      {activeCamuModal === 'enrollment' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Academic Curriculum</span>
+                <h3 className="camu-modal-title">Course Enrollment &amp; Electives</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-eligibility-box">
+              <CheckCircle2 size={18} className="text-emerald" />
+              <div>
+                <strong>Semester 3 Enrolled Credits: 24.0</strong>
+                <p>Coursework approved by Dean Academics for B.Tech CSE (Section A).</p>
+              </div>
+            </div>
+
+            <div className="camu-clearance-grid">
+              <div className="clearance-item">
+                <span className="clearance-name">CS302 &bull; Design &amp; Analysis of Algorithms</span>
+                <span className="clearance-badge ok">4.0 Credits</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">CS304 &bull; Database Management Systems</span>
+                <span className="clearance-badge ok">4.0 Credits</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">CS306 &bull; Computer Networks</span>
+                <span className="clearance-badge ok">4.0 Credits</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">CS308 &bull; Operating Systems</span>
+                <span className="clearance-badge ok">4.0 Credits</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">CS310 &bull; Cloud Computing &amp; DevOps</span>
+                <span className="clearance-badge ok">4.0 Credits</span>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Downloading Registered Courses Slip (PDF)...')}
+              >
+                <Download size={15} />
+                <span>Download Enrollment Slip</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 10: My Institution */}
+      {activeCamuModal === 'institution' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Institutional Profile</span>
+                <h3 className="camu-modal-title">DBS Global University (DGU)</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-mentor-profile-card">
+              <img src="/dbs_logo_transparent.png" alt="DBS Logo" className="camu-logo-mark" />
+              <div className="mentor-info">
+                <strong>DBS Global University</strong>
+                <span>Mi-122, Kanswali Kothri, Selaqui, Dehradun, Uttarakhand 248011</span>
+                <span className="mentor-email">support@dgu.ac.in &bull; +91 135 269 8900</span>
+              </div>
+            </div>
+
+            <div className="camu-clearance-grid">
+              <div className="clearance-item">
+                <span className="clearance-name">Accreditation</span>
+                <span className="clearance-badge ok">NAAC A+ &bull; UGC &bull; AICTE</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Institutional Domain</span>
+                <span className="clearance-badge ok">@dgu.ac.in</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Official Portal</span>
+                <span className="clearance-badge ok">student.camu.in / dgu.ac.in</span>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => showCamuToast('Opening DBS Campus Map & Directory...')}
+              >
+                <ExternalLink size={15} />
+                <span>Campus Directory</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 11: Settings */}
+      {activeCamuModal === 'settings' && (
+        <div className="oak-modal-overlay" onClick={() => setActiveCamuModal(null)}>
+          <div className="oak-camu-service-modal-box animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="oak-camu-modal-header">
+              <div>
+                <span className="oak-floating-category-badge">Security &amp; Preferences</span>
+                <h3 className="camu-modal-title">Portal Security &amp; Settings</h3>
+              </div>
+              <button type="button" className="oak-modal-close-btn" onClick={() => setActiveCamuModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="camu-clearance-grid">
+              <div className="clearance-item">
+                <span className="clearance-name">Two-Factor Authentication</span>
+                <span className="clearance-badge ok">Active &bull; Biometric SMS</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Linked Student Email</span>
+                <span className="clearance-badge ok">harendra.singh@dgu.ac.in</span>
+              </div>
+              <div className="clearance-item">
+                <span className="clearance-name">Portal Session Timeout</span>
+                <span className="clearance-badge ok">4 Hours of Inactivity</span>
+              </div>
+            </div>
+
+            <div className="camu-profile-actions">
+              <button 
+                type="button" 
+                className="camu-btn-primary"
+                onClick={() => {
+                  showCamuToast('Password reset link sent to harendra.singh@dgu.ac.in');
+                  setActiveCamuModal(null);
+                }}
+              >
+                <KeyRound size={15} />
+                <span>Reset Password</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DASHBOARD CSS STYLING */}
       <style>{`
         /* 1. LAYOUT ARCHITECTURE */
@@ -1407,10 +2507,738 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           border-radius: 16px;
         }
 
+        .oak-rail-btn.has-floating-open {
+          background: #2563eb;
+          color: #ffffff !important;
+          border-radius: 16px;
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+        }
+
         .oak-rail-bottom {
           display: flex;
           flex-direction: column;
           align-items: center;
+        }
+
+        /* FLOATING BAR SUBMENU */
+        .oak-floating-submenu-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 120;
+          background: rgba(15, 23, 42, 0.08);
+          backdrop-filter: blur(2px);
+        }
+
+        .oak-floating-submenu-bar {
+          position: fixed;
+          left: 80px;
+          width: 350px;
+          max-width: calc(100vw - 96px);
+          max-height: calc(100vh - 48px);
+          background: rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(28px);
+          -webkit-backdrop-filter: blur(28px);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 24px;
+          box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.18), 0 4px 16px rgba(15, 23, 42, 0.04);
+          z-index: 130;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: floatingBarSlideIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes floatingBarSlideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-10px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+          }
+        }
+
+        .oak-floating-bar-pointer {
+          position: absolute;
+          left: -8px;
+          top: 32px;
+          width: 16px;
+          height: 16px;
+          background: #fafbfc;
+          border-left: 1px solid rgba(0, 0, 0, 0.08);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          transform: rotate(45deg);
+        }
+
+        .oak-floating-bar-header {
+          padding: 16px 20px 14px 20px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #fafbfc;
+        }
+
+        .oak-floating-bar-title-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .oak-floating-category-badge {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #2563eb;
+        }
+
+        .oak-floating-bar-title {
+          font-size: 0.96rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+          letter-spacing: -0.01em;
+        }
+
+        .oak-floating-bar-close-btn {
+          border: none;
+          background: #f1f5f9;
+          color: #64748b;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .oak-floating-bar-items {
+          padding: 10px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          overflow-y: auto;
+          max-height: 420px;
+        }
+
+        .oak-floating-item-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          cursor: pointer;
+          background: transparent;
+          transition: background 0.15s ease;
+          border: 1px solid transparent;
+        }
+
+        .oak-floating-item-card:hover {
+          background: #f8fafc;
+          border-color: #f1f5f9;
+        }
+
+        .oak-floating-item-icon-wrap {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: #eff6ff;
+          color: #2563eb;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .oak-floating-item-text {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+
+        .oak-floating-item-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .oak-floating-item-title {
+          font-size: 0.84rem;
+          font-weight: 700;
+          color: #0f172a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .oak-floating-item-sub {
+          font-size: 0.72rem;
+          color: #64748b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .oak-floating-item-badge {
+          font-size: 0.68rem;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 9999px;
+          white-space: nowrap;
+        }
+
+        .badge-amber {
+          background: #fffbeb;
+          color: #b45309;
+          border: 1px solid #fde68a;
+        }
+        .badge-blue {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+        }
+        .badge-emerald {
+          background: #ecfdf5;
+          color: #047857;
+          border: 1px solid #a7f3d0;
+        }
+        .badge-purple {
+          background: #faf5ff;
+          color: #7e22ce;
+          border: 1px solid #e9d5ff;
+        }
+        .badge-rose {
+          background: #fff1f2;
+          color: #be123c;
+          border: 1px solid #fecdd3;
+        }
+        .badge-slate {
+          background: #f1f5f9;
+          color: #475569;
+          border: 1px solid #e2e8f0;
+        }
+
+        .oak-floating-item-arrow {
+          color: #94a3b8;
+          flex-shrink: 0;
+        }
+
+        .oak-floating-bar-footer {
+          padding: 10px 18px;
+          background: #fafbfc;
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .oak-floating-camu-stamp {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        /* CAMU TOAST PILL */
+        .oak-camu-toast-pill {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          background: #0f172a;
+          color: #ffffff;
+          padding: 12px 20px;
+          border-radius: 9999px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.84rem;
+          font-weight: 500;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          z-index: 1000;
+        }
+
+        /* CAMU MODAL STYLES */
+        .oak-camu-profile-modal-box {
+          background: #ffffff;
+          border-radius: 24px;
+          width: 650px;
+          max-width: 95vw;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          padding: 24px 28px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .oak-camu-service-modal-box {
+          background: #ffffff;
+          border-radius: 24px;
+          width: 580px;
+          max-width: 95vw;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          padding: 24px 28px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .oak-camu-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #f1f5f9;
+          padding-bottom: 14px;
+        }
+
+        .oak-camu-brand-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .camu-logo-mark {
+          width: 38px;
+          height: 38px;
+          object-fit: contain;
+        }
+
+        .camu-modal-title {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+          letter-spacing: -0.01em;
+        }
+
+        .camu-modal-sub {
+          font-size: 0.78rem;
+          color: #64748b;
+        }
+
+        /* Announcement Banner */
+        .camu-announcement-banner {
+          background: #0f172a;
+          color: #ffffff;
+          border-radius: 14px;
+          padding: 14px 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .camu-banner-left {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .camu-banner-icon {
+          color: #60a5fa;
+          flex-shrink: 0;
+        }
+
+        .camu-banner-left strong {
+          display: block;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin-bottom: 2px;
+        }
+
+        .camu-banner-left p {
+          font-size: 0.76rem;
+          color: #94a3b8;
+          margin: 0;
+          line-height: 1.35;
+        }
+
+        .camu-banner-btn {
+          border: none;
+          background: #ffffff;
+          color: #0f172a;
+          font-size: 0.78rem;
+          font-weight: 700;
+          padding: 6px 14px;
+          border-radius: 9999px;
+          cursor: pointer;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        /* Profile Main Card */
+        .camu-profile-main-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 20px;
+          display: flex;
+          gap: 22px;
+          align-items: flex-start;
+        }
+
+        .camu-avatar-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+
+        .camu-avatar-img {
+          width: 95px;
+          height: 105px;
+          object-fit: cover;
+          border-radius: 12px;
+          border: 2px solid #ffffff;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .camu-verified-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: #059669;
+          background: #ecfdf5;
+          padding: 3px 8px;
+          border-radius: 9999px;
+          border: 1px solid #a7f3d0;
+        }
+
+        .camu-details-col {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .camu-name-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .camu-student-name {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+          letter-spacing: -0.01em;
+        }
+
+        .camu-status-pill {
+          background: #ecfdf5;
+          color: #047857;
+          border: 1px solid #a7f3d0;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 9999px;
+        }
+
+        .camu-details-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .camu-detail-row {
+          display: flex;
+          align-items: center;
+          font-size: 0.84rem;
+        }
+
+        .camu-detail-label {
+          width: 140px;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .camu-detail-colon {
+          margin-right: 12px;
+          color: #94a3b8;
+        }
+
+        .camu-detail-value {
+          color: #0f172a;
+          font-weight: 700;
+        }
+
+        .camu-profile-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          padding-top: 8px;
+        }
+
+        .camu-btn-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: #2563eb;
+          color: #ffffff;
+          border: none;
+          font-size: 0.82rem;
+          font-weight: 700;
+          padding: 10px 18px;
+          border-radius: 9999px;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .camu-btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #0f172a;
+          font-size: 0.82rem;
+          font-weight: 600;
+          padding: 10px 18px;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+
+        .camu-btn-ghost {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: transparent;
+          border: 1px solid transparent;
+          color: #64748b;
+          font-size: 0.82rem;
+          font-weight: 600;
+          padding: 10px 14px;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+
+        /* Generic Camu Elements */
+        .camu-eligibility-box {
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          border-radius: 12px;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .camu-eligibility-box strong {
+          display: block;
+          font-size: 0.85rem;
+          color: #15803d;
+        }
+
+        .camu-eligibility-box p {
+          font-size: 0.78rem;
+          color: #4b5563;
+          margin: 0;
+        }
+
+        .camu-exam-schedule-list, .camu-records-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .camu-exam-row, .camu-record-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .camu-exam-date {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          background: #eff6ff;
+          border: 1px solid #dbeafe;
+          padding: 6px 12px;
+          border-radius: 10px;
+          color: #1d4ed8;
+          font-weight: 800;
+        }
+
+        .exam-day { font-size: 1.1rem; line-height: 1; }
+        .exam-mo { font-size: 0.65rem; text-transform: uppercase; }
+
+        .camu-exam-info, .camu-record-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .camu-exam-info strong, .camu-record-info strong {
+          font-size: 0.86rem;
+          color: #0f172a;
+        }
+
+        .camu-exam-info span, .camu-record-info span {
+          font-size: 0.76rem;
+          color: #64748b;
+        }
+
+        .camu-exam-badge {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #dbeafe;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 9999px;
+        }
+
+        .camu-record-dl {
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #0f172a;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .camu-mentor-profile-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .mentor-avatar-badge {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: #eff6ff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .mentor-info strong {
+          display: block;
+          font-size: 0.95rem;
+          color: #0f172a;
+        }
+
+        .mentor-info span {
+          display: block;
+          font-size: 0.78rem;
+          color: #64748b;
+        }
+
+        .mentor-email {
+          color: #2563eb !important;
+          font-weight: 500;
+        }
+
+        .camu-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .camu-form-group label {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .camu-slots-row {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .camu-slot-btn {
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          color: #475569;
+          font-size: 0.78rem;
+          font-weight: 600;
+          padding: 8px 14px;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+
+        .camu-slot-btn.active {
+          background: #2563eb;
+          color: #ffffff;
+          border-color: #2563eb;
+        }
+
+        .camu-input, .camu-select, .camu-textarea {
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 0.84rem;
+          color: #0f172a;
+          outline: none;
+          font-family: inherit;
+        }
+
+        .camu-clearance-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .clearance-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          padding: 10px 14px;
+        }
+
+        .clearance-name {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+
+        .clearance-badge.ok {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #059669;
+          background: #ecfdf5;
+          border: 1px solid #a7f3d0;
+          padding: 2px 8px;
+          border-radius: 9999px;
         }
 
         /* MAIN CONTENT AREA */

@@ -7,8 +7,14 @@ export interface StudentInfo {
   semester: number;
   section: string;
   cgpa: number;
-  mentor: string;
   avatarUrl: string;
+  mentor?: string;
+  admissionNo?: string;
+  admissionYear?: string;
+  degree?: string;
+  department?: string;
+  academicYear?: string;
+  studentStatus?: string;
 }
 
 export interface AttendanceSubject {
@@ -66,16 +72,22 @@ export interface CampusNotice {
 }
 
 export const CURRENT_STUDENT: StudentInfo = {
-  name: 'Harsh Vardhan',
-  rollNo: 'DBS/23/CSE/042',
-  regNo: '230101042',
+  name: 'Harendra Pratap Singh',
+  rollNo: '0251BTCS097',
+  regNo: 'DBS25UG25234',
+  admissionNo: 'DBS25UG25234',
+  admissionYear: '2025-2026',
   program: 'B.Tech Computer Science & Engineering',
-  school: 'School of Engineering & Technology (SOET)',
-  semester: 5,
+  school: 'Doon School of Advance Computing',
+  department: 'Doon School of Advance Computing',
+  degree: 'Undergraduate',
+  academicYear: '2026-2027',
+  studentStatus: 'Active',
+  semester: 3,
   section: 'Sec A',
   cgpa: 8.64,
   mentor: 'Dr. Rajesh Sharma (Cabin: Block 2, Rm 304)',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+  avatarUrl: '/harendra_avatar.png',
 };
 
 export const ATTENDANCE_DATA: AttendanceSubject[] = [
