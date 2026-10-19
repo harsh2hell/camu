@@ -25,7 +25,7 @@ export const FacultyAttendanceView: React.FC = () => {
     let isMounted = true;
     async function loadRoster() {
       try {
-        const roster = await attendanceApi.getRoster('dev-offering-cs302-001');
+        const roster = await attendanceApi.getRoster('b0000000-0000-4000-8000-000000000001');
         if (isMounted && roster && roster.length > 0) {
           setStudents(
             roster.map((r) => ({
@@ -78,7 +78,7 @@ export const FacultyAttendanceView: React.FC = () => {
     try {
       // 1. Create attendance session
       const session = await attendanceApi.createSession({
-        courseOfferingId: 'dev-offering-cs302-001',
+        courseOfferingId: 'b0000000-0000-4000-8000-000000000001',
         startTime: '10:00 AM',
         topicTaught: sessionTopic,
       });

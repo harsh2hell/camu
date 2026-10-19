@@ -25,7 +25,7 @@ export const DefaultersView: React.FC = () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const data = await attendanceApi.getDefaulters('dev-offering-cs302-001', 75.0);
+      const data = await attendanceApi.getDefaulters('b0000000-0000-4000-8000-000000000001', 75.0);
       setDefaulterList(
         data.map((d: DefaulterStudentDTO) => ({
           id: d.studentUserId,

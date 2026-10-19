@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate --schema=docs/database/schema.prisma",
-    "prisma:validate": "prisma validate --schema=docs/database/schema.prisma"
+    "prisma:validate": "prisma validate --schema=docs/database/schema.prisma",
+    "db:seed": "tsx server/src/scripts/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

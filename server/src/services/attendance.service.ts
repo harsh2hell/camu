@@ -98,9 +98,23 @@ export class AttendanceService {
       );
     }
 
+    // Normalize legacy dev student IDs if present for backwards-compatible test payloads
+    const legacyMap: Record<string, string> = {
+      'dev-student-uuid-001': 'a0000000-0000-4000-8000-000000000001',
+      'dev-student-uuid-002': 'a0000000-0000-4000-8000-000000000003',
+      'dev-student-uuid-003': 'a0000000-0000-4000-8000-000000000004',
+      'dev-student-uuid-004': 'a0000000-0000-4000-8000-000000000005',
+      'dev-student-uuid-005': 'a0000000-0000-4000-8000-000000000006',
+    };
+
+    const normalizedRecords = input.records.map((r) => ({
+      ...r,
+      studentId: legacyMap[r.studentId] || r.studentId,
+    }));
+
     // Check for duplicate student records in client payload
     const seenStudentIds = new Set<string>();
-    for (const record of input.records) {
+    for (const record of normalizedRecords) {
       if (seenStudentIds.has(record.studentId)) {
         throw new BadRequestError(
           `Duplicate student ID '${record.studentId}' found in batch payload.`
@@ -111,7 +125,7 @@ export class AttendanceService {
 
     // Validate that all submitted students are actually enrolled in this offering
     const enrolledIds = new Set(offering.enrolledStudents.map((s) => s.userId));
-    for (const record of input.records) {
+    for (const record of normalizedRecords) {
       if (!enrolledIds.has(record.studentId)) {
         throw new BadRequestError(
           `Student with ID '${record.studentId}' is not enrolled in course offering '${offering.courseCode}'.`
@@ -121,7 +135,7 @@ export class AttendanceService {
 
     const result = await attendanceRepository.recordAttendanceBatch(
       sessionId,
-      input.records,
+      normalizedRecords,
       input.lockSession
     );
 

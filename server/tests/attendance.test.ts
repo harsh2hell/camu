@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
+import { prisma } from '../src/lib/prisma.js';
 import {
   attendanceRepository,
   DEV_COURSE_OFFERING_ID,
@@ -24,6 +25,21 @@ describe('Phase 3: Attendance & Academic Persistence Suite', () => {
     sessionRepository.clearMemoryStore();
     clearRateLimitStore();
     attendanceRepository.clearDevStore();
+
+    try {
+      await prisma.attendanceSession.deleteMany({
+        where: {
+          id: {
+            notIn: [
+              'c0000000-0000-4000-8000-000000000001',
+              'c0000000-0000-4000-8000-000000000002',
+            ],
+          },
+        },
+      });
+    } catch {
+      // ignore if DB is offline during unit testing
+    }
 
     // 1. Authenticate Student
     const studentLogin = await request(app)
@@ -263,6 +279,10 @@ describe('Phase 3: Attendance & Academic Persistence Suite', () => {
   // 10. Production fixture isolation
   it('10. should strictly reject attendance fixture fallback in production mode when DB is offline', async () => {
     const originalEnv = config.NODE_ENV;
+    const findManySpy = vi
+      .spyOn(prisma.attendanceRecord, 'findMany')
+      .mockRejectedValueOnce(new Error('PostgreSQL Offline (Simulation)'));
+
     try {
       (config as any).NODE_ENV = 'production';
 
@@ -274,6 +294,7 @@ describe('Phase 3: Attendance & Academic Persistence Suite', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('SERVICE_UNAVAILABLE');
     } finally {
+      findManySpy.mockRestore();
       (config as any).NODE_ENV = originalEnv;
     }
   });

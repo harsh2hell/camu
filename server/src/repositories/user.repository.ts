@@ -30,12 +30,15 @@ export interface UserWithPassword {
 }
 
 // Explicitly identified development fixture accounts for isolated development & automated testing
+export const DEV_STUDENT_USER_ID = 'a0000000-0000-4000-8000-000000000001';
+export const DEV_FACULTY_USER_ID = 'a0000000-0000-4000-8000-000000000002';
+
 const DEV_STUDENT_HASH = await passwordService.hashPassword('Password@Dev123');
 const DEV_FACULTY_HASH = await passwordService.hashPassword('Password@Dev123');
 
 const DEV_ACCOUNTS: UserWithPassword[] = [
   {
-    id: 'dev-student-uuid-001',
+    id: DEV_STUDENT_USER_ID,
     email: 'student.dev@dgu.ac.in',
     passwordHash: DEV_STUDENT_HASH,
     fullName: 'Harendra Pratap Singh (Dev Fixture)',
@@ -53,7 +56,7 @@ const DEV_ACCOUNTS: UserWithPassword[] = [
     facultyProfile: null,
   },
   {
-    id: 'dev-faculty-uuid-002',
+    id: DEV_FACULTY_USER_ID,
     email: 'faculty.dev@dgu.ac.in',
     passwordHash: DEV_FACULTY_HASH,
     fullName: 'Dr. Rajesh Sharma (Dev Fixture)',
@@ -65,7 +68,7 @@ const DEV_ACCOUNTS: UserWithPassword[] = [
     facultyProfile: {
       employeeCode: 'FAC-108',
       designation: 'Head of Computer Science & AI',
-      departmentId: 'dept-cse-01',
+      departmentId: 'd0000000-0000-4000-8000-000000000001',
     },
   },
 ];
@@ -73,6 +76,22 @@ const DEV_ACCOUNTS: UserWithPassword[] = [
 export class UserRepository {
   async findByIdentifier(identifier: string): Promise<UserWithPassword | null> {
     const trimmed = identifier.trim().toLowerCase();
+
+    // In production, strictly reject development fixture accounts
+    if (config.NODE_ENV === 'production') {
+      const isDevFixture =
+        trimmed.endsWith('.dev@dgu.ac.in') ||
+        trimmed.includes('dev-fixture') ||
+        DEV_ACCOUNTS.some(
+          (u) =>
+            u.email.toLowerCase() === trimmed ||
+            u.studentProfile?.rollNumber.toLowerCase() === trimmed ||
+            u.facultyProfile?.employeeCode.toLowerCase() === trimmed
+        );
+      if (isDevFixture) {
+        return null;
+      }
+    }
 
     let dbError: unknown = null;
     // 1. Attempt PostgreSQL lookup via Prisma if database is available
@@ -196,7 +215,12 @@ export class UserRepository {
     }
 
     // 2. Dev fixture lookup (development / test only)
-    const devUser = DEV_ACCOUNTS.find((u) => u.id === id);
+    const devUser = DEV_ACCOUNTS.find(
+      (u) =>
+        u.id === id ||
+        (id === 'dev-student-uuid-001' && u.id === DEV_STUDENT_USER_ID) ||
+        (id === 'dev-faculty-uuid-002' && u.id === DEV_FACULTY_USER_ID)
+    );
     if (!devUser) return null;
 
     const { passwordHash: _, ...safeUser } = devUser;

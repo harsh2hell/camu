@@ -13,9 +13,9 @@ import type {
 import { calculateSubjectAttendance } from '../utils/attendanceCalculator.js';
 
 // Development fixture offering for testing and offline local dev
-export const DEV_COURSE_OFFERING_ID = 'dev-offering-cs302-001';
-export const DEV_FACULTY_USER_ID = 'dev-faculty-uuid-002';
-export const DEV_STUDENT_USER_ID = 'dev-student-uuid-001';
+export const DEV_COURSE_OFFERING_ID = 'b0000000-0000-4000-8000-000000000001';
+export const DEV_FACULTY_USER_ID = 'a0000000-0000-4000-8000-000000000002';
+export const DEV_STUDENT_USER_ID = 'a0000000-0000-4000-8000-000000000001';
 
 interface DevOfferingData {
   id: string;
@@ -49,59 +49,64 @@ let devOfferings: Map<string, DevOfferingData> = new Map();
 let devSessions: Map<string, DevSessionRecord> = new Map();
 
 function initDevFixtures(): void {
-  devOfferings = new Map([
-    [
-      DEV_COURSE_OFFERING_ID,
+  const student2Id = 'a0000000-0000-4000-8000-000000000003';
+  const student3Id = 'a0000000-0000-4000-8000-000000000004';
+  const student4Id = 'a0000000-0000-4000-8000-000000000005';
+  const student5Id = 'a0000000-0000-4000-8000-000000000006';
+
+  const offeringData: DevOfferingData = {
+    id: DEV_COURSE_OFFERING_ID,
+    courseCode: 'CS302',
+    courseTitle: 'Design & Analysis of Algorithms',
+    facultyId: DEV_FACULTY_USER_ID,
+    facultyName: 'Dr. Rajesh Sharma (Dev Fixture)',
+    enrolledStudents: [
       {
-        id: DEV_COURSE_OFFERING_ID,
-        courseCode: 'CS302',
-        courseTitle: 'Design & Analysis of Algorithms',
-        facultyId: DEV_FACULTY_USER_ID,
-        facultyName: 'Dr. Rajesh Sharma (Dev Fixture)',
-        enrolledStudents: [
-          {
-            userId: DEV_STUDENT_USER_ID,
-            profileId: 'dev-profile-001',
-            rollNumber: '0251BTCS097',
-            registrationNo: 'DBS25UG25234',
-            fullName: 'Harendra Pratap Singh (Dev Fixture)',
-          },
-          {
-            userId: 'dev-student-uuid-002',
-            profileId: 'dev-profile-002',
-            rollNumber: '0251BTCS001',
-            registrationNo: 'DBS25UG25001',
-            fullName: 'Aaditya Sharma',
-          },
-          {
-            userId: 'dev-student-uuid-003',
-            profileId: 'dev-profile-003',
-            rollNumber: '0251BTCS014',
-            registrationNo: 'DBS25UG25014',
-            fullName: 'Aman Deep Singh',
-          },
-          {
-            userId: 'dev-student-uuid-004',
-            profileId: 'dev-profile-004',
-            rollNumber: '0251BTCS051',
-            registrationNo: 'DBS25UG25051',
-            fullName: 'Isha Bahuguna',
-          },
-          {
-            userId: 'dev-student-uuid-005',
-            profileId: 'dev-profile-005',
-            rollNumber: '0251BTCS089',
-            registrationNo: 'DBS25UG25089',
-            fullName: 'Naveen Bhatt',
-          },
-        ],
+        userId: DEV_STUDENT_USER_ID,
+        profileId: 'a0000000-0000-4000-8000-000000000001',
+        rollNumber: '0251BTCS097',
+        registrationNo: 'DBS25UG25234',
+        fullName: 'Harendra Pratap Singh (Dev Fixture)',
+      },
+      {
+        userId: student2Id,
+        profileId: student2Id,
+        rollNumber: '0251BTCS001',
+        registrationNo: 'DBS25UG25001',
+        fullName: 'Aaditya Sharma',
+      },
+      {
+        userId: student3Id,
+        profileId: student3Id,
+        rollNumber: '0251BTCS014',
+        registrationNo: 'DBS25UG25014',
+        fullName: 'Aman Deep Singh',
+      },
+      {
+        userId: student4Id,
+        profileId: student4Id,
+        rollNumber: '0251BTCS051',
+        registrationNo: 'DBS25UG25051',
+        fullName: 'Isha Bahuguna',
+      },
+      {
+        userId: student5Id,
+        profileId: student5Id,
+        rollNumber: '0251BTCS089',
+        registrationNo: 'DBS25UG25089',
+        fullName: 'Naveen Bhatt',
       },
     ],
+  };
+
+  devOfferings = new Map([
+    [DEV_COURSE_OFFERING_ID, offeringData],
+    ['dev-offering-cs302-001', offeringData],
   ]);
 
   // Seed baseline sessions for CS302 so student has realistic initial attendance history
-  const baselineSessionId1 = 'dev-sess-hist-001';
-  const baselineSessionId2 = 'dev-sess-hist-002';
+  const baselineSessionId1 = 'c0000000-0000-4000-8000-000000000001';
+  const baselineSessionId2 = 'c0000000-0000-4000-8000-000000000002';
 
   devSessions = new Map([
     [
@@ -117,10 +122,10 @@ function initDevFixtures(): void {
         isLocked: true,
         records: new Map([
           [DEV_STUDENT_USER_ID, { status: 'PRESENT', updatedAt: new Date() }],
-          ['dev-student-uuid-002', { status: 'PRESENT', updatedAt: new Date() }],
-          ['dev-student-uuid-003', { status: 'ABSENT', updatedAt: new Date() }],
-          ['dev-student-uuid-004', { status: 'ABSENT', updatedAt: new Date() }],
-          ['dev-student-uuid-005', { status: 'ABSENT', updatedAt: new Date() }],
+          [student2Id, { status: 'PRESENT', updatedAt: new Date() }],
+          [student3Id, { status: 'ABSENT', updatedAt: new Date() }],
+          [student4Id, { status: 'ABSENT', updatedAt: new Date() }],
+          [student5Id, { status: 'ABSENT', updatedAt: new Date() }],
         ]),
       },
     ],
@@ -137,10 +142,10 @@ function initDevFixtures(): void {
         isLocked: true,
         records: new Map([
           [DEV_STUDENT_USER_ID, { status: 'ON_DUTY', remarks: 'Smart India Hackathon', updatedAt: new Date() }],
-          ['dev-student-uuid-002', { status: 'PRESENT', updatedAt: new Date() }],
-          ['dev-student-uuid-003', { status: 'ABSENT', updatedAt: new Date() }],
-          ['dev-student-uuid-004', { status: 'ABSENT', updatedAt: new Date() }],
-          ['dev-student-uuid-005', { status: 'ABSENT', updatedAt: new Date() }],
+          [student2Id, { status: 'PRESENT', updatedAt: new Date() }],
+          [student3Id, { status: 'ABSENT', updatedAt: new Date() }],
+          [student4Id, { status: 'ABSENT', updatedAt: new Date() }],
+          [student5Id, { status: 'ABSENT', updatedAt: new Date() }],
         ]),
       },
     ],
@@ -154,10 +159,13 @@ export class AttendanceRepository {
    * Find course offering with course and teacher information
    */
   async findOfferingById(offeringId: string): Promise<DevOfferingData | null> {
+    const effectiveOfferingId =
+      offeringId === 'dev-offering-cs302-001' ? DEV_COURSE_OFFERING_ID : offeringId;
+
     let dbError: unknown = null;
     try {
       const offering = await prisma.courseOffering.findUnique({
-        where: { id: offeringId },
+        where: { id: effectiveOfferingId },
         include: {
           course: true,
           primaryFaculty: true,
@@ -196,7 +204,7 @@ export class AttendanceRepository {
       return null;
     }
 
-    return devOfferings.get(offeringId) ?? null;
+    return devOfferings.get(effectiveOfferingId) ?? devOfferings.get(offeringId) ?? null;
   }
 
   /**
@@ -208,14 +216,58 @@ export class AttendanceRepository {
       throw new NotFoundError(`Course offering '${offeringId}' not found.`);
     }
 
-    // In dev mode, compute current attendance percentage for each enrolled student
+    const effectiveOfferingId = offering.id;
+
+    // 1. Attempt PostgreSQL live query
+    try {
+      const dbSessions = await prisma.attendanceSession.findMany({
+        where: { courseOfferingId: effectiveOfferingId },
+        include: { records: true },
+      });
+
+      const result: EnrolledStudentDTO[] = [];
+      for (const student of offering.enrolledStudents) {
+        let attended = 0;
+        let conducted = 0;
+
+        for (const sess of dbSessions) {
+          const rec = sess.records.find((r) => r.studentId === student.userId);
+          if (rec) {
+            conducted += 1;
+            if (['PRESENT', 'ON_DUTY', 'MEDICAL_LEAVE', 'EXEMPTED'].includes(rec.status)) {
+              attended += 1;
+            }
+          }
+        }
+
+        const percent = conducted > 0 ? Math.round((attended / conducted) * 1000) / 10 : 100.0;
+        result.push({
+          studentUserId: student.userId,
+          studentProfileId: student.profileId,
+          rollNumber: student.rollNumber,
+          registrationNo: student.registrationNo,
+          fullName: student.fullName,
+          currentAttendancePercent: percent,
+        });
+      }
+
+      return result;
+    } catch (err) {
+      dbError = err;
+    }
+
+    if (config.NODE_ENV === 'production') {
+      throw new ServiceUnavailableError('Database service unavailable in production');
+    }
+
+    // 2. Dev fixture fallback if PostgreSQL was offline
     const result: EnrolledStudentDTO[] = [];
     for (const student of offering.enrolledStudents) {
       let attended = 0;
       let conducted = 0;
 
       for (const sess of devSessions.values()) {
-        if (sess.courseOfferingId === offeringId) {
+        if (sess.courseOfferingId === effectiveOfferingId) {
           const rec = sess.records.get(student.userId);
           if (rec) {
             conducted += 1;
@@ -256,12 +308,20 @@ export class AttendanceRepository {
       throw new NotFoundError(`Course offering '${params.courseOfferingId}' does not exist.`);
     }
 
-    let dbError: unknown = null;
+    const effectiveOfferingId =
+      params.courseOfferingId === 'dev-offering-cs302-001'
+        ? DEV_COURSE_OFFERING_ID
+        : params.courseOfferingId;
+    const effectiveFacultyId =
+      params.facultyId === 'dev-faculty-uuid-002'
+        ? DEV_FACULTY_USER_ID
+        : params.facultyId;
+
     try {
       const dbSession = await prisma.attendanceSession.create({
         data: {
-          courseOfferingId: params.courseOfferingId,
-          facultyId: params.facultyId,
+          courseOfferingId: effectiveOfferingId,
+          facultyId: effectiveFacultyId,
           sessionDate: params.sessionDate,
           startTime: params.startTime,
           topicTaught: params.topicTaught ?? null,
@@ -391,21 +451,25 @@ export class AttendanceRepository {
       );
     }
 
-    let dbError: unknown = null;
     try {
       // Execute in PostgreSQL transaction
       await prisma.$transaction(async (tx) => {
         for (const item of records) {
+          const effectiveStudentId =
+            item.studentId === 'dev-student-uuid-001'
+              ? DEV_STUDENT_USER_ID
+              : item.studentId;
+
           await tx.attendanceRecord.upsert({
             where: {
               sessionId_studentId: {
                 sessionId,
-                studentId: item.studentId,
+                studentId: effectiveStudentId,
               },
             },
             create: {
               sessionId,
-              studentId: item.studentId,
+              studentId: effectiveStudentId,
               status: item.status,
               remarks: item.remarks ?? null,
             },
@@ -488,15 +552,13 @@ export class AttendanceRepository {
         orderBy: { session: { sessionDate: 'asc' } },
       });
 
-      if (records && records.length > 0) {
-        return records.map((r) => ({
-          subjectCode: r.session.courseOffering.course.code,
-          subjectTitle: r.session.courseOffering.course.title,
-          facultyName: r.session.courseOffering.primaryFaculty.fullName,
-          status: r.status,
-          sessionDate: r.session.sessionDate,
-        }));
-      }
+      return records.map((r) => ({
+        subjectCode: r.session.courseOffering.course.code,
+        subjectTitle: r.session.courseOffering.course.title,
+        facultyName: r.session.courseOffering.primaryFaculty.fullName,
+        status: r.status,
+        sessionDate: r.session.sessionDate,
+      }));
     } catch (err) {
       dbError = err;
     }
@@ -541,13 +603,62 @@ export class AttendanceRepository {
       throw new NotFoundError(`Course offering '${offeringId}' not found.`);
     }
 
+    const effectiveOfferingId = offering.id;
+
+    // 1. Attempt PostgreSQL live query
+    try {
+      const dbSessions = await prisma.attendanceSession.findMany({
+        where: { courseOfferingId: effectiveOfferingId },
+        include: { records: true },
+      });
+
+      const defaulters: DefaulterStudentDTO[] = [];
+      for (const student of offering.enrolledStudents) {
+        const recordsForStudent: Array<{ status: AttendanceStatus }> = [];
+
+        for (const sess of dbSessions) {
+          const rec = sess.records.find((r) => r.studentId === student.userId);
+          if (rec) {
+            recordsForStudent.push({ status: rec.status });
+          }
+        }
+
+        const stats = calculateSubjectAttendance(
+          { code: offering.courseCode, title: offering.courseTitle, faculty: offering.facultyName },
+          recordsForStudent
+        );
+
+        if (stats.conducted > 0 && stats.percentage < thresholdPercent) {
+          defaulters.push({
+            studentUserId: student.userId,
+            rollNumber: student.rollNumber,
+            fullName: student.fullName,
+            attended: stats.attended,
+            conducted: stats.conducted,
+            percentage: stats.percentage,
+            status: stats.status === 'danger' ? 'danger' : 'warning',
+            isDebarred: stats.percentage < 65.0,
+          });
+        }
+      }
+
+      return defaulters;
+    } catch (err) {
+      logger.warn('attendance.repository: PostgreSQL getDefaulters query failed, checking fallback:', err);
+    }
+
+    if (config.NODE_ENV === 'production') {
+      throw new ServiceUnavailableError('Database service unavailable in production');
+    }
+
+    // 2. Dev fixture fallback if PostgreSQL was offline
     const defaulters: DefaulterStudentDTO[] = [];
 
     for (const student of offering.enrolledStudents) {
       const recordsForStudent: Array<{ status: AttendanceStatus }> = [];
 
       for (const sess of devSessions.values()) {
-        if (sess.courseOfferingId === offeringId) {
+        if (sess.courseOfferingId === effectiveOfferingId) {
           const rec = sess.records.get(student.userId);
           if (rec) {
             recordsForStudent.push({ status: rec.status });

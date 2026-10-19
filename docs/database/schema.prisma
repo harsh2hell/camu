@@ -17,6 +17,8 @@ enum UserRole {
   DEAN
   REGISTRAR_ADMIN
   EXAM_CONTROLLER
+
+  @@map("user_role")
 }
 
 enum AttendanceStatus {
@@ -25,6 +27,8 @@ enum AttendanceStatus {
   ON_DUTY
   MEDICAL_LEAVE
   EXEMPTED
+
+  @@map("attendance_status")
 }
 
 enum LeaveStatus {
@@ -32,6 +36,8 @@ enum LeaveStatus {
   RECOMMENDED_BY_MENTOR
   APPROVED_BY_HOD
   REJECTED
+
+  @@map("leave_status")
 }
 
 enum DayOfWeek {
@@ -41,6 +47,8 @@ enum DayOfWeek {
   THURSDAY
   FRIDAY
   SATURDAY
+
+  @@map("day_of_week")
 }
 
 model Department {
@@ -50,48 +58,54 @@ model Department {
   programs    Program[]
   faculty     FacultyProfile[]
   courses     Course[]
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("departments")
 }
 
 model Program {
   id                 String     @id @default(uuid())
-  departmentId       String
+  departmentId       String     @map("department_id")
   department         Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   code               String     @unique
   name               String
-  durationSemesters  Int        @default(8)
-  degreeLevel        String
+  durationSemesters  Int        @default(8) @map("duration_semesters")
+  degreeLevel        String     @map("degree_level")
   batches            Batch[]
-  createdAt          DateTime   @default(now())
+  createdAt          DateTime   @default(now()) @map("created_at")
+
+  @@map("programs")
 }
 
 model Batch {
   id              String      @id @default(uuid())
-  programId       String
+  programId       String      @map("program_id")
   program         Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
-  startYear       Int
-  endYear         Int
-  batchName       String
-  currentSemester Int         @default(1)
-  isActive        Boolean     @default(true)
+  startYear       Int         @map("start_year")
+  endYear         Int         @map("end_year")
+  batchName       String      @map("batch_name")
+  currentSemester Int         @default(1) @map("current_semester")
+  isActive        Boolean     @default(true) @map("is_active")
   sections        Section[]
   students        StudentProfile[]
   notices         Notice[]
-  createdAt       DateTime    @default(now())
+  createdAt       DateTime    @default(now()) @map("created_at")
 
   @@unique([programId, startYear, endYear])
+  @@map("batches")
 }
 
 model Section {
   id              String           @id @default(uuid())
-  batchId         String
+  batchId         String           @map("batch_id")
   batch           Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
   name            String
   students        StudentProfile[]
   courseOfferings CourseOffering[]
-  createdAt       DateTime         @default(now())
+  createdAt       DateTime         @default(now()) @map("created_at")
 
   @@unique([batchId, name])
+  @@map("sections")
 }
 
 model User {
@@ -263,46 +277,51 @@ model AttendanceRecord {
 
 model LeaveApplication {
   id               String      @id @default(uuid())
-  studentId        String
+  studentId        String      @map("student_id")
   student          User        @relation("StudentLeaves", fields: [studentId], references: [id], onDelete: Cascade)
-  leaveType        String
-  startDate        DateTime
-  endDate          DateTime
+  leaveType        String      @map("leave_type")
+  startDate        DateTime    @map("start_date")
+  endDate          DateTime    @map("end_date")
   reason           String
-  supportingDocUrl String?
+  supportingDocUrl String?     @map("supporting_doc_url")
   status           LeaveStatus @default(PENDING)
-  mentorRemarks    String?
-  hodRemarks       String?
-  approvedBy       String?
-  createdAt        DateTime    @default(now())
+  mentorRemarks    String?     @map("mentor_remarks")
+  hodRemarks       String?     @map("hod_remarks")
+  approvedBy       String?     @map("approved_by")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@map("leave_applications")
 }
 
 model Assignment {
   id               String                 @id @default(uuid())
-  courseOfferingId String
+  courseOfferingId String                 @map("course_offering_id")
   courseOffering   CourseOffering         @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
   title            String
   description      String?
-  attachmentUrl    String?
-  dueDate          DateTime
-  totalMarks       Int                    @default(100)
+  attachmentUrl    String?                @map("attachment_url")
+  dueDate          DateTime               @map("due_date")
+  totalMarks       Int                    @default(100) @map("total_marks")
   submissions      AssignmentSubmission[]
-  createdAt        DateTime               @default(now())
+  createdAt        DateTime               @default(now()) @map("created_at")
+
+  @@map("assignments")
 }
 
 model AssignmentSubmission {
   id                String     @id @default(uuid())
-  assignmentId      String
+  assignmentId      String     @map("assignment_id")
   assignment        Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  studentId         String
+  studentId         String     @map("student_id")
   student           User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  submissionFileUrl String
-  submittedAt       DateTime   @default(now())
+  submissionFileUrl String     @map("submission_file_url")
+  submittedAt       DateTime   @default(now()) @map("submitted_at")
   score             Decimal?   @db.Decimal(5, 2)
   feedback          String?
-  gradedBy          String?
+  gradedBy          String?    @map("graded_by")
 
   @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
 }
 
 model Notice {
@@ -310,57 +329,65 @@ model Notice {
   title         String
   content       String
   category      String    @default("ACADEMIC")
-  targetRole    UserRole?
-  batchId       String?
+  targetRole    UserRole? @map("target_role")
+  batchId       String?   @map("batch_id")
   batch         Batch?    @relation(fields: [batchId], references: [id])
-  isPinned      Boolean   @default(false)
-  attachmentUrl String?
-  postedById    String
+  isPinned      Boolean   @default(false) @map("is_pinned")
+  attachmentUrl String?   @map("attachment_url")
+  postedById    String    @map("posted_by")
   postedBy      User      @relation(fields: [postedById], references: [id])
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("notices")
 }
 
 model FeeInvoice {
   id            String           @id @default(uuid())
-  studentId     String
-  invoiceNumber String           @unique
-  academicTerm  String
+  studentId     String           @map("student_id")
+  invoiceNumber String           @unique @map("invoice_number")
+  academicTerm  String           @map("academic_term")
   category      String
-  totalAmount   Decimal          @db.Decimal(10, 2)
-  paidAmount    Decimal          @default(0.00) @db.Decimal(10, 2)
-  dueDate       DateTime
+  totalAmount   Decimal          @map("total_amount") @db.Decimal(10, 2)
+  paidAmount    Decimal          @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
+  dueDate       DateTime         @map("due_date")
   status        String           @default("PENDING")
-  receiptUrl    String?
+  receiptUrl    String?          @map("receipt_url")
   transactions  FeeTransaction[]
-  createdAt     DateTime         @default(now())
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  @@map("fee_invoices")
 }
 
 model FeeTransaction {
   id             String     @id @default(uuid())
-  invoiceId      String
+  invoiceId      String     @map("invoice_id")
   invoice        FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  transactionRef String     @unique
-  paymentMode    String
+  transactionRef String     @unique @map("transaction_ref")
+  paymentMode    String     @map("payment_mode")
   amount         Decimal    @db.Decimal(10, 2)
-  paidAt         DateTime   @default(now())
+  paidAt         DateTime   @default(now()) @map("paid_at")
+
+  @@map("fee_transactions")
 }
 
 model HostelGatePass {
   id                     String    @id @default(uuid())
-  passNumber             String    @unique
-  studentId              String
-  passType               String
-  departureTime          DateTime
-  expectedReturn         DateTime
+  passNumber             String    @unique @map("pass_number")
+  studentId              String    @map("student_id")
+  passType               String    @map("pass_type")
+  departureTime          DateTime  @map("departure_time")
+  expectedReturn         DateTime  @map("expected_return")
   destination            String
   reason                 String
-  parentConsentVerified  Boolean   @default(true)
+  parentConsentVerified  Boolean   @default(true) @map("parent_consent_verified")
   status                 String    @default("PENDING_WARDEN")
-  wardenApprovedBy       String?
-  actualOutTime          DateTime?
-  actualInTime           DateTime?
-  qrHash                 String?
-  createdAt              DateTime  @default(now())
+  wardenApprovedBy       String?   @map("warden_approved_by")
+  actualOutTime          DateTime? @map("actual_out_time")
+  actualInTime           DateTime? @map("actual_in_time")
+  qrHash                 String?   @map("qr_hash")
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  @@map("hostel_gate_passes")
 }
 
 model Session {
