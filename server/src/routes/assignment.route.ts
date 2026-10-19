@@ -122,6 +122,14 @@ assignmentRouter.post(
   (req, res, next) => assignmentController.uploadFile(req, res, next)
 );
 
+// File lifecycle & orphan cleanup maintenance endpoint (restricted to REGISTRAR_ADMIN)
+assignmentRouter.post(
+  '/cleanup',
+  requireAuth,
+  requireRole('REGISTRAR_ADMIN'),
+  (req, res, next) => assignmentController.cleanupOrphanFiles(req, res, next)
+);
+
 // Download assignment attachment / brief (accessible by enrolled students and course faculty)
 assignmentRouter.get(
   '/:id/attachment',

@@ -32,9 +32,11 @@ export interface UserWithPassword {
 // Explicitly identified development fixture accounts for isolated development & automated testing
 export const DEV_STUDENT_USER_ID = 'a0000000-0000-4000-8000-000000000001';
 export const DEV_FACULTY_USER_ID = 'a0000000-0000-4000-8000-000000000002';
+export const DEV_ADMIN_USER_ID = 'a0000000-0000-4000-8000-000000000099';
 
 const DEV_STUDENT_HASH = await passwordService.hashPassword('Password@Dev123');
 const DEV_FACULTY_HASH = await passwordService.hashPassword('Password@Dev123');
+const DEV_ADMIN_HASH = await passwordService.hashPassword('Password@Dev123');
 
 const DEV_ACCOUNTS: UserWithPassword[] = [
   {
@@ -70,6 +72,18 @@ const DEV_ACCOUNTS: UserWithPassword[] = [
       designation: 'Head of Computer Science & AI',
       departmentId: 'd0000000-0000-4000-8000-000000000001',
     },
+  },
+  {
+    id: DEV_ADMIN_USER_ID,
+    email: 'admin.dev@dgu.ac.in',
+    passwordHash: DEV_ADMIN_HASH,
+    fullName: 'Office of the Registrar (Dev Admin)',
+    role: 'REGISTRAR_ADMIN',
+    isActive: true,
+    phone: '+91 9876543299',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: null,
   },
 ];
 

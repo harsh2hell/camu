@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { BadRequestError, ForbiddenError } from '../errors/AppError.js';
+import { BadRequestError, ForbiddenError, NotFoundError, ServiceUnavailableError, AppError } from '../errors/AppError.js';
 import { config } from '../config/env.js';
 import { prisma } from './prisma.js';
+import { logger } from './logger.js';
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -184,8 +185,18 @@ export async function saveSecureFile(
         uploadedById: uploadedBy,
       },
     });
-  } catch {
-    // In-memory fallback if database operation is unavailable during fixtures
+  } catch (err) {
+    logger.error('Failed to persist file ownership record in database:', {
+      fileKey,
+      uploadedBy,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // Remove written file from disk and clear in-memory cache to prevent untracked orphans
+    if (fs.existsSync(targetPath)) {
+      await fs.promises.unlink(targetPath).catch(() => {});
+    }
+    uploadRegistry.delete(fileKey);
+    throw new ServiceUnavailableError('Database service unavailable to persist file ownership.');
   }
 
   return metadata;
@@ -193,51 +204,85 @@ export async function saveSecureFile(
 
 /**
  * Verifies upload ownership durably in PostgreSQL across restarts and instances.
+ * If the database is unavailable, FAILS CLOSED with ServiceUnavailableError (503).
+ * If the file key is unknown, FAILS CLOSED with NotFoundError (404).
+ * If the file belongs to a different user, FAILS CLOSED with ForbiddenError (403).
  */
 export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string): Promise<void> {
   // Extract pure fileKey if a URL/path was supplied
   const fileKey = path.basename(fileKeyOrUrl);
 
-  // 1. Check persistent database registry first
+  // 1. Fast in-memory check for mismatched ownership (defense-in-depth)
+  const cached = uploadRegistry.get(fileKey);
+  if (cached && cached.uploadedBy !== userId) {
+    throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
+  }
+
+  let dbRecord: { uploadedById: string } | null = null;
+  let existingSub: { studentId: string } | null = null;
+  let existingAssignment: { id: string } | null = null;
+
+  // 2. Authoritative persistent database check
   try {
-    const dbRecord = await prisma.uploadedFile.findUnique({
+    dbRecord = await prisma.uploadedFile.findUnique({
       where: { fileKey },
       select: { uploadedById: true },
     });
 
-    if (dbRecord) {
-      if (dbRecord.uploadedById !== userId) {
-        throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
-      }
-      return;
+    if (!dbRecord) {
+      existingSub = await prisma.assignmentSubmission.findFirst({
+        where: {
+          submissionFileUrl: {
+            contains: fileKey,
+          },
+        },
+        select: { studentId: true },
+      });
     }
 
-    // 2. Also check if file is an existing submission belonging to another student
-    const existingSub = await prisma.assignmentSubmission.findFirst({
-      where: {
-        submissionFileUrl: {
-          contains: fileKey,
+    if (!dbRecord && !existingSub) {
+      existingAssignment = await prisma.assignment.findFirst({
+        where: {
+          attachmentUrl: {
+            contains: fileKey,
+          },
         },
-      },
-      select: { studentId: true },
-    });
-
-    if (existingSub) {
-      if (existingSub.studentId !== userId) {
-        throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
-      }
-      return;
+        select: { id: true },
+      });
     }
   } catch (err) {
-    if (err instanceof ForbiddenError) throw err;
-    // Fall back to in-memory check if DB query errors
+    if (err instanceof AppError) throw err;
+    logger.error('Authoritative upload ownership verification failed due to database error; failing closed:', {
+      fileKey,
+      userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // FAIL CLOSED: Database unavailable
+    throw new ServiceUnavailableError('Database service unavailable to verify file ownership.');
   }
 
-  // 3. Fallback to in-memory registry
-  const metadata = uploadRegistry.get(fileKey);
-  if (metadata && metadata.uploadedBy !== userId) {
-    throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
+  // 3. Evaluate database findings
+  if (dbRecord) {
+    if (dbRecord.uploadedById !== userId) {
+      throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
+    }
+    return;
   }
+
+  if (existingSub) {
+    if (existingSub.studentId !== userId) {
+      throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
+    }
+    return;
+  }
+
+  if (existingAssignment) {
+    return;
+  }
+
+  // 4. Unknown file key: not found in uploaded_files, submissions, or assignments
+  // Must fail closed rather than silently approving!
+  throw new NotFoundError('Referenced upload file not found.');
 }
 
 /**
@@ -302,12 +347,200 @@ export async function deleteSecureFile(fileKeyOrUrl: string): Promise<void> {
   }
 }
 
+export interface CleanupOptions {
+  gracePeriodHours?: number; // default: 24h
+  dryRun?: boolean;          // default: false
+}
+
+export interface CleanupResult {
+  scannedDbRecords: number;
+  unreferencedDbRecords: number;
+  deletedDbRecords: number;
+  missingPhysicalRecordsPurged: number;
+  scannedDiskFiles: number;
+  deletedDiskFiles: number;
+  retainedActiveFiles: number;
+  errorsCount: number;
+}
+
+/**
+ * Conservative file lifecycle cleanup:
+ * - Never deletes files referenced by active assignments or submissions.
+ * - Protects recent uploads with gracePeriodHours (default 24h) to avoid races with drafting.
+ * - Purges unreferenced files older than gracePeriodHours.
+ * - Cleans up missing physical file metadata records older than gracePeriodHours.
+ * - Cleans up untracked physical files older than gracePeriodHours.
+ * - Logs failures without exposing sensitive paths or personal data.
+ */
+export async function cleanupOrphanFiles(options: CleanupOptions = {}): Promise<CleanupResult> {
+  const gracePeriodHours = options.gracePeriodHours ?? 24;
+  const dryRun = options.dryRun ?? false;
+  const cutoffDate = new Date(Date.now() - gracePeriodHours * 60 * 60 * 1000);
+
+  const result: CleanupResult = {
+    scannedDbRecords: 0,
+    unreferencedDbRecords: 0,
+    deletedDbRecords: 0,
+    missingPhysicalRecordsPurged: 0,
+    scannedDiskFiles: 0,
+    deletedDiskFiles: 0,
+    retainedActiveFiles: 0,
+    errorsCount: 0,
+  };
+
+  const uploadDir = getUploadDirectory();
+  const activeFileKeys = new Set<string>();
+
+  // 1. Authoritative retrieval of all active submission and assignment attachments
+  try {
+    const activeSubmissions = await prisma.assignmentSubmission.findMany({
+      where: { submissionFileUrl: { not: null } },
+      select: { submissionFileUrl: true },
+    });
+    for (const sub of activeSubmissions) {
+      if (sub.submissionFileUrl && !sub.submissionFileUrl.startsWith('http')) {
+        activeFileKeys.add(path.basename(sub.submissionFileUrl));
+      }
+    }
+
+    const activeAssignments = await prisma.assignment.findMany({
+      where: { attachmentUrl: { not: null } },
+      select: { attachmentUrl: true },
+    });
+    for (const a of activeAssignments) {
+      if (a.attachmentUrl && !a.attachmentUrl.startsWith('http')) {
+        activeFileKeys.add(path.basename(a.attachmentUrl));
+      }
+    }
+  } catch (err) {
+    logger.error('Failed to query active file references during cleanup; aborting cleanup to prevent accidental file loss:', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    result.errorsCount++;
+    return result;
+  }
+
+  result.retainedActiveFiles = activeFileKeys.size;
+
+  // 2. Scan PostgreSQL uploaded_files records
+  try {
+    const dbRecords = await prisma.uploadedFile.findMany();
+    result.scannedDbRecords = dbRecords.length;
+
+    for (const record of dbRecords) {
+      const isReferenced = activeFileKeys.has(record.fileKey);
+      const isOlderThanGracePeriod = new Date(record.createdAt).getTime() < cutoffDate.getTime();
+      const filePath = path.join(uploadDir, record.fileKey);
+      const physicalExists = fs.existsSync(filePath);
+
+      // Condition A: Physical file is missing from disk
+      if (!physicalExists) {
+        if (isOlderThanGracePeriod || !isReferenced) {
+          result.missingPhysicalRecordsPurged++;
+          if (!dryRun) {
+            try {
+              await prisma.uploadedFile.delete({ where: { id: record.id } });
+              uploadRegistry.delete(record.fileKey);
+            } catch (delErr) {
+              logger.error('Failed to purge missing physical record from database:', {
+                fileKey: record.fileKey,
+                error: delErr instanceof Error ? delErr.message : String(delErr),
+              });
+              result.errorsCount++;
+            }
+          }
+        }
+        continue;
+      }
+
+      // Condition B: Unreferenced file older than grace period (orphaned staged upload or replaced file)
+      if (!isReferenced && isOlderThanGracePeriod) {
+        result.unreferencedDbRecords++;
+        if (!dryRun) {
+          try {
+            await fs.promises.unlink(filePath).catch(() => {});
+            await prisma.uploadedFile.delete({ where: { id: record.id } });
+            uploadRegistry.delete(record.fileKey);
+            result.deletedDbRecords++;
+            result.deletedDiskFiles++;
+          } catch (delErr) {
+            logger.error('Failed to delete orphaned file or DB record during cleanup:', {
+              fileKey: record.fileKey,
+              error: delErr instanceof Error ? delErr.message : String(delErr),
+            });
+            result.errorsCount++;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error('Error during uploaded_files database inspection in cleanup:', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    result.errorsCount++;
+  }
+
+  // 3. Scan physical disk directory for untracked files (no metadata record, not active, older than grace period)
+  try {
+    if (fs.existsSync(uploadDir)) {
+      const files = await fs.promises.readdir(uploadDir);
+      result.scannedDiskFiles = files.length;
+
+      for (const fileName of files) {
+        if (fileName.startsWith('.')) continue;
+        if (activeFileKeys.has(fileName)) continue;
+
+        const filePath = path.join(uploadDir, fileName);
+        try {
+          const stats = await fs.promises.stat(filePath);
+          const isOlderThanGracePeriod = stats.mtime.getTime() < cutoffDate.getTime();
+
+          if (isOlderThanGracePeriod) {
+            const dbCount = await prisma.uploadedFile.count({
+              where: { fileKey: fileName },
+            });
+
+            if (dbCount === 0) {
+              if (!dryRun) {
+                await fs.promises.unlink(filePath);
+                result.deletedDiskFiles++;
+                uploadRegistry.delete(fileName);
+              }
+            }
+          }
+        } catch (statErr) {
+          logger.error('Error stating file during orphan scan:', {
+            fileKey: fileName,
+            error: statErr instanceof Error ? statErr.message : String(statErr),
+          });
+          result.errorsCount++;
+        }
+      }
+    }
+  } catch (err) {
+    logger.error('Error reading upload directory during physical cleanup scan:', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    result.errorsCount++;
+  }
+
+  logger.info('File lifecycle cleanup completed:', {
+    dryRun,
+    gracePeriodHours,
+    ...result,
+  });
+
+  return result;
+}
+
 export const FileStorage = {
   validateFileBuffer,
   saveSecureFile,
   verifyUploadOwnership,
   getSafeFilePath,
+  getUploadDirectory,
   getMimeType,
   deleteSecureFile,
+  cleanupOrphanFiles,
   uploadRegistry,
 };

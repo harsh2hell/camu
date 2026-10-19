@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { assignmentService } from '../services/assignment.service.js';
 import { UnauthorizedError } from '../errors/AppError.js';
+import { FileStorage } from '../lib/fileStorage.js';
 
 export class AssignmentController {
   /**
@@ -279,6 +280,31 @@ export class AssignmentController {
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
       res.sendFile(fileInfo.filePath);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * POST /api/assignments/cleanup
+   * Registrar Admin: trigger conservative file lifecycle & orphan cleanup
+   */
+  async cleanupOrphanFiles(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('Authentication required');
+      const gracePeriodHours = req.body?.gracePeriodHours !== undefined ? Number(req.body.gracePeriodHours) : undefined;
+      const dryRun = req.body?.dryRun !== undefined ? Boolean(req.body.dryRun) : undefined;
+
+      const result = await FileStorage.cleanupOrphanFiles({
+        gracePeriodHours,
+        dryRun,
+      });
+
+      res.status(200).json({
+        status: 'success',
+        message: 'File lifecycle cleanup completed successfully.',
+        data: result,
+      });
     } catch (err) {
       next(err);
     }

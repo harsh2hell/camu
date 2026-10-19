@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
@@ -20,6 +22,7 @@ describe('Phase 5: Assignments & LMS API Test Suite', () => {
   let student2Cookie: string[];
   let facultyCookie: string[];
   let faculty2Cookie: string[];
+  let adminCookie: string[];
 
   let createdAssignmentId: string;
   let unpublishedAssignmentId: string;
@@ -67,6 +70,16 @@ describe('Phase 5: Assignments & LMS API Test Suite', () => {
       });
     expect(f2Res.status).toBe(200);
     faculty2Cookie = getCookies(f2Res);
+
+    // 5. Authenticate Registrar Admin (admin.dev@dgu.ac.in)
+    const admRes = await request(app)
+      .post('/api/auth/login')
+      .send({
+        identifier: 'admin.dev@dgu.ac.in',
+        password: 'Password@Dev123',
+      });
+    expect(admRes.status).toBe(200);
+    adminCookie = getCookies(admRes);
   });
 
   afterAll(async () => {
@@ -243,12 +256,23 @@ describe('Phase 5: Assignments & LMS API Test Suite', () => {
   // ============================================================================
   describe('3. Student Submissions & Deadline Enforcement', () => {
     it('3.1 should allow enrolled student to submit on-time assignment with text and file metadata', async () => {
+      // Stage upload first
+      const pdfBase64 = Buffer.from('%PDF-1.4 sample pdf content for Floyd-Warshall solution').toString('base64');
+      const uploadRes = await request(app)
+        .post('/api/assignments/upload')
+        .set('Cookie', studentCookie)
+        .send({
+          fileName: 'harendra_lab5_solution.pdf',
+          fileData: pdfBase64,
+        });
+      expect(uploadRes.status).toBe(200);
+
       const res = await request(app)
         .post(`/api/assignments/${createdAssignmentId}/submit`)
         .set('Cookie', studentCookie)
         .send({
           submissionText: 'Python implementation of Floyd-Warshall with sample adjacency matrices attached.',
-          submissionFileUrl: '/uploads/harendra_lab5_solution.pdf',
+          submissionFileUrl: uploadRes.body.data.fileUrl,
         });
 
       expect(res.status).toBe(200);
@@ -269,12 +293,23 @@ describe('Phase 5: Assignments & LMS API Test Suite', () => {
     });
 
     it('3.3 should allow student to update/resubmit before grading', async () => {
+      // Stage updated upload first
+      const pdfBase64 = Buffer.from('%PDF-1.4 revised sample pdf content v2 benchmark').toString('base64');
+      const uploadRes = await request(app)
+        .post('/api/assignments/upload')
+        .set('Cookie', studentCookie)
+        .send({
+          fileName: 'harendra_lab5_v2.pdf',
+          fileData: pdfBase64,
+        });
+      expect(uploadRes.status).toBe(200);
+
       const res = await request(app)
         .post(`/api/assignments/${createdAssignmentId}/submit`)
         .set('Cookie', studentCookie)
         .send({
           submissionText: 'Revised code submission with time complexity benchmark graph.',
-          submissionFileUrl: '/uploads/harendra_lab5_v2.pdf',
+          submissionFileUrl: uploadRes.body.data.fileUrl,
         });
 
       expect(res.status).toBe(200);
@@ -1024,6 +1059,292 @@ describe('Phase 5: Assignments & LMS API Test Suite', () => {
         await prisma.assignmentSubmission.deleteMany({ where: { assignmentId: testAssignId } });
         await prisma.assignment.deleteMany({ where: { id: testAssignId } });
       }
+    });
+  });
+
+  // ============================================================================
+  // 9. PHASE 5.3: FAIL-CLOSED OWNERSHIP AND FILE LIFECYCLE AUDIT TESTS
+  // ============================================================================
+  describe('9. Phase 5.3: Fail-Closed Ownership and File Lifecycle Audit Tests', () => {
+    let phase53AssignmentId: string;
+    let outageTestFileUrl: string;
+
+    beforeAll(async () => {
+      // Create dedicated assignment for Phase 5.3 tests
+      const res = await request(app)
+        .post('/api/assignments')
+        .set('Cookie', facultyCookie)
+        .send({
+          courseOfferingId: 'b0000000-0000-4000-8000-000000000001',
+          title: 'Phase 5.3 Fail-Closed & Lifecycle Lab',
+          dueDate: new Date(Date.now() + 86400000 * 5).toISOString(),
+          totalMarks: 50,
+          isPublished: true,
+        });
+      expect(res.status).toBe(201);
+      phase53AssignmentId = res.body.data.id;
+    });
+
+    afterAll(async () => {
+      if (phase53AssignmentId) {
+        await prisma.assignmentSubmission.deleteMany({ where: { assignmentId: phase53AssignmentId } });
+        await prisma.assignment.deleteMany({ where: { id: phase53AssignmentId } });
+      }
+    });
+
+    it('9.1 should fail closed with 503 Service Unavailable when database outage occurs during ownership verification', async () => {
+      // 1. Student 1 uploads a valid file
+      const pdfBase64 = Buffer.from('%PDF-1.4 Phase 5.3 fail-closed verification test payload').toString('base64');
+      const uploadRes = await request(app)
+        .post('/api/assignments/upload')
+        .set('Cookie', studentCookie)
+        .send({
+          fileName: 'outage_test_doc.pdf',
+          fileData: pdfBase64,
+        });
+      expect(uploadRes.status).toBe(200);
+      outageTestFileUrl = uploadRes.body.data.fileUrl;
+
+      // 2. Simulate database outage during ownership lookup
+      const dbSpy = vi.spyOn(prisma.uploadedFile, 'findUnique').mockRejectedValueOnce(
+        new Error('PostgreSQL connection pool exhausted / database down')
+      );
+
+      // 3. Attempt submission during DB outage -> MUST fail closed with 503 Service Unavailable
+      const submitRes = await request(app)
+        .post(`/api/assignments/${phase53AssignmentId}/submit`)
+        .set('Cookie', studentCookie)
+        .send({
+          submissionText: 'Submitting during database failure',
+          submissionFileUrl: outageTestFileUrl,
+        });
+
+      expect(submitRes.status).toBe(503);
+      expect(submitRes.body.error.code).toBe('SERVICE_UNAVAILABLE');
+      expect(submitRes.body.error.message).toContain('Database service unavailable to verify file ownership');
+
+      dbSpy.mockRestore();
+    });
+
+    it('9.2 should recover and allow submission once database is healthy again', async () => {
+      // 1. With database restored, student submits the same uploaded file
+      const submitRes = await request(app)
+        .post(`/api/assignments/${phase53AssignmentId}/submit`)
+        .set('Cookie', studentCookie)
+        .send({
+          submissionText: 'Submitting after database recovery',
+          submissionFileUrl: outageTestFileUrl,
+        });
+
+      expect(submitRes.status).toBe(200);
+      expect(submitRes.body.status).toBe('success');
+      expect(submitRes.body.data.submissionFileUrl).toBe(`/api/assignments/${phase53AssignmentId}/submission/file`);
+    });
+
+    it('9.3 should reject unknown file keys that do not exist in database or active references (fail-closed)', async () => {
+      const submitRes = await request(app)
+        .post(`/api/assignments/${phase53AssignmentId}/submit`)
+        .set('Cookie', studentCookie)
+        .send({
+          submissionText: 'Attempting submission with fabricated file key',
+          submissionFileUrl: '/uploads/unknown-nonexistent-random-key-9999.pdf',
+        });
+
+      expect(submitRes.status).toBe(404);
+      expect(submitRes.body.error.code).toBe('NOT_FOUND');
+      expect(submitRes.body.error.message).toContain('Referenced upload file not found');
+    });
+
+    it('9.4 should reject submission if cached file belongs to a different user even before hitting database', async () => {
+      const foreignKey = 'foreign-cached-key.pdf';
+      FileStorage.uploadRegistry.set(foreignKey, {
+        fileKey: foreignKey,
+        originalName: 'foreign.pdf',
+        sizeBytes: 1024,
+        uploadedBy: DEV_FACULTY_USER_ID, // belongs to Faculty, not Student 1
+        uploadedAt: new Date(),
+        mimeType: 'application/pdf',
+      });
+
+      const submitRes = await request(app)
+        .post(`/api/assignments/${phase53AssignmentId}/submit`)
+        .set('Cookie', studentCookie)
+        .send({
+          submissionText: 'Attempting cross-user cached attachment',
+          submissionFileUrl: `/uploads/${foreignKey}`,
+        });
+
+      expect(submitRes.status).toBe(403);
+      expect(submitRes.body.error.code).toBe('FORBIDDEN');
+      expect(submitRes.body.error.message).toContain('not authorized to attach files uploaded by another user');
+
+      FileStorage.uploadRegistry.delete(foreignKey);
+    });
+
+    it('9.5 should verify ownership after clearing in-memory cache when database is healthy', async () => {
+      // 1. Student 1 uploads a file
+      const codeBase64 = Buffer.from('print("Cache clear test")').toString('base64');
+      const uploadRes = await request(app)
+        .post('/api/assignments/upload')
+        .set('Cookie', studentCookie)
+        .send({
+          fileName: 'cache_clear_script.py',
+          fileData: codeBase64,
+        });
+      expect(uploadRes.status).toBe(200);
+      const scriptUrl = uploadRes.body.data.fileUrl;
+
+      // 2. Clear in-memory upload registry
+      FileStorage.uploadRegistry.clear();
+      expect(FileStorage.uploadRegistry.size).toBe(0);
+
+      // 3. Student 2 tries to submit Student 1's file -> 403 Forbidden
+      const unauthorizedRes = await request(app)
+        .post(`/api/assignments/${phase53AssignmentId}/submit`)
+        .set('Cookie', student2Cookie)
+        .send({
+          submissionText: 'Student 2 trying to claim Student 1 file after cache clear',
+          submissionFileUrl: scriptUrl,
+        });
+      expect(unauthorizedRes.status).toBe(403);
+      expect(unauthorizedRes.body.error.code).toBe('FORBIDDEN');
+
+      // 4. Student 1 submits their own file -> succeeds authoritatively from PostgreSQL
+      const authorizedRes = await request(app)
+        .post(`/api/assignments/${phase53AssignmentId}/submit`)
+        .set('Cookie', studentCookie)
+        .send({
+          submissionText: 'Student 1 submitting own file after cache clear',
+          submissionFileUrl: scriptUrl,
+        });
+      expect(authorizedRes.status).toBe(200);
+      expect(authorizedRes.body.status).toBe('success');
+    });
+
+    it('9.6 should enforce RBAC on file lifecycle cleanup endpoint', async () => {
+      // Student cannot trigger cleanup
+      const sRes = await request(app)
+        .post('/api/assignments/cleanup')
+        .set('Cookie', studentCookie)
+        .send({});
+      expect(sRes.status).toBe(403);
+
+      // Faculty cannot trigger cleanup
+      const fRes = await request(app)
+        .post('/api/assignments/cleanup')
+        .set('Cookie', facultyCookie)
+        .send({});
+      expect(fRes.status).toBe(403);
+
+      // Registrar Admin can execute cleanup in dry-run mode
+      const aRes = await request(app)
+        .post('/api/assignments/cleanup')
+        .set('Cookie', adminCookie)
+        .send({ dryRun: true });
+      expect(aRes.status).toBe(200);
+      expect(aRes.body.status).toBe('success');
+      expect(aRes.body.data).toHaveProperty('retainedActiveFiles');
+      expect(aRes.body.data).toHaveProperty('scannedDbRecords');
+    });
+
+    it('9.7 should conservatively clean up orphaned files without deleting active submission files', async () => {
+      const uploadDir = FileStorage.getUploadDirectory();
+      const threeDaysAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+      // 1. Setup an abandoned old file on disk and in PostgreSQL (> 24h grace period)
+      const orphanKey = `orphan_test_${Date.now()}.pdf`;
+      const orphanPath = path.join(uploadDir, orphanKey);
+      await fs.promises.writeFile(orphanPath, Buffer.from('%PDF-1.4 orphan old content'));
+      await fs.promises.utimes(orphanPath, threeDaysAgo, threeDaysAgo);
+      await prisma.uploadedFile.create({
+        data: {
+          fileKey: orphanKey,
+          originalName: 'orphan_old.pdf',
+          sizeBytes: 30,
+          mimeType: 'application/pdf',
+          uploadedById: DEV_STUDENT_USER_ID,
+          createdAt: threeDaysAgo,
+        },
+      });
+
+      // 2. Setup a missing physical record in PostgreSQL (> 24h grace period, file does NOT exist on disk)
+      const missingPhysKey = `missing_phys_${Date.now()}.pdf`;
+      await prisma.uploadedFile.create({
+        data: {
+          fileKey: missingPhysKey,
+          originalName: 'missing_phys.pdf',
+          sizeBytes: 100,
+          mimeType: 'application/pdf',
+          uploadedById: DEV_STUDENT_USER_ID,
+          createdAt: threeDaysAgo,
+        },
+      });
+
+      // 3. Setup an untracked disk file (> 24h grace period, no PostgreSQL record)
+      const untrackedKey = `untracked_disk_${Date.now()}.pdf`;
+      const untrackedPath = path.join(uploadDir, untrackedKey);
+      await fs.promises.writeFile(untrackedPath, Buffer.from('%PDF-1.4 untracked content'));
+      await fs.promises.utimes(untrackedPath, threeDaysAgo, threeDaysAgo);
+
+      // 4. Setup a recent in-flight upload (< 24h grace period, unreferenced but actively drafting)
+      const recentKey = `recent_inflight_${Date.now()}.pdf`;
+      const recentPath = path.join(uploadDir, recentKey);
+      await fs.promises.writeFile(recentPath, Buffer.from('%PDF-1.4 recent inflight content'));
+      await prisma.uploadedFile.create({
+        data: {
+          fileKey: recentKey,
+          originalName: 'recent_inflight.pdf',
+          sizeBytes: 35,
+          mimeType: 'application/pdf',
+          uploadedById: DEV_STUDENT_USER_ID,
+          createdAt: new Date(), // Now
+        },
+      });
+
+      // 5. Execute conservative cleanup as Registrar Admin
+      const cleanupRes = await request(app)
+        .post('/api/assignments/cleanup')
+        .set('Cookie', adminCookie)
+        .send({ gracePeriodHours: 24, dryRun: false });
+
+      expect(cleanupRes.status).toBe(200);
+      expect(cleanupRes.body.data.deletedDiskFiles).toBeGreaterThanOrEqual(2);
+      expect(cleanupRes.body.data.missingPhysicalRecordsPurged).toBeGreaterThanOrEqual(1);
+
+      // 6. Verify assertions:
+      // A: Orphan old file deleted from disk and DB
+      expect(fs.existsSync(orphanPath)).toBe(false);
+      const orphanDb = await prisma.uploadedFile.findUnique({ where: { fileKey: orphanKey } });
+      expect(orphanDb).toBeNull();
+
+      // B: Missing physical record purged from DB
+      const missingDb = await prisma.uploadedFile.findUnique({ where: { fileKey: missingPhysKey } });
+      expect(missingDb).toBeNull();
+
+      // C: Untracked disk file deleted from disk
+      expect(fs.existsSync(untrackedPath)).toBe(false);
+
+      // D: Active submission files (e.g. from 9.2, 9.5, or earlier) MUST REMAIN INTACT!
+      const activeSubs = await prisma.assignmentSubmission.findMany({
+        where: { assignmentId: phase53AssignmentId, submissionFileUrl: { not: null } },
+      });
+      expect(activeSubs.length).toBeGreaterThanOrEqual(1);
+      for (const sub of activeSubs) {
+        if (sub.submissionFileUrl && !sub.submissionFileUrl.startsWith('http')) {
+          const activeKey = path.basename(sub.submissionFileUrl);
+          const activeDisk = path.join(uploadDir, activeKey);
+          expect(fs.existsSync(activeDisk)).toBe(true);
+        }
+      }
+
+      // E: Recent in-flight file MUST REMAIN INTACT (protected by 24h grace period)!
+      expect(fs.existsSync(recentPath)).toBe(true);
+      const recentDb = await prisma.uploadedFile.findUnique({ where: { fileKey: recentKey } });
+      expect(recentDb).toBeDefined();
+
+      // Clean up recent test file
+      if (fs.existsSync(recentPath)) await fs.promises.unlink(recentPath);
+      await prisma.uploadedFile.deleteMany({ where: { fileKey: recentKey } });
     });
   });
 });
