@@ -62,6 +62,9 @@ export const HostelGatePassView: React.FC = () => {
       {/* Header */}
       <div className="gatepass-header glass-panel">
         <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '12px', background: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.35)', color: '#eab308', fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '8px', textTransform: 'uppercase' }}>
+            <span>⚠ Module Preview — Warden Physical Gate System Integration Pending</span>
+          </div>
           <h2 className="heading-display page-title">Digital Hostel Gate Pass & Outings</h2>
           <p className="page-desc">
             Encrypted QR gate pass system for DBS Global University Campus Security & Warden Approvals.

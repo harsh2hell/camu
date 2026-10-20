@@ -16,6 +16,7 @@ import {
   CheckCheck
 } from 'lucide-react';
 import { assignmentApi } from '../api/assignment';
+import { timetableApi } from '../api/timetable';
 import type { 
   FacultyAssignmentItemDTO, 
   SubmissionDetailsDTO 
@@ -23,6 +24,7 @@ import type {
 
 export const FacultyAssignmentsView: React.FC = () => {
   const [assignments, setAssignments] = useState<FacultyAssignmentItemDTO[]>([]);
+  const [assignedCourses, setAssignedCourses] = useState<Array<{ courseOfferingId: string; courseCode: string; courseTitle: string; sectionName?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,7 +34,7 @@ export const FacultyAssignmentsView: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [newOfferingId, setNewOfferingId] = useState('b0000000-0000-4000-8000-000000000001'); // Default CS302 Sec A
+  const [newOfferingId, setNewOfferingId] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
@@ -57,15 +59,22 @@ export const FacultyAssignmentsView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await assignmentApi.getFacultyAssignments();
+      const [data, courses] = await Promise.all([
+        assignmentApi.getFacultyAssignments(),
+        timetableApi.getFacultyAssignedCourses().catch(() => []),
+      ]);
       setAssignments(data);
+      setAssignedCourses(courses);
+      if (courses.length > 0 && !newOfferingId) {
+        setNewOfferingId(courses[0].courseOfferingId);
+      }
     } catch (err: any) {
       console.error('Failed to load faculty assignments:', err);
       setError(err?.message || 'Unable to connect to Faculty LMS API.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [newOfferingId]);
 
   useEffect(() => {
     loadAssignments();
@@ -389,12 +398,17 @@ export const FacultyAssignmentsView: React.FC = () => {
                   onChange={(e) => setNewOfferingId(e.target.value)}
                   disabled={creating}
                 >
-                  <option value="b0000000-0000-4000-8000-000000000001">
-                    CS302: Design &amp; Analysis of Algorithms (Section A)
-                  </option>
-                  <option value="b0000000-0000-4000-8000-000000000002">
-                    CS304: Database Management Systems (Section A)
-                  </option>
+                  {assignedCourses.length > 0 ? (
+                    assignedCourses.map((c) => (
+                      <option key={c.courseOfferingId} value={c.courseOfferingId}>
+                        {c.courseCode}: {c.courseTitle} ({c.sectionName || 'Section A'})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="b0000000-0000-4000-8000-000000000001">
+                      CS302: Design &amp; Analysis of Algorithms (Section A)
+                    </option>
+                  )}
                 </select>
               </div>
 

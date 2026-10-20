@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   CheckCheck, 
   UserX, 
@@ -6,46 +6,90 @@ import {
   Send, 
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  RefreshCw,
+  BookOpen
 } from 'lucide-react';
-import { FACULTY_STUDENT_LIST, type FacultyClassStudent } from '../data/mockData';
 import { attendanceApi } from '../api/attendance';
+import { timetableApi } from '../api/timetable';
+
+export interface FacultyRosterStudent {
+  id: string;
+  rollNo: string;
+  name: string;
+  currentAttendance: number;
+  status: 'PRESENT' | 'ABSENT' | 'ON_DUTY';
+}
+
+export interface AssignedCourse {
+  courseOfferingId: string;
+  courseCode: string;
+  courseTitle: string;
+  sectionName?: string;
+}
 
 export const FacultyAttendanceView: React.FC = () => {
-  const [students, setStudents] = useState<FacultyClassStudent[]>(FACULTY_STUDENT_LIST);
+  const [assignedCourses, setAssignedCourses] = useState<AssignedCourse[]>([]);
+  const [selectedOfferingId, setSelectedOfferingId] = useState<string>('');
+  const [students, setStudents] = useState<FacultyRosterStudent[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [isLoadingRoster, setIsLoadingRoster] = useState(false);
   const [sessionTopic, setSessionTopic] = useState('Graph Algorithms: Dijkstra Shortest Path Proof');
-  const selectedSection = 'B.Tech CSE 5th Sem - Section A';
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Load authorized roster from backend
+  // 1. Load authenticated faculty's assigned courses from timetable
   useEffect(() => {
     let isMounted = true;
-    async function loadRoster() {
+    async function loadAssignedCourses() {
       try {
-        const roster = await attendanceApi.getRoster('b0000000-0000-4000-8000-000000000001');
-        if (isMounted && roster && roster.length > 0) {
-          setStudents(
-            roster.map((r) => ({
-              id: r.studentUserId,
-              rollNo: r.rollNumber,
-              name: r.fullName,
-              currentAttendance: r.currentAttendancePercent,
-              status: 'PRESENT',
-            }))
-          );
+        setIsLoadingCourses(true);
+        setErrorMsg(null);
+        const courses = await timetableApi.getFacultyAssignedCourses();
+        if (isMounted) {
+          setAssignedCourses(courses);
+          if (courses.length > 0) {
+            setSelectedOfferingId(courses[0].courseOfferingId);
+          }
         }
-      } catch (err) {
-        // Fall back gracefully to local fixture list in dev
-        console.warn('Backend roster load failed, using fallback list:', err);
+      } catch (err: any) {
+        if (isMounted) {
+          setErrorMsg(err?.message || 'Failed to retrieve assigned teaching courses.');
+        }
+      } finally {
+        if (isMounted) setIsLoadingCourses(false);
       }
     }
-    loadRoster();
-    return () => {
-      isMounted = false;
-    };
+    loadAssignedCourses();
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2. Load authorized roster from backend for selected course offering
+  const loadRoster = useCallback(async (offeringId: string) => {
+    if (!offeringId) return;
+    try {
+      setIsLoadingRoster(true);
+      setErrorMsg(null);
+      setIsSubmitted(false);
+      setSuccessMsg(null);
+      const roster = await attendanceApi.getRoster(offeringId);
+      setStudents(
+        roster.map((r) => ({
+          id: r.studentUserId,
+          rollNo: r.rollNumber,
+          name: r.fullName,
+          currentAttendance: r.currentAttendancePercent,
+          status: 'PRESENT',
+        }))
+      );
+    } catch (err: any) {
+      setStudents([]);
+      setErrorMsg(err?.message || 'Failed to retrieve course roster from database.');
+    } finally {
+      setIsLoadingRoster(false);
+    }
   }, []);
 
   // Toggle individual status
@@ -72,13 +116,17 @@ export const FacultyAttendanceView: React.FC = () => {
 
   const handleSubmit = async () => {
     if (isSubmitted || isSubmitting) return;
+    if (!selectedOfferingId) {
+      setErrorMsg('Please select an authorized course offering before submitting attendance.');
+      return;
+    }
     setIsSubmitting(true);
     setErrorMsg(null);
 
     try {
       // 1. Create attendance session
       const session = await attendanceApi.createSession({
-        courseOfferingId: 'b0000000-0000-4000-8000-000000000001',
+        courseOfferingId: selectedOfferingId,
         startTime: '10:00 AM',
         topicTaught: sessionTopic,
       });
@@ -86,7 +134,7 @@ export const FacultyAttendanceView: React.FC = () => {
       // 2. Record student attendance records in batch
       const batchPayload = students.map((s) => ({
         studentId: s.id,
-        status: s.status as any,
+        status: s.status,
       }));
 
       const result = await attendanceApi.recordBatch(session.id, batchPayload, true);
@@ -96,12 +144,17 @@ export const FacultyAttendanceView: React.FC = () => {
         `Session synchronized! Attendance records for ${result.recordsMarked} student(s) locked to central database.`
       );
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to submit attendance session. Please try again.');
+      if (err?.statusCode === 409 || err?.message?.toLowerCase().includes('locked')) {
+        setErrorMsg('This attendance session is locked. In accordance with university academic audit policies, locked sessions cannot be altered.');
+      } else {
+        setErrorMsg(err.message || 'Failed to submit attendance session. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const selectedCourse = assignedCourses.find(c => c.courseOfferingId === selectedOfferingId);
 
   return (
     <div className="faculty-view-container animate-fade-in">
@@ -109,7 +162,7 @@ export const FacultyAttendanceView: React.FC = () => {
       <div className="faculty-banner glass-panel">
         <div className="banner-info">
           <div className="faculty-badge">
-            <span className="live-dot"></span> Active Teaching Mode &bull; CS302 Algorithms
+            <span className="live-dot"></span> Active Teaching Mode &bull; {selectedCourse ? `${selectedCourse.courseCode} ${selectedCourse.courseTitle}` : 'Course Attendance'}
           </div>
           <h2 className="heading-display banner-heading">
             1-Click Faculty Attendance Marker
@@ -142,10 +195,41 @@ export const FacultyAttendanceView: React.FC = () => {
       {/* Control Strip */}
       <div className="attendance-controls glass-panel">
         <div className="controls-left">
+          {/* Course Offering Selector */}
           <div className="session-info-item">
-            <span className="item-label">Section:</span>
-            <strong>{selectedSection}</strong>
+            <span className="item-label">Teaching Course:</span>
+            {isLoadingCourses ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                <Loader2 size={14} className="animate-spin text-blue" /> Loading courses...
+              </span>
+            ) : assignedCourses.length > 0 ? (
+              <select
+                className="course-select-input"
+                value={selectedOfferingId}
+                onChange={(e) => setSelectedOfferingId(e.target.value)}
+                disabled={isSubmitting || isSubmitted}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  padding: '5px 10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+              >
+                {assignedCourses.map((c) => (
+                  <option key={c.courseOfferingId} value={c.courseOfferingId} style={{ background: '#0b1329', color: '#fff' }}>
+                    {c.courseCode} - {c.courseTitle} ({c.sectionName || 'Sec A'})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-danger" style={{ fontSize: '0.85rem' }}>No authorized courses assigned</span>
+            )}
           </div>
+
           <div className="session-info-item">
             <span className="item-label">Date & Time:</span>
             <span>Today, 10:00 AM (LT-204)</span>
@@ -157,7 +241,7 @@ export const FacultyAttendanceView: React.FC = () => {
               className="topic-input"
               value={sessionTopic}
               onChange={(e) => setSessionTopic(e.target.value)}
-              disabled={isSubmitted}
+              disabled={isSubmitted || isSubmitting}
             />
           </div>
         </div>
@@ -166,8 +250,18 @@ export const FacultyAttendanceView: React.FC = () => {
           <button 
             type="button" 
             className="btn btn-ghost"
+            onClick={() => loadRoster(selectedOfferingId)}
+            disabled={isSubmitting || isLoadingRoster}
+            title="Refresh Roster from Database"
+          >
+            <RefreshCw size={15} className={isLoadingRoster ? 'animate-spin' : ''} />
+          </button>
+
+          <button 
+            type="button" 
+            className="btn btn-ghost"
             onClick={() => markAll('PRESENT')}
-            disabled={isSubmitted}
+            disabled={isSubmitted || isSubmitting || students.length === 0}
           >
             <CheckCheck size={16} /> Mark All Present
           </button>
@@ -176,7 +270,7 @@ export const FacultyAttendanceView: React.FC = () => {
             type="button" 
             className="btn btn-ghost"
             onClick={() => markAll('ABSENT')}
-            disabled={isSubmitted}
+            disabled={isSubmitted || isSubmitting || students.length === 0}
           >
             <UserX size={16} /> Mark All Absent
           </button>
@@ -185,7 +279,7 @@ export const FacultyAttendanceView: React.FC = () => {
             type="button" 
             className={`btn ${isSubmitted ? 'btn-ghost' : 'btn-primary'}`}
             onClick={handleSubmit}
-            disabled={isSubmitted || isSubmitting}
+            disabled={isSubmitted || isSubmitting || students.length === 0}
           >
             {isSubmitting ? (
               <>
@@ -208,7 +302,7 @@ export const FacultyAttendanceView: React.FC = () => {
         <div className="submission-alert glass-panel" style={{ borderLeft: '4px solid var(--rose-500)', color: 'var(--rose-400)' }}>
           <AlertCircle size={20} className="text-danger" />
           <div style={{ flex: 1 }}>
-            <strong>Submission Failed:</strong> {errorMsg}
+            <strong>Submission Notice:</strong> {errorMsg}
           </div>
           <button type="button" className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: '0.85rem' }} onClick={handleSubmit}>
             Retry
@@ -222,6 +316,21 @@ export const FacultyAttendanceView: React.FC = () => {
           <div>
             <strong>Session Synchronized Successfully!</strong> {successMsg || 'Attendance records locked to central database.'}
           </div>
+        </div>
+      )}
+
+      {/* Loading & Empty States */}
+      {isLoadingRoster && (
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
+          <Loader2 size={28} className="animate-spin text-blue" style={{ margin: '0 auto 12px' }} />
+          <p>Retrieving authoritative course roster from university database...</p>
+        </div>
+      )}
+
+      {!isLoadingRoster && students.length === 0 && !errorMsg && (
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>
+          <BookOpen size={32} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+          <p>No students enrolled in this course offering for the current semester.</p>
         </div>
       )}
 

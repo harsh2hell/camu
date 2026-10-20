@@ -125,7 +125,7 @@ export const assignmentApi = {
   resolveFileUrl(url: string | null | undefined): string {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const baseUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
     const serverOrigin = baseUrl.replace(/\/api\/?$/, '');
     return `${serverOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
   },

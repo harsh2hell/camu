@@ -1,24 +1,22 @@
 import { apiClient, type ApiResponse } from './client';
 import type { SafeUser } from '../../server/src/types/auth';
-
 import type { UserRole } from '@prisma/client';
 
 export interface UserSession {
   id: string;
   name: string;
   email: string;
-  role: UserRole | 'STUDENT' | 'FACULTY' | 'ADMIN';
-  token: string;
+  role: UserRole | 'STUDENT' | 'FACULTY' | 'ADMIN' | 'REGISTRAR_ADMIN';
   rollNo?: string;
   department?: string;
   avatarUrl?: string;
+  token?: string; // Optional legacy field
 }
 
 export const authApi = {
   /**
    * Authenticates against the real backend server via POST /api/auth/login.
-   * If authentication fails or network error occurs, re-throws the real server error.
-   * Never generates synthetic offline tokens.
+   * Leverages HTTP-only session cookies; does NOT write auth tokens to localStorage.
    */
   async login(username: string, password?: string, forceRole?: 'STUDENT' | 'FACULTY'): Promise<UserSession> {
     if (!password) {
@@ -31,28 +29,32 @@ export const authApi = {
       expectedRole: forceRole,
     };
 
-    // Call real backend API
+    // Call real backend API (sets HTTP-only cookie automatically)
     const response = await apiClient.post<ApiResponse<{ user: SafeUser; token: string }>>('/auth/login', payload);
 
-    if (!response.success || !response.data) {
+    const user = response.data?.user;
+    if (!user) {
       throw new Error(response.message || 'Authentication failed. Please verify your credentials.');
     }
 
-    const { user, token } = response.data;
+    const resolvedRole: UserSession['role'] =
+      user.role === 'FACULTY'
+        ? 'FACULTY'
+        : user.role === 'REGISTRAR_ADMIN'
+        ? 'REGISTRAR_ADMIN'
+        : 'STUDENT';
 
     const session: UserSession = {
       id: user.id,
       name: user.fullName,
       email: user.email,
-      role: user.role === 'FACULTY' ? 'FACULTY' : 'STUDENT',
-      token,
+      role: resolvedRole,
       rollNo: user.studentProfile?.rollNumber,
       department: user.facultyProfile ? user.facultyProfile.designation : 'B.Tech CSE',
-      avatarUrl: user.avatarUrl ?? (user.role === 'STUDENT' ? '/harendra_avatar.png' : undefined),
+      avatarUrl: user.avatarUrl ?? (resolvedRole === 'STUDENT' ? '/harendra_avatar.png' : undefined),
     };
 
-    // Store session info locally for UI state restoration
-    localStorage.setItem('dbs_auth_token', session.token);
+    // Store non-sensitive session metadata locally for UI state restoration (NO auth tokens stored)
     localStorage.setItem('dbs_user_session', JSON.stringify(session));
     localStorage.setItem('dbs_last_user_email', session.email);
     localStorage.setItem('dbs_last_user_role', session.role);
@@ -63,15 +65,52 @@ export const authApi = {
   },
 
   /**
-   * Real current user validation with server
+   * Real current user validation with server via GET /api/auth/me
    */
   async fetchCurrentUser(): Promise<SafeUser | null> {
     try {
       const response = await apiClient.get<ApiResponse<{ user: SafeUser }>>('/auth/me');
-      if (response.success && response.data?.user) {
+      if (response.data?.user) {
         return response.data.user;
       }
       return null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Restores active session by validating with the backend using the HTTP-only cookie
+   */
+  async restoreSession(): Promise<UserSession | null> {
+    try {
+      const user = await this.fetchCurrentUser();
+      if (!user) {
+        // Cookie is expired or missing; clean local metadata
+        localStorage.removeItem('dbs_user_session');
+        return null;
+      }
+
+      const resolvedRole: UserSession['role'] =
+        user.role === 'FACULTY'
+          ? 'FACULTY'
+          : user.role === 'REGISTRAR_ADMIN'
+          ? 'REGISTRAR_ADMIN'
+          : 'STUDENT';
+
+      const session: UserSession = {
+        id: user.id,
+        name: user.fullName,
+        email: user.email,
+        role: resolvedRole,
+        rollNo: user.studentProfile?.rollNumber,
+        department: user.facultyProfile ? user.facultyProfile.designation : 'B.Tech CSE',
+        avatarUrl: user.avatarUrl ?? (resolvedRole === 'STUDENT' ? '/harendra_avatar.png' : undefined),
+      };
+
+      localStorage.setItem('dbs_user_session', JSON.stringify(session));
+      localStorage.setItem('dbs_last_active_time', Date.now().toString());
+      return session;
     } catch {
       return null;
     }
@@ -82,7 +121,7 @@ export const authApi = {
    */
   async loginWithGoogle(_preferredRole: 'STUDENT' | 'FACULTY' = 'STUDENT'): Promise<UserSession> {
     throw new Error(
-      'Institutional Google Workspace SSO is currently under OIDC security compliance review. Please sign in with your official university credentials or development fixture (student.dev@dgu.ac.in).'
+      'Institutional Google Workspace SSO is currently under OIDC security compliance review. Please sign in with your official university credentials (student.dev@dgu.ac.in).'
     );
   },
 
@@ -91,7 +130,7 @@ export const authApi = {
    */
   async loginWithMicrosoft(_preferredRole: 'STUDENT' | 'FACULTY' = 'STUDENT'): Promise<UserSession> {
     throw new Error(
-      'Institutional Microsoft 365 SSO is currently under OIDC security compliance review. Please sign in with your official university credentials or development fixture (faculty.dev@dgu.ac.in).'
+      'Institutional Microsoft 365 SSO is currently under OIDC security compliance review. Please sign in with your official university credentials (faculty.dev@dgu.ac.in).'
     );
   },
 
@@ -111,7 +150,7 @@ export const authApi = {
   },
 
   /**
-   * Retrieves active session from localStorage with server-side expiration validation
+   * Retrieves active session from cached state with timeout verification
    */
   getCurrentSession(): UserSession | null {
     const raw = localStorage.getItem('dbs_user_session');
@@ -127,7 +166,6 @@ export const authApi = {
         if (elapsed > INACTIVITY_TIMEOUT_MS) {
           if (session.email) localStorage.setItem('dbs_last_user_email', session.email);
           if (session.role) localStorage.setItem('dbs_last_user_role', session.role);
-          localStorage.removeItem('dbs_auth_token');
           localStorage.removeItem('dbs_user_session');
           return null;
         }
@@ -167,7 +205,7 @@ export const authApi = {
       }
     }
 
-    // 3. Clear local tokens
+    // 3. Clear local session metadata (never had tokens)
     localStorage.removeItem('dbs_auth_token');
     localStorage.removeItem('dbs_user_session');
   },

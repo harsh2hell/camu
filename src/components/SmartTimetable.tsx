@@ -14,189 +14,11 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react';
-import { TODAY_CLASSES, type TimetableClass } from '../data/mockData';
+import { type TimetableClass } from '../data/mockData';
 import { timetableApi } from '../api/timetable';
 import type { WeeklyScheduleDTO, TimetableSlotDTO } from '../../server/src/types/timetable';
 
-// Generate varied realistic schedule for other days
-const WEEKLY_SCHEDULE: Record<string, TimetableClass[]> = {
-  Monday: TODAY_CLASSES,
-  Tuesday: [
-    {
-      id: 't1',
-      time: '09:00 - 09:55 AM',
-      subjectCode: 'CS308',
-      subjectTitle: 'Operating Systems & Architecture',
-      faculty: 'Prof. Meenakshi Joshi',
-      room: 'LT-102 (Block 2)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 't2',
-      time: '10:00 - 11:55 AM',
-      subjectCode: 'CS306-L',
-      subjectTitle: 'Computer Networks Practical Lab',
-      faculty: 'Dr. Vivek Bhatt & Lab Staff',
-      room: 'Cisco Networking Lab (Block 3)',
-      isLab: true,
-      status: 'upcoming',
-      note: 'Packet Tracer simulation files will be checked at 10:15 AM',
-    },
-    {
-      id: 't3',
-      time: '01:30 - 02:25 PM',
-      subjectCode: 'CS312',
-      subjectTitle: 'Machine Learning Foundations',
-      faculty: 'Dr. Sunita Negi',
-      room: 'LT-201 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 't4',
-      time: '02:30 - 03:25 PM',
-      subjectCode: 'CS304',
-      subjectTitle: 'Database Management Systems',
-      faculty: 'Prof. Ananya Sen',
-      room: 'LT-204 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    }
-  ],
-  Wednesday: [
-    {
-      id: 'w1',
-      time: '09:00 - 09:55 AM',
-      subjectCode: 'CS302',
-      subjectTitle: 'Design & Analysis of Algorithms',
-      faculty: 'Dr. Rajesh Sharma',
-      room: 'LT-204 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'w2',
-      time: '10:00 - 10:55 AM',
-      subjectCode: 'CS310',
-      subjectTitle: 'Cloud Computing & DevOps',
-      faculty: 'Er. Kunal Rawat',
-      room: 'Seminar Hall B',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'w3',
-      time: '11:15 - 01:05 PM',
-      subjectCode: 'CS304-L',
-      subjectTitle: 'Database Systems Lab (PostgreSQL)',
-      faculty: 'Prof. Ananya Sen & TA',
-      room: 'Computing Lab 2 (Block 2)',
-      isLab: true,
-      status: 'upcoming',
-      note: 'Submit Normalization 3NF query scripts before leaving',
-    },
-    {
-      id: 'w4',
-      time: '02:00 - 03:00 PM',
-      subjectCode: 'ENG301',
-      subjectTitle: 'Corporate Communication & Soft Skills',
-      faculty: 'Ms. Ritu Saxena',
-      room: 'Language Lab (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    }
-  ],
-  Thursday: [
-    {
-      id: 'th1',
-      time: '09:00 - 09:55 AM',
-      subjectCode: 'CS306',
-      subjectTitle: 'Computer Networks',
-      faculty: 'Dr. Vivek Bhatt',
-      room: 'LT-305 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'th2',
-      time: '10:00 - 10:55 AM',
-      subjectCode: 'CS312',
-      subjectTitle: 'Machine Learning Foundations',
-      faculty: 'Dr. Sunita Negi',
-      room: 'LT-201 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'th3',
-      time: '11:15 - 01:05 PM',
-      subjectCode: 'CS310-L',
-      subjectTitle: 'Cloud Computing & Microservices Lab',
-      faculty: 'Er. Kunal Rawat',
-      room: 'Cloud Center of Excellence (Block 2)',
-      isLab: true,
-      status: 'upcoming',
-      note: 'Ensure Docker Desktop is configured on your lab workstation',
-    }
-  ],
-  Friday: [
-    {
-      id: 'f1',
-      time: '09:00 - 09:55 AM',
-      subjectCode: 'CS308',
-      subjectTitle: 'Operating Systems & Architecture',
-      faculty: 'Prof. Meenakshi Joshi',
-      room: 'LT-102 (Block 2)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'f2',
-      time: '10:00 - 10:55 AM',
-      subjectCode: 'CS302',
-      subjectTitle: 'Design & Analysis of Algorithms',
-      faculty: 'Dr. Rajesh Sharma',
-      room: 'LT-204 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'f3',
-      time: '11:15 - 12:10 PM',
-      subjectCode: 'CS304',
-      subjectTitle: 'Database Management Systems',
-      faculty: 'Prof. Ananya Sen',
-      room: 'LT-201 (Block 1)',
-      isLab: false,
-      status: 'upcoming',
-    },
-    {
-      id: 'f4',
-      time: '02:00 - 04:00 PM',
-      subjectCode: 'PRJ301',
-      subjectTitle: 'Capstone Project Mentoring Session',
-      faculty: 'Department Faculty Committee',
-      room: 'Auditorium 2 (Main Campus)',
-      isLab: false,
-      status: 'upcoming',
-      note: 'Bring Sprint 2 architecture slides and GitHub repo links',
-    }
-  ],
-  Saturday: [
-    {
-      id: 's1',
-      time: '10:00 - 12:00 PM',
-      subjectCode: 'ACM301',
-      subjectTitle: 'Competitive Programming & DSA Workshop',
-      faculty: 'ACM Student Chapter & Faculty Lead',
-      room: 'Seminar Hall A',
-      isLab: true,
-      status: 'upcoming',
-      note: 'Optional enrichment module on Graph DP & Tree Traversal',
-    }
-  ]
-};
+// Dynamic weekly schedule state populated via /api/timetable/student
 
 function mapSlotToClass(slot: TimetableSlotDTO): TimetableClass {
   return {
@@ -215,7 +37,7 @@ function mapSlotToClass(slot: TimetableSlotDTO): TimetableClass {
 export const SmartTimetable: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<string>('Monday');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [scheduleData, setScheduleData] = useState<Record<string, TimetableClass[]>>(WEEKLY_SCHEDULE);
+  const [scheduleData, setScheduleData] = useState<Record<string, TimetableClass[]>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cohortInfo, setCohortInfo] = useState<string>('B.Tech CSE (Section A)');
@@ -240,7 +62,7 @@ export const SmartTimetable: React.FC = () => {
         }
       }
     } catch (err: any) {
-      console.warn('Live timetable fetch failed, using fallback:', err);
+      console.warn('Live timetable fetch failed:', err);
       setErrorMsg(err.message || 'Unable to load real-time schedule from server.');
     } finally {
       setIsLoading(false);
@@ -345,7 +167,7 @@ export const SmartTimetable: React.FC = () => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AlertCircle size={16} />
-            <span>{errorMsg} (Displaying cached offline schedule)</span>
+            <span>{errorMsg}</span>
           </div>
           <button
             type="button"

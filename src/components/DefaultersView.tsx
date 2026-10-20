@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   ShieldAlert, 
   Send, 
@@ -6,13 +6,23 @@ import {
   Download, 
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
-import { FACULTY_STUDENT_LIST } from '../data/mockData';
 import { attendanceApi } from '../api/attendance';
+import { timetableApi } from '../api/timetable';
 import type { DefaulterStudentDTO } from '../../server/src/types/attendance';
 
+export interface AssignedTeachingCourse {
+  courseOfferingId: string;
+  courseCode: string;
+  courseTitle: string;
+  sectionName?: string;
+}
+
 export const DefaultersView: React.FC = () => {
+  const [assignedCourses, setAssignedCourses] = useState<AssignedTeachingCourse[]>([]);
+  const [selectedOfferingId, setSelectedOfferingId] = useState<string>('');
   const [issuedNotices, setIssuedNotices] = useState<Record<string, boolean>>({});
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,11 +31,33 @@ export const DefaultersView: React.FC = () => {
     Array<{ id: string; name: string; rollNo: string; currentAttendance: number; shortfall: number }>
   >([]);
 
-  const fetchDefaulters = async () => {
+  // 1. Fetch assigned courses for faculty
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCourses() {
+      try {
+        const courses = await timetableApi.getFacultyAssignedCourses();
+        if (isMounted) {
+          setAssignedCourses(courses);
+          if (courses.length > 0) {
+            setSelectedOfferingId(courses[0].courseOfferingId);
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) setErrorMsg(err?.message || 'Failed to retrieve assigned courses.');
+      }
+    }
+    loadCourses();
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2. Fetch live defaulters from backend for selected course offering
+  const fetchDefaulters = useCallback(async (offeringId: string) => {
+    if (!offeringId) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const data = await attendanceApi.getDefaulters('b0000000-0000-4000-8000-000000000001', 75.0);
+      const data = await attendanceApi.getDefaulters(offeringId, 75.0);
       setDefaulterList(
         data.map((d: DefaulterStudentDTO) => ({
           id: d.studentUserId,
@@ -36,27 +68,18 @@ export const DefaultersView: React.FC = () => {
         }))
       );
     } catch (err: any) {
-      console.warn('API defaulter fetch failed, falling back to local list:', err);
-      // Fall back gracefully in dev
-      const fallback = FACULTY_STUDENT_LIST.filter(s => s.currentAttendance < 75).map(s => ({
-        id: s.id,
-        name: s.name,
-        rollNo: s.rollNo,
-        currentAttendance: s.currentAttendance,
-        shortfall: Math.ceil((75 - s.currentAttendance) * 0.4),
-      }));
-      setDefaulterList(fallback);
-      if (err.message && !err.message.includes('404')) {
-        setErrorMsg(err.message);
-      }
+      setDefaulterList([]);
+      setErrorMsg(err.message || 'Failed to retrieve attendance defaulters from database.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDefaulters();
-  }, []);
+    if (selectedOfferingId) {
+      fetchDefaulters(selectedOfferingId);
+    }
+  }, [selectedOfferingId, fetchDefaulters]);
 
   const handleSendWarning = (id: string, name: string) => {
     setIssuedNotices(prev => ({ ...prev, [id]: true }));
@@ -96,16 +119,63 @@ export const DefaultersView: React.FC = () => {
           </p>
         </div>
 
-        <div className="header-actions">
+        <div className="header-actions" style={{ alignItems: 'center' }}>
+          {assignedCourses.length > 0 && (
+            <select
+              value={selectedOfferingId}
+              onChange={(e) => setSelectedOfferingId(e.target.value)}
+              disabled={isLoading}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '6px',
+                color: '#fff',
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                outline: 'none',
+              }}
+            >
+              {assignedCourses.map((c) => (
+                <option key={c.courseOfferingId} value={c.courseOfferingId} style={{ background: '#0b1329', color: '#fff' }}>
+                  {c.courseCode} - {c.courseTitle} ({c.sectionName || 'Sec A'})
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button 
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => fetchDefaulters(selectedOfferingId)}
+            disabled={isLoading || !selectedOfferingId}
+            title="Refresh Defaulters from Database"
+          >
+            <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+
           <button 
             className="btn btn-ghost"
-            onClick={() => alert('Exporting Defaulters List to Excel...')}
+            onClick={() => {
+              if (defaulterList.length === 0) return;
+              const csvContent = 'data:text/csv;charset=utf-8,Roll Number,Name,Attendance %,Shortfall Classes\n' +
+                defaulterList.map(d => `"${d.rollNo}","${d.name}",${d.currentAttendance}%,${d.shortfall}`).join('\n');
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement('a');
+              link.setAttribute('href', encodedUri);
+              link.setAttribute('download', `Defaulters_${selectedOfferingId}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            disabled={defaulterList.length === 0}
           >
             <Download size={16} /> Export CSV List
           </button>
           <button 
             className="btn btn-accent"
             onClick={handleBroadcastAll}
+            disabled={defaulterList.length === 0}
           >
             <Send size={16} /> Broadcast Warning to All
           </button>
@@ -127,7 +197,7 @@ export const DefaultersView: React.FC = () => {
           <div style={{ flex: 1 }}>
             <strong>Audit Retrieval Notice:</strong> {errorMsg}
           </div>
-          <button type="button" className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: '0.85rem' }} onClick={fetchDefaulters}>
+          <button type="button" className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: '0.85rem' }} onClick={() => fetchDefaulters(selectedOfferingId)}>
             Retry
           </button>
         </div>

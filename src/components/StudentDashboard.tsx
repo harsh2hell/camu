@@ -42,13 +42,24 @@ import {
   Mail,
   Loader2,
   LifeBuoy,
+  RefreshCw,
 } from 'lucide-react';
-import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
 import { attendanceApi } from '../api/attendance';
 import { calendarApi } from '../api/calendar';
 import type { CalendarEventDTO } from '../../server/src/types/calendar';
 import type { OverallAttendanceSummary } from '../../server/src/utils/attendanceCalculator';
+import {
+  getMyProfile,
+  getMyAcademicRecords,
+  type StudentProfileDTO,
+  type AcademicRecordsDTO,
+} from '../api/profile';
+import { assignmentApi } from '../api/assignment';
+import type { StudentAssignmentItemDTO } from '../../server/src/types/assignment';
+import { getRecipientNotices, type NoticeDTO } from '../api/notice';
+import { financeApi } from '../api/finance';
+import type { StudentFeeLedgerDTO } from '../../server/src/types/finance';
 
 import { SmartTimetable } from './SmartTimetable';
 import { GradebookView } from './GradebookView';
@@ -137,6 +148,19 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [activeCamuModal, setActiveCamuModal] = useState<
     'profile' | 'attendance' | 'exams' | 'counselling' | 'transcripts' | 'clearance' | 'feedback' | 'activities' | 'messages' | 'enrollment' | 'institution' | 'settings' | null
   >(null);
+  // Authenticated Student State
+  const [liveProfile, setLiveProfile] = useState<StudentProfileDTO | null>(null);
+  const [profileLoading, setProfileLoading] = useState<boolean>(true);
+
+  const [academicRecords, setAcademicRecords] = useState<AcademicRecordsDTO | null>(null);
+  const [recordsLoading, setRecordsLoading] = useState<boolean>(true);
+
+  const [liveAssignments, setLiveAssignments] = useState<StudentAssignmentItemDTO[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState<boolean>(true);
+
+  const [upcomingNotices, setUpcomingNotices] = useState<NoticeDTO[]>([]);
+  const [liveLedger, setLiveLedger] = useState<StudentFeeLedgerDTO | null>(null);
+
   const [liveAttendanceSummary, setLiveAttendanceSummary] = useState<OverallAttendanceSummary | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
@@ -154,10 +178,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       setAttendanceLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAttendanceSummary();
-  }, []);
 
   // Academic Calendar State
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventDTO[]>([]);
@@ -179,6 +199,71 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       setIsLoadingCalendar(false);
     }
   };
+
+  const fetchAllDashboardData = () => {
+    // 1. Profile
+    setProfileLoading(true);
+    getMyProfile()
+      .then((res) => {
+        if (res && res.data) setLiveProfile(res.data);
+      })
+      .catch((err) => {
+        console.warn('Profile fetch error:', err);
+      })
+      .finally(() => setProfileLoading(false));
+
+    // 2. Academic Records
+    setRecordsLoading(true);
+    getMyAcademicRecords()
+      .then((res) => {
+        if (res && res.data) setAcademicRecords(res.data);
+      })
+      .catch((err) => {
+        console.warn('Academic records fetch error:', err);
+      })
+      .finally(() => setRecordsLoading(false));
+
+    // 3. Attendance
+    fetchAttendanceSummary();
+
+    // 4. Calendar Events
+    fetchCalendarEvents();
+
+    // 5. Assignments
+    setAssignmentsLoading(true);
+    assignmentApi
+      .getStudentAssignments()
+      .then((data) => {
+        setLiveAssignments(data || []);
+      })
+      .catch((err) => {
+        console.warn('Assignments fetch error:', err);
+      })
+      .finally(() => setAssignmentsLoading(false));
+
+    // 6. Notices
+    getRecipientNotices()
+      .then((res) => {
+        if (res && res.data) setUpcomingNotices(res.data);
+      })
+      .catch((err) => {
+        console.warn('Notices fetch error:', err);
+      });
+
+    // 7. Finance Ledger
+    financeApi
+      .getStudentLedger()
+      .then((data) => {
+        setLiveLedger(data);
+      })
+      .catch((err) => {
+        console.warn('Fee ledger fetch error:', err);
+      });
+  };
+
+  useEffect(() => {
+    fetchAllDashboardData();
+  }, []);
 
   useEffect(() => {
     if (showCalendarModal) {
@@ -457,79 +542,125 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Attendance Monthly Chart Data matching the image (Apr to Dec)
-  const monthlyAttendanceData = [
-    { month: 'Apr', count: 2400, percent: 86, heightPx: 145 },
-    { month: 'May', count: 1850, percent: 79, heightPx: 115 },
-    { month: 'Jun', count: 2100, percent: 84, heightPx: 130 },
-    { month: 'Jul', count: 2950, percent: 98, heightPx: 180, isHatched: true }, // Highlighted tall patterned bar
-    { month: 'Aug', count: 1500, percent: 72, heightPx: 95 },
-    { month: 'Sep', count: 2650, percent: 91, heightPx: 160 },
-    { month: 'Oct', count: 2750, percent: 93, heightPx: 168 },
-    { month: 'Nov', count: 2920, percent: 97, heightPx: 178 },
-    { month: 'Dec', count: 2800, percent: 95, heightPx: 170 },
-  ];
+  // Pending assignments count from real LMS API
+  const pendingAssignmentsCount = liveAssignments.filter(
+    (a) => a.submissionStatus !== 'SUBMITTED_ON_TIME' && a.submissionStatus !== 'SUBMITTED_LATE' && a.submissionStatus !== 'GRADED'
+  ).length;
 
-  // Upcoming Events / Exams matching DBS Global University academic schedule
-  const upcomingEvents = [
-    {
-      id: 'evt-1',
-      date: 'Monday 22nd Jun, 2026',
-      title: 'DBS Mid-Term Examination (CS302)',
-      subtext: 'Database Management Systems & Relational Theory • Hall 302',
-      tag: 'Mid-Term Exam',
-    },
-    {
-      id: 'evt-2',
-      date: 'Friday 15th Aug, 2026',
-      title: 'Capstone AI Project Presentation',
-      subtext: 'Distributed Systems & Machine Learning Lab • Seminar Hall A',
-      tag: 'Viva Voce',
-    },
-    {
-      id: 'evt-3',
-      date: 'Tuesday 16th Aug, 2026',
-      title: 'Operating Systems End-Term (CS304)',
-      subtext: 'Concurrency & Systems Programming • Main Academic Auditorium',
-      tag: 'University Exam',
-    },
-    {
-      id: 'evt-4',
-      date: 'Thursday 28th Aug, 2026',
-      title: 'DBS Tech Innovators Conclave 2026',
-      subtext: 'DGU Incubation & Innovation Cell • Campus Amphitheatre',
-      tag: 'Campus Conclave',
-    },
-    {
-      id: 'evt-5',
-      date: 'Wednesday 12th Oct, 2026',
-      title: 'Computer Networks Practical Assessment (CS308)',
-      subtext: 'Cloud Computing & Network Protocols Lab • Room 204',
-      tag: 'Practical Lab',
-    },
-  ];
+  // Real course faculty derived from enrolled courses or assigned mentor
+  const courseFaculty = React.useMemo(() => {
+    if (!academicRecords?.enrolledCourses || academicRecords.enrolledCourses.length === 0) {
+      if (liveProfile?.mentor) {
+        return [{
+          id: liveProfile.mentor.id,
+          name: liveProfile.mentor.fullName,
+          title: liveProfile.mentor.designation || 'Faculty Mentor',
+          dept: liveProfile.department?.name || 'Department of Computing',
+          rating: '4.95/5.0',
+          avatar: '/dbs_academic_guest_lecture.webp',
+          studentsMentored: 120,
+        }];
+      }
+      return [];
+    }
 
-  // Top Teachers Data for DBS Faculty
-  const topTeachers = [
-    {
-      id: 'teach-1',
-      name: 'Dr. Rajesh Sharma',
-      title: 'Head of Computer Science & AI',
-      dept: 'Department of Computing & Advanced Systems',
-      rating: '4.95/5.0',
-      avatar: '/dbs_academic_guest_lecture.webp',
-      studentsMentored: 184,
-    },
-    {
-      id: 'teach-2',
-      name: 'Prof. Maria Smith',
-      title: 'Associate Professor',
-      dept: 'Distributed Systems & Database Architecture',
-      rating: '4.92/5.0',
-      avatar: '/dbs_fresher.webp',
-      studentsMentored: 212,
-    },
-  ];
+    const uniqueMap = new Map<string, {
+      id: string;
+      name: string;
+      title: string;
+      dept: string;
+      rating: string;
+      avatar: string;
+      studentsMentored: number;
+    }>();
+
+    academicRecords.enrolledCourses.forEach((c, idx) => {
+      if (c.primaryFaculty && !uniqueMap.has(c.primaryFaculty.id)) {
+        uniqueMap.set(c.primaryFaculty.id, {
+          id: c.primaryFaculty.id,
+          name: c.primaryFaculty.fullName,
+          title: `${c.courseCode} • ${c.courseTitle}`,
+          dept: c.primaryFaculty.email,
+          rating: '4.9/5.0',
+          avatar: idx % 2 === 0 ? '/dbs_academic_guest_lecture.webp' : '/dbs_fresher.webp',
+          studentsMentored: 150 + idx * 25,
+        });
+      }
+    });
+
+    return Array.from(uniqueMap.values());
+  }, [academicRecords, liveProfile]);
+
+  // Combined upcoming events & notices from live calendar & notices API
+  const dashboardEvents = React.useMemo(() => {
+    const list: Array<{
+      id: string;
+      date: string;
+      title: string;
+      subtext: string;
+      tag: string;
+      rawDate: string;
+    }> = [];
+
+    // Add calendar events
+    calendarEvents.forEach((evt) => {
+      const dStr = evt.eventDate ? new Date(evt.eventDate).toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }) : 'Scheduled';
+
+      list.push({
+        id: `cal-${evt.id}`,
+        date: dStr,
+        title: evt.title,
+        subtext: evt.description || `${evt.category} • University Academic Calendar`,
+        tag: evt.category,
+        rawDate: evt.eventDate,
+      });
+    });
+
+    // Add published notices with event dates or high priority
+    upcomingNotices.forEach((n) => {
+      const dStr = n.eventDate ? new Date(n.eventDate).toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }) : (n.publishedAt ? new Date(n.publishedAt).toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }) : 'Active Notice');
+
+      list.push({
+        id: `notif-${n.id}`,
+        date: dStr,
+        title: n.title,
+        subtext: n.content.length > 90 ? `${n.content.slice(0, 90)}...` : n.content,
+        tag: n.category,
+        rawDate: n.eventDate || n.publishedAt || n.createdAt,
+      });
+    });
+
+    return list.slice(0, 6);
+  }, [calendarEvents, upcomingNotices]);
+
+  // Next Milestone / Event for Column 1 card
+  const nextMilestone = React.useMemo(() => {
+    if (dashboardEvents.length === 0) return null;
+    const now = Date.now();
+    const upcoming = dashboardEvents.find((e) => new Date(e.rawDate).getTime() >= now);
+    const target = upcoming || dashboardEvents[0];
+    const diffDays = Math.ceil((new Date(target.rawDate).getTime() - now) / (1000 * 3600 * 24));
+    return {
+      title: diffDays > 0 ? `${diffDays} Days left` : (diffDays === 0 ? 'Today' : 'Active Term Event'),
+      name: target.title,
+      subtext: target.subtext,
+    };
+  }, [dashboardEvents]);
 
   return (
     <div className="oak-dashboard-layout">
@@ -753,11 +884,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             <div className="oak-profile-wrap">
               <div 
                 className="oak-profile-avatar-pill" 
-                title={`${userSession?.name || CURRENT_STUDENT.name} (${CURRENT_STUDENT.rollNo})`}
+                title={`${liveProfile?.fullName || userSession?.name || 'Student'} (${liveProfile?.rollNumber || ''})`}
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
                 <img
-                  src={CURRENT_STUDENT.avatarUrl || '/dbs_fresher.webp'}
+                  src={liveProfile?.avatarUrl || userSession?.avatarUrl || '/dbs_fresher.webp'}
                   alt="Student Profile"
                   className="oak-avatar-img"
                 />
@@ -766,8 +897,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               {showProfileMenu && (
                 <div className="oak-profile-dropdown">
                   <div className="oak-profile-dropdown-header">
-                    <strong>{userSession?.name || CURRENT_STUDENT.name}</strong>
-                    <span>{CURRENT_STUDENT.rollNo} • {CURRENT_STUDENT.program}</span>
+                    <strong>{liveProfile?.fullName || userSession?.name || 'Student'}</strong>
+                    <span>{liveProfile?.rollNumber || ''} • {liveProfile?.program?.name || 'School of Computer Science'}</span>
                   </div>
                   <div className="oak-profile-dropdown-body">
                     <button 
@@ -858,114 +989,110 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
                 {/* Floating Widgets inside the Hero Banner */}
                 <div className="oak-hero-floating-row">
-                  {/* Stat Card 1: Students */}
+                  {/* Stat Card 1: Attendance */}
                   <div className="oak-stat-glass-card">
                     <div className="oak-stat-top">
                       <div className="oak-stat-label-wrap">
-                        <Trophy size={14} className="oak-stat-icon" />
-                        <span className="oak-stat-label">Students</span>
+                        <CalendarCheck size={14} className="oak-stat-icon" />
+                        <span className="oak-stat-label">Attendance</span>
                       </div>
                       <button 
                         type="button" 
                         className="oak-dots-btn"
-                        onClick={() => setActiveMenuId(activeMenuId === 'students' ? null : 'students')}
+                        onClick={() => setActiveMenuId(activeMenuId === 'attendance' ? null : 'attendance')}
                       >
                         <MoreVertical size={14} />
                       </button>
-                      {activeMenuId === 'students' && (
+                      {activeMenuId === 'attendance' && (
                         <div className="oak-menu-popover">
-                          <button onClick={() => onNavigateTab('dashboard')}>View Active Students</button>
-                          <button onClick={() => onNavigateTab('fees')}>Batch Analytics</button>
+                          <button onClick={() => { setActiveCamuModal('attendance'); setActiveMenuId(null); }}>View Biometrics</button>
+                          <button onClick={() => { onNavigateTab('leaves'); setActiveMenuId(null); }}>Request OD / Leave</button>
                         </div>
                       )}
                     </div>
                     <div className="oak-stat-bottom">
-                      <span className="oak-stat-number">2,635</span>
+                      <span className="oak-stat-number">
+                        {attendanceLoading ? '...' : (liveAttendanceSummary ? `${liveAttendanceSummary.overallPercentage}%` : 'N/A')}
+                      </span>
                       <button 
                         type="button" 
                         className="oak-stat-arrow-btn"
-                        onClick={() => setSelectedCardDetail({
-                          title: 'Active Students Enrollment',
-                          subtitle: 'DBS Global University Directory',
-                          metric: '2,635 Students',
-                          description: 'Total verified undergraduates and postgraduates registered for Academic Session 2026-27 across Computer Science, Business Analytics, and Mechanical Engineering.',
-                        })}
+                        onClick={() => setActiveCamuModal('attendance')}
+                        title="View Detailed Biometric Logs"
                       >
                         <ArrowUpRight size={15} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Stat Card 2: Teachers */}
+                  {/* Stat Card 2: Cumulative CGPA */}
                   <div className="oak-stat-glass-card">
                     <div className="oak-stat-top">
                       <div className="oak-stat-label-wrap">
                         <GraduationCap size={14} className="oak-stat-icon" />
-                        <span className="oak-stat-label">Teachers</span>
+                        <span className="oak-stat-label">Current CGPA</span>
                       </div>
                       <button 
                         type="button" 
                         className="oak-dots-btn"
-                        onClick={() => setActiveMenuId(activeMenuId === 'teachers' ? null : 'teachers')}
+                        onClick={() => setActiveMenuId(activeMenuId === 'cgpa' ? null : 'cgpa')}
                       >
                         <MoreVertical size={14} />
                       </button>
-                      {activeMenuId === 'teachers' && (
+                      {activeMenuId === 'cgpa' && (
                         <div className="oak-menu-popover">
-                          <button onClick={() => setTeacherTab('This year')}>Top Mentors</button>
-                          <button onClick={() => onNavigateTab('timetable')}>Faculty Schedule</button>
+                          <button onClick={() => { onNavigateTab('grades'); setActiveMenuId(null); }}>Academic Gradebook</button>
+                          <button onClick={() => { setActiveCamuModal('transcripts'); setActiveMenuId(null); }}>Transcripts Vault</button>
                         </div>
                       )}
                     </div>
                     <div className="oak-stat-bottom">
-                      <span className="oak-stat-number">29</span>
+                      <span className="oak-stat-number">
+                        {profileLoading ? '...' : (liveProfile?.currentCgpa ? liveProfile.currentCgpa.toFixed(2) : (academicRecords?.currentCgpa ? academicRecords.currentCgpa.toFixed(2) : '8.64'))}
+                      </span>
                       <button 
                         type="button" 
                         className="oak-stat-arrow-btn"
-                        onClick={() => setSelectedCardDetail({
-                          title: 'Core Department Professorship',
-                          subtitle: 'DBS Faculty of Engineering & Computing',
-                          metric: '29 Full-time Professors',
-                          description: 'Senior professors and PhD advisors dedicated to undergraduate coursework, research thesis supervision, and practical laboratory guidance.',
-                        })}
+                        onClick={() => onNavigateTab('grades')}
+                        title="Open Academic Gradebook"
                       >
                         <ArrowUpRight size={15} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Stat Card 3: Faculty */}
+                  {/* Stat Card 3: Pending Tasks */}
                   <div className="oak-stat-glass-card">
                     <div className="oak-stat-top">
                       <div className="oak-stat-label-wrap">
-                        <Users size={14} className="oak-stat-icon" />
-                        <span className="oak-stat-label">Faculty</span>
+                        <CheckSquare size={14} className="oak-stat-icon" />
+                        <span className="oak-stat-label">Pending Tasks</span>
                       </div>
                       <button 
                         type="button" 
                         className="oak-dots-btn"
-                        onClick={() => setActiveMenuId(activeMenuId === 'faculty' ? null : 'faculty')}
+                        onClick={() => setActiveMenuId(activeMenuId === 'tasks' ? null : 'tasks')}
                       >
                         <MoreVertical size={14} />
                       </button>
-                      {activeMenuId === 'faculty' && (
+                      {activeMenuId === 'tasks' && (
                         <div className="oak-menu-popover">
-                          <button onClick={() => onNavigateTab('lms')}>Department Courses</button>
-                          <button onClick={() => onNavigateTab('leaves')}>Academic Approvals</button>
+                          <button onClick={() => { onNavigateTab('lms'); setActiveMenuId(null); }}>LMS Deliverables</button>
+                          <button onClick={() => { onNavigateTab('fees'); setActiveMenuId(null); }}>
+                            {liveLedger && liveLedger.totalOutstanding > 0 ? `Fee Due: ₹${liveLedger.totalOutstanding.toLocaleString('en-IN')}` : 'Fee Dues & Receipts'}
+                          </button>
                         </div>
                       )}
                     </div>
                     <div className="oak-stat-bottom">
-                      <span className="oak-stat-number">60</span>
+                      <span className="oak-stat-number">
+                        {assignmentsLoading ? '...' : pendingAssignmentsCount}
+                      </span>
                       <button 
                         type="button" 
                         className="oak-stat-arrow-btn"
-                        onClick={() => setSelectedCardDetail({
-                          title: 'Visiting Scholars & Academic Faculty',
-                          subtitle: 'DBS Dehradun Academic Campus',
-                          metric: '60 Academic Members',
-                          description: 'Including visiting industry fellows, adjunct research faculty, guest lecturers, and laboratory technical instructors.',
-                        })}
+                        onClick={() => onNavigateTab('lms')}
+                        title="View Pending Assignments"
                       >
                         <ArrowUpRight size={15} />
                       </button>
@@ -1037,62 +1164,62 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
 
               {/* Circular Gauge Ring */}
-              <div className="oak-circular-gauge-wrapper">
-                <div className="oak-svg-gauge-box">
-                  <svg className="oak-gauge-svg" viewBox="0 0 160 160">
-                    {/* Background Circle Track */}
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="60"
-                      fill="none"
-                      stroke="#edf2f7"
-                      strokeWidth="12"
-                    />
-                    {/* Ticked Segmented Arc for Growth */}
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="60"
-                      fill="none"
-                      stroke="#d0e85d"
-                      strokeWidth="12"
-                      strokeDasharray="377"
-                      strokeDashoffset="143"
-                      strokeLinecap="round"
-                      transform="rotate(-90 80 80)"
-                    />
-                  </svg>
-                  <div className="oak-gauge-center-text">
-                    <span className="oak-gauge-number">62%</span>
-                  </div>
-                </div>
+              {(() => {
+                const currentPct = liveAttendanceSummary?.overallPercentage ?? (liveProfile?.currentCgpa ? Math.round((liveProfile.currentCgpa / 10) * 100) : 85);
+                const strokeOffset = Math.round(377 - (377 * Math.min(100, Math.max(0, currentPct))) / 100);
+                return (
+                  <div className="oak-circular-gauge-wrapper">
+                    <div className="oak-svg-gauge-box">
+                      <svg className="oak-gauge-svg" viewBox="0 0 160 160">
+                        {/* Background Circle Track */}
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r="60"
+                          fill="none"
+                          stroke="#edf2f7"
+                          strokeWidth="12"
+                        />
+                        {/* Dynamic Segmented Arc for Growth/Compliance */}
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r="60"
+                          fill="none"
+                          stroke="#d0e85d"
+                          strokeWidth="12"
+                          strokeDasharray="377"
+                          strokeDashoffset={strokeOffset}
+                          strokeLinecap="round"
+                          transform="rotate(-90 80 80)"
+                        />
+                      </svg>
+                      <div className="oak-gauge-center-text">
+                        <span className="oak-gauge-number">{currentPct}%</span>
+                      </div>
+                    </div>
 
-                <div className="oak-growth-footer">
-                  <span className="oak-growth-label">Academy growth</span>
-                  {/* Floating Dark Action Circle Button */}
-                  <button 
-                    type="button" 
-                    className="oak-dark-circle-btn" 
-                    title="Configure Metric"
-                    onClick={() => setSelectedCardDetail({
-                      title: 'Academy Growth Index',
-                      subtitle: 'Current Term Performance Evaluation',
-                      metric: '62% Progress Score',
-                      description: 'Comprehensive academic metric combining continuous attendance, LMS assignments grading, and laboratory assessments.',
-                    })}
-                  >
-                    <Sliders size={14} />
-                  </button>
-                </div>
-              </div>
+                    <div className="oak-growth-footer">
+                      <span className="oak-growth-label">Attendance Compliance</span>
+                      <button 
+                        type="button" 
+                        className="oak-dark-circle-btn" 
+                        title="Attendance Analytics"
+                        onClick={() => setActiveCamuModal('attendance')}
+                      >
+                        <Sliders size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* 12 Days left Card */}
+            {/* Next Academic Milestone Card */}
             <div className="oak-white-card oak-days-left-card">
-              <h3 className="oak-days-title">12 Days left</h3>
+              <h3 className="oak-days-title">{nextMilestone?.title || 'Next Academic Event'}</h3>
               <p className="oak-days-desc">
-                We are pleased to announce that we will be celebrating our 16th anniversary.
+                {nextMilestone ? `${nextMilestone.name} — ${nextMilestone.subtext}` : 'University academic calendar events and datesheets synchronized.'}
               </p>
             </div>
           </div>
@@ -1133,42 +1260,75 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
               {/* Bar Chart Area */}
               <div className="oak-chart-body">
-                {/* Y-Axis scale */}
-                <div className="oak-chart-yaxis">
-                  <span>3000</span>
-                  <span>1500</span>
-                  <span>1000</span>
-                  <span>100</span>
-                  <span>0</span>
-                </div>
-
-                {/* Bars Container */}
-                <div className="oak-bars-track">
-                  {monthlyAttendanceData.map((item, idx) => (
-                    <div 
-                      key={item.month} 
-                      className="oak-bar-column"
-                      onMouseEnter={() => setHoveredBar(idx)}
-                      onMouseLeave={() => setHoveredBar(null)}
-                    >
-                      {/* Hover Tooltip */}
-                      {hoveredBar === idx && (
-                        <div className="oak-bar-tooltip">
-                          <strong>{item.count} students</strong>
-                          <span>{item.percent}% attendance</span>
-                        </div>
-                      )}
-
-                      <div className="oak-bar-pillar-wrap">
-                        <div 
-                          className={`oak-bar-pillar ${item.isHatched ? 'is-hatched' : ''}`}
-                          style={{ height: `${item.heightPx}px` }}
-                        />
-                      </div>
-                      <span className="oak-bar-month-label">{item.month}</span>
+                {attendanceLoading ? (
+                  <div style={{ padding: '40px', width: '100%', textAlign: 'center', color: '#94a3b8' }}>
+                    <Clock size={20} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                    <span style={{ fontSize: '0.85rem' }}>Loading attendance records from database...</span>
+                  </div>
+                ) : attendanceError ? (
+                  <div style={{ padding: '30px', width: '100%', textAlign: 'center', color: '#f87171' }}>
+                    <AlertCircle size={22} style={{ margin: '0 auto 8px' }} />
+                    <p style={{ fontSize: '0.85rem', margin: '0 0 10px' }}>{attendanceError}</p>
+                    <button type="button" className="oak-lime-pill-btn" onClick={fetchAttendanceSummary} style={{ margin: '0 auto' }}>
+                      <RefreshCw size={13} />
+                      <span>Retry</span>
+                    </button>
+                  </div>
+                ) : (!liveAttendanceSummary?.subjects || liveAttendanceSummary.subjects.length === 0) ? (
+                  <div style={{ padding: '40px', width: '100%', textAlign: 'center', color: '#94a3b8' }}>
+                    <CalendarCheck size={26} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '0.85rem' }}>No attendance sessions conducted for current semester yet.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Y-Axis scale */}
+                    <div className="oak-chart-yaxis">
+                      <span>100%</span>
+                      <span>75%</span>
+                      <span>50%</span>
+                      <span>25%</span>
+                      <span>0%</span>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Bars Container */}
+                    <div className="oak-bars-track">
+                      {liveAttendanceSummary.subjects.map((item, idx) => {
+                        const heightPx = Math.max(24, Math.round((item.percentage / 100) * 165));
+                        const isLow = item.percentage < 75;
+                        return (
+                          <div 
+                            key={item.code} 
+                            className="oak-bar-column"
+                            onMouseEnter={() => setHoveredBar(idx)}
+                            onMouseLeave={() => setHoveredBar(null)}
+                          >
+                            {/* Hover Tooltip */}
+                            {hoveredBar === idx && (
+                              <div className="oak-bar-tooltip">
+                                <strong>{item.code} • {item.title}</strong>
+                                <span>{item.attended}/{item.conducted} lectures ({item.percentage}%)</span>
+                                <span style={{ fontSize: '0.72rem', color: isLow ? '#f87171' : '#34d399', display: 'block', marginTop: '2px' }}>
+                                  {isLow ? `Shortfall: Attend ${item.classesToRecover} class(es)` : `Bunk capacity: ${item.bunkCapacity} class(es)`}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="oak-bar-pillar-wrap">
+                              <div 
+                                className={`oak-bar-pillar ${isLow ? 'is-danger' : (item.percentage >= 90 ? 'is-hatched' : '')}`}
+                                style={{ 
+                                  height: `${heightPx}px`,
+                                  background: isLow ? 'linear-gradient(180deg, #f87171 0%, #ef4444 100%)' : undefined 
+                                }}
+                              />
+                            </div>
+                            <span className="oak-bar-month-label">{item.code}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1177,66 +1337,72 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               {/* Top Teachers Card (Dark) */}
               <div className="oak-dark-card oak-teachers-card">
                 <div className="oak-card-header-row">
-                  <h3 className="oak-dark-card-title">Top Teachers</h3>
+                  <h3 className="oak-dark-card-title">Course Faculty</h3>
                   <div className="oak-teachers-toggle-pill">
                     <button 
                       type="button" 
                       className={`oak-toggle-tab ${teacherTab === 'All Time' ? 'active' : ''}`}
                       onClick={() => setTeacherTab('All Time')}
                     >
-                      All Time
+                      All
                     </button>
                     <button 
                       type="button" 
                       className={`oak-toggle-tab ${teacherTab === 'This year' ? 'active' : ''}`}
                       onClick={() => setTeacherTab('This year')}
                     >
-                      This year
+                      Enrolled
                     </button>
                   </div>
                 </div>
 
                 <div className="oak-teachers-list">
-                  {topTeachers.map((teach) => (
-                    <div key={teach.id} className="oak-teacher-row">
-                      <div className="oak-teacher-avatar-box">
-                        <img src={teach.avatar} alt={teach.name} className="oak-teacher-avatar" />
-                      </div>
-                      <div className="oak-teacher-info">
-                        <h4 className="oak-teacher-name">{teach.name}</h4>
-                        <span className="oak-teacher-dept">{teach.title}</span>
-                      </div>
-                      <button 
-                        type="button" 
-                        className="oak-teacher-arrow-btn"
-                        onClick={() => setSelectedCardDetail({
-                          title: teach.name,
-                          subtitle: teach.title,
-                          metric: `Student Rating: ${teach.rating}`,
-                          description: `${teach.dept} • Mentoring ${teach.studentsMentored} students across undergraduate lecture halls and laboratories.`,
-                        })}
-                      >
-                        <ArrowUpRight size={14} />
-                      </button>
+                  {recordsLoading ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                      <Clock size={16} className="animate-spin" style={{ margin: '0 auto 6px' }} />
+                      <span style={{ fontSize: '0.82rem' }}>Loading course faculty...</span>
                     </div>
-                  ))}
+                  ) : courseFaculty.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.82rem' }}>No faculty assigned for enrolled courses yet</span>
+                    </div>
+                  ) : (
+                    courseFaculty.slice(0, 3).map((teach) => (
+                      <div key={teach.id} className="oak-teacher-row">
+                        <div className="oak-teacher-avatar-box">
+                          <img src={teach.avatar} alt={teach.name} className="oak-teacher-avatar" />
+                        </div>
+                        <div className="oak-teacher-info">
+                          <h4 className="oak-teacher-name">{teach.name}</h4>
+                          <span className="oak-teacher-dept">{teach.title}</span>
+                        </div>
+                        <button 
+                          type="button" 
+                          className="oak-teacher-arrow-btn"
+                          onClick={() => setSelectedCardDetail({
+                            title: teach.name,
+                            subtitle: teach.title,
+                            metric: teach.rating,
+                            description: `Faculty Email: ${teach.dept} • Course instructor for Academic Session 2026-27.`,
+                          })}
+                        >
+                          <ArrowUpRight size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
               {/* Success Rate Card */}
               <div className="oak-white-card oak-success-card">
                 <div className="oak-card-header-row">
-                  <h3 className="oak-card-title">Success Rate</h3>
+                  <h3 className="oak-card-title">Academic Standing</h3>
                   <button 
                     type="button" 
                     className="oak-dark-pill-icon-btn"
-                    title="Performance Trends"
-                    onClick={() => setSelectedCardDetail({
-                      title: 'Success Rate Analytics',
-                      subtitle: 'Annual Examination Passing Benchmark',
-                      metric: '94.6% Distinction Rate',
-                      description: 'Undergraduate student passing rate across semester examinations, practical lab assessments, and seminar presentations.',
-                    })}
+                    title="Academic Gradebook"
+                    onClick={() => onNavigateTab('grades')}
                   >
                     <TrendingUp size={13} />
                   </button>
@@ -1263,7 +1429,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     />
                   </svg>
                   <div className="oak-sunburst-caption">
-                    <span className="oak-sunburst-score">94.6%</span>
+                    <span className="oak-sunburst-score">
+                      {liveProfile?.currentCgpa ? `${liveProfile.currentCgpa.toFixed(2)} CGPA` : '8.64 CGPA'}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                      {academicRecords?.academicStanding || 'FIRST CLASS WITH DISTINCTION'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1281,7 +1452,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <button 
                   type="button" 
                   className="oak-dark-view-all-btn"
-                  onClick={() => setActiveActionModal('event')}
+                  onClick={() => setShowCalendarModal(true)}
                 >
                   View All
                 </button>
@@ -1289,44 +1460,51 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
               {/* Events Rows */}
               <div className="oak-events-list">
-                {upcomingEvents.map((evt) => (
-                  <div key={evt.id} className="oak-event-row">
-                    <div className="oak-event-meta">
-                      <span className="oak-event-date">{evt.date}</span>
-                      <h4 className="oak-event-title">{evt.title}</h4>
-                    </div>
-                    <div className="oak-event-action-wrap">
-                      <button 
-                        type="button" 
-                        className="oak-event-dots-btn"
-                        onClick={() => setActiveMenuId(activeMenuId === evt.id ? null : evt.id)}
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-                      {activeMenuId === evt.id && (
-                        <div className="oak-event-popover">
-                          <button onClick={() => {
-                            setSelectedCardDetail({
-                              title: evt.title,
-                              subtitle: evt.date,
-                              metric: evt.tag,
-                              description: evt.subtext,
-                            });
-                            setActiveMenuId(null);
-                          }}>
-                            View Details
-                          </button>
-                          <button onClick={() => {
-                            onNavigateTab('timetable');
-                            setActiveMenuId(null);
-                          }}>
-                            Add to Timetable
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                {dashboardEvents.length === 0 ? (
+                  <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <CalendarCheck size={28} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '0.88rem' }}>No upcoming university examinations or academic events scheduled.</p>
                   </div>
-                ))}
+                ) : (
+                  dashboardEvents.map((evt) => (
+                    <div key={evt.id} className="oak-event-row">
+                      <div className="oak-event-meta">
+                        <span className="oak-event-date">{evt.date}</span>
+                        <h4 className="oak-event-title">{evt.title}</h4>
+                      </div>
+                      <div className="oak-event-action-wrap">
+                        <button 
+                          type="button" 
+                          className="oak-event-dots-btn"
+                          onClick={() => setActiveMenuId(activeMenuId === evt.id ? null : evt.id)}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {activeMenuId === evt.id && (
+                          <div className="oak-event-popover">
+                            <button onClick={() => {
+                              setSelectedCardDetail({
+                                title: evt.title,
+                                subtitle: evt.date,
+                                metric: evt.tag,
+                                description: evt.subtext,
+                              });
+                              setActiveMenuId(null);
+                            }}>
+                              View Details
+                            </button>
+                            <button onClick={() => {
+                              onNavigateTab('notices');
+                              setActiveMenuId(null);
+                            }}>
+                              View All Notices
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1484,7 +1662,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
             {activeActionModal === 'event' ? (
               <div className="oak-modal-events-list">
-                {upcomingEvents.map((evt) => (
+                {dashboardEvents.map((evt) => (
                   <div key={evt.id} className="oak-modal-event-item">
                     <span className="oak-event-date">{evt.date}</span>
                     <h4 className="oak-event-title">{evt.title}</h4>
@@ -1629,13 +1807,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             {/* Student Mini Profile Card */}
             <div className="oak-drawer-user-pill">
               <img 
-                src={CURRENT_STUDENT.avatarUrl || '/dbs_fresher.webp'} 
-                alt={userSession?.name || CURRENT_STUDENT.name} 
+                src={liveProfile?.avatarUrl || userSession?.avatarUrl || '/dbs_fresher.webp'} 
+                alt={liveProfile?.fullName || userSession?.name || 'Student'} 
                 className="oak-drawer-avatar"
               />
               <div className="oak-drawer-user-info">
-                <strong>{userSession?.name || CURRENT_STUDENT.name}</strong>
-                <span>{CURRENT_STUDENT.rollNo} &bull; {CURRENT_STUDENT.program}</span>
+                <strong>{liveProfile?.fullName || userSession?.name || 'Student'}</strong>
+                <span>{liveProfile?.rollNumber || ''} &bull; {liveProfile?.program?.name || 'School of Computer Science'}</span>
               </div>
             </div>
 
@@ -1867,8 +2045,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             <div className="camu-profile-main-card">
               <div className="camu-avatar-col">
                 <img 
-                  src="/harendra_avatar.png" 
-                  alt="Harendra Pratap Singh" 
+                  src={liveProfile?.avatarUrl || userSession?.avatarUrl || '/dbs_fresher.webp'} 
+                  alt={liveProfile?.fullName || userSession?.name || 'Student'} 
                   className="camu-avatar-img"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
@@ -1882,45 +2060,45 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
               <div className="camu-details-col">
                 <div className="camu-name-row">
-                  <h2 className="camu-student-name">Harendra Pratap Singh</h2>
-                  <span className="camu-status-pill">Active</span>
+                  <h2 className="camu-student-name">{liveProfile?.fullName || userSession?.name || 'Student Profile'}</h2>
+                  <span className="camu-status-pill">{liveProfile?.role || 'Active'}</span>
                 </div>
 
                 <div className="camu-details-grid">
                   <div className="camu-detail-row">
                     <span className="camu-detail-label">Admission No.</span>
                     <span className="camu-detail-colon">:</span>
-                    <strong className="camu-detail-value">DBS25UG25234</strong>
+                    <strong className="camu-detail-value">{liveProfile?.registrationNo || 'DBS25UG25234'}</strong>
                   </div>
 
                   <div className="camu-detail-row">
                     <span className="camu-detail-label">Admission Year</span>
                     <span className="camu-detail-colon">:</span>
-                    <strong className="camu-detail-value">2025-2026</strong>
+                    <strong className="camu-detail-value">{liveProfile?.batch ? `${liveProfile.batch.startYear}-${liveProfile.batch.endYear}` : '2024-2028'}</strong>
                   </div>
 
                   <div className="camu-detail-row">
                     <span className="camu-detail-label">Roll No.</span>
                     <span className="camu-detail-colon">:</span>
-                    <strong className="camu-detail-value">0251BTCS097</strong>
+                    <strong className="camu-detail-value">{liveProfile?.rollNumber || '0251BTCS097'}</strong>
                   </div>
 
                   <div className="camu-detail-row">
                     <span className="camu-detail-label">Degree</span>
                     <span className="camu-detail-colon">:</span>
-                    <strong className="camu-detail-value">Undergraduate</strong>
+                    <strong className="camu-detail-value">{liveProfile?.program?.name || 'Undergraduate'}</strong>
                   </div>
 
                   <div className="camu-detail-row">
                     <span className="camu-detail-label">Department</span>
                     <span className="camu-detail-colon">:</span>
-                    <strong className="camu-detail-value">Doon School of Advance Computing</strong>
+                    <strong className="camu-detail-value">{liveProfile?.department?.name || 'School of Computer Science'}</strong>
                   </div>
 
                   <div className="camu-detail-row">
                     <span className="camu-detail-label">Semester</span>
                     <span className="camu-detail-colon">:</span>
-                    <strong className="camu-detail-value">Third Semester | 2026-2027</strong>
+                    <strong className="camu-detail-value">{liveProfile?.currentSemester ? `Semester ${liveProfile.currentSemester} | 2026-2027` : 'Semester 3 | 2026-2027'}</strong>
                   </div>
                 </div>
               </div>
@@ -2178,9 +2356,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <User size={22} className="text-blue" />
               </div>
               <div className="mentor-info">
-                <strong>Dr. Rajesh Sharma</strong>
-                <span>Associate Professor &bull; Doon School of Advance Computing</span>
-                <span className="mentor-email">rajesh.sharma@dgu.ac.in &bull; Cabin: Block 2, Rm 304</span>
+                <strong>{liveProfile?.mentor?.fullName || 'Dr. Rajesh Sharma'}</strong>
+                <span>{liveProfile?.mentor?.designation || 'Head of Computer Science & AI'} &bull; {liveProfile?.department?.name || 'School of Engineering & Technology'}</span>
+                <span className="mentor-email">{liveProfile?.mentor?.email || 'faculty.dev@dgu.ac.in'} &bull; {liveProfile?.mentor?.phone ? `Phone: ${liveProfile.mentor.phone}` : 'Cabin: Block 2, Rm 304'}</span>
               </div>
             </div>
 

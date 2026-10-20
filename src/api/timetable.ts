@@ -64,4 +64,40 @@ export const timetableApi = {
     }
     return res.data.slot;
   },
+
+  /**
+   * Derives unique assigned course offerings from faculty timetable schedule
+   */
+  async getFacultyAssignedCourses(): Promise<Array<{
+    courseOfferingId: string;
+    courseCode: string;
+    courseTitle: string;
+    sectionName?: string;
+  }>> {
+    const scheduleData = await this.getFacultySchedule();
+    const coursesMap = new Map<string, {
+      courseOfferingId: string;
+      courseCode: string;
+      courseTitle: string;
+      sectionName?: string;
+    }>();
+
+    if ('schedule' in scheduleData && typeof scheduleData.schedule === 'object') {
+      const weekly = scheduleData as WeeklyScheduleDTO;
+      for (const day of Object.keys(weekly.schedule)) {
+        const slots = weekly.schedule[day as keyof typeof weekly.schedule] || [];
+        for (const slot of slots) {
+          if (slot.courseOfferingId && !coursesMap.has(slot.courseOfferingId)) {
+            coursesMap.set(slot.courseOfferingId, {
+              courseOfferingId: slot.courseOfferingId,
+              courseCode: slot.courseCode,
+              courseTitle: slot.courseTitle,
+              sectionName: slot.sectionName,
+            });
+          }
+        }
+      }
+    }
+    return Array.from(coursesMap.values());
+  },
 };
