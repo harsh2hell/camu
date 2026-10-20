@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { prisma } from '../lib/prisma.js';
 import { financeRepository } from '../repositories/finance.repository.js';
 import { config, getHistoricalReceiptKeys } from '../config/env.js';
 import {
@@ -106,6 +107,33 @@ export class FinanceService {
    */
   async getStudentLedger(studentId: string): Promise<StudentFeeLedgerDTO> {
     return financeRepository.getStudentLedger(studentId);
+  }
+
+  /**
+   * Admin / Accounts: Lookup any student's fee ledger by userId, profileId, or rollNumber
+   */
+  async getStudentLedgerForAdmin(studentIdentifier: string): Promise<StudentFeeLedgerDTO> {
+    let targetUserId = studentIdentifier;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdentifier);
+    
+    if (!isUuid) {
+      const profile = await prisma.studentProfile.findFirst({
+        where: { rollNumber: studentIdentifier },
+      });
+      if (!profile) {
+        throw new NotFoundError(`Student profile not found for identifier '${studentIdentifier}'.`);
+      }
+      targetUserId = profile.userId;
+    } else {
+      const profile = await prisma.studentProfile.findUnique({
+        where: { id: studentIdentifier },
+      });
+      if (profile) {
+        targetUserId = profile.userId;
+      }
+    }
+
+    return financeRepository.getStudentLedger(targetUserId);
   }
 
   /**

@@ -12,10 +12,36 @@ import { FinanceAdminView } from './components/FinanceAdminView';
 import { FacultyNoticeManagerView } from './components/FacultyNoticeManagerView';
 import { FacultyStudentRecordsView } from './components/FacultyStudentRecordsView';
 import { StaffHelpdeskView } from './components/StaffHelpdeskView';
+import { AdmissionsWorkspaceView } from './components/AdmissionsWorkspaceView';
+import { AcademicAdminWorkspaceView } from './components/AcademicAdminWorkspaceView';
+import { DepartmentLeadershipView } from './components/DepartmentLeadershipView';
+import { SuperAdminWorkspaceView } from './components/SuperAdminWorkspaceView';
 import { authApi, type UserSession } from './api/auth';
 import { ShieldAlert, ShieldCheck, Lock, LogOut, ArrowLeft } from 'lucide-react';
 
 type PortalView = 'choice' | 'student-login' | 'teacher-login';
+
+function getDefaultTabForRole(role?: string): string {
+  switch (role) {
+    case 'ADMISSIONS_OFFICER':
+      return 'admissions';
+    case 'FINANCE_OFFICER':
+      return 'finance-admin';
+    case 'REGISTRAR_ADMIN':
+      return 'academic-admin';
+    case 'HOD':
+    case 'DEAN':
+      return 'department-leadership';
+    case 'IT_SUPPORT':
+      return 'support-desk';
+    case 'SUPER_ADMIN':
+      return 'super-admin';
+    case 'STUDENT':
+      return 'dashboard';
+    default:
+      return 'faculty-attendance';
+  }
+}
 
 function isTeacherAttempt(): boolean {
   const hostname = window.location.hostname.toLowerCase();
@@ -154,12 +180,12 @@ export function App() {
         } else {
           setPortalView('student-login');
         }
-      } else if (existing.role === 'FACULTY' || existing.role === 'REGISTRAR_ADMIN') {
-        // Authenticated as Faculty or Registrar Admin
+      } else {
+        // Authenticated as Faculty or Administrative staff
         setSession(existing);
         setCurrentRole('FACULTY');
         setPortalView('teacher-login');
-        setActiveTab(existing.role === 'REGISTRAR_ADMIN' ? 'finance-admin' : 'faculty-attendance');
+        setActiveTab(getDefaultTabForRole(existing.role));
       }
     } else {
       // Unauthenticated visitor
@@ -246,12 +272,12 @@ export function App() {
 
   const handleLoginSuccess = (newSession: UserSession) => {
     setSession(newSession);
-    const isStaffOrAdmin = newSession.role === 'FACULTY' || newSession.role === 'REGISTRAR_ADMIN';
+    const isStaffOrAdmin = newSession.role !== 'STUDENT';
     const role = isStaffOrAdmin ? 'FACULTY' : 'STUDENT';
     setCurrentRole(role);
     localStorage.setItem('dbs_portal_mode', isStaffOrAdmin ? 'teacher' : 'student');
     localStorage.setItem('dbs_last_user_role', role);
-    setActiveTab(newSession.role === 'REGISTRAR_ADMIN' ? 'finance-admin' : (isStaffOrAdmin ? 'faculty-attendance' : 'dashboard'));
+    setActiveTab(getDefaultTabForRole(newSession.role));
     setShowSecurityChallenge(false);
 
     if (role === 'STUDENT') {
@@ -454,6 +480,10 @@ export function App() {
             {(activeTab === 'campus-notices' || activeTab === 'notices') && <FacultyNoticeManagerView />}
             {activeTab === 'student-records' && <FacultyStudentRecordsView />}
             {activeTab === 'support-desk' && <StaffHelpdeskView />}
+            {activeTab === 'admissions' && <AdmissionsWorkspaceView />}
+            {activeTab === 'academic-admin' && <AcademicAdminWorkspaceView />}
+            {activeTab === 'department-leadership' && <DepartmentLeadershipView />}
+            {activeTab === 'super-admin' && <SuperAdminWorkspaceView />}
           </>
         )}
       </main>

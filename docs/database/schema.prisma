@@ -17,8 +17,28 @@ enum UserRole {
   DEAN
   REGISTRAR_ADMIN
   EXAM_CONTROLLER
+  ADMISSIONS_OFFICER
+  FINANCE_OFFICER
+  IT_SUPPORT
+  SUPER_ADMIN
 
   @@map("user_role")
+}
+
+enum AdmissionApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  OFFER_MADE
+  OFFER_EXTENDED
+  OFFER_ACCEPTED
+  ADMITTED
+  ENROLLED
+  REJECTED
+  WITHDRAWN
+
+  @@map("admission_application_status")
 }
 
 enum AttendanceStatus {
@@ -111,6 +131,7 @@ model Program {
   degreeLevel        String     @map("degree_level")
   batches            Batch[]
   notices            Notice[]
+  admissionApplications AdmissionApplication[]
   createdAt          DateTime   @default(now()) @map("created_at")
 
   @@map("programs")
@@ -194,6 +215,12 @@ model User {
   ticketMessages       TicketMessage[]     @relation("TicketMessageSender")
   ticketAudits         TicketAuditLog[]    @relation("TicketAuditActor")
   notifications        Notification[]      @relation("UserNotifications")
+  decidedApplications  AdmissionApplication[] @relation("ApplicationDecidedBy")
+  performedAdmissionAudits AdmissionAuditLog[] @relation("AdmissionAudits")
+  targetUserAudits     UserAuditLog[]      @relation("TargetUserAudits")
+  performedUserAudits  UserAuditLog[]      @relation("PerformedUserAudits")
+  performedAcademicCorrections AcademicCorrectionLog[] @relation("PerformedAcademicCorrections")
+  studentAcademicCorrections   AcademicCorrectionLog[] @relation("StudentAcademicCorrections")
 
   @@map("users")
 }
@@ -223,6 +250,7 @@ model StudentProfile {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime?         @default(now()) @map("updated_at")
   auditLogs        ProfileAuditLog[]
+  admissionApplication AdmissionApplication?
 
   @@map("student_profiles")
 }
@@ -800,4 +828,87 @@ model Notification {
   @@index([type])
   @@map("notifications")
 }
+
+model AdmissionApplication {
+  id                       String                     @id @default(uuid())
+  applicationNumber        String                     @unique @map("application_number")
+  fullName                 String                     @map("full_name")
+  email                    String
+  phone                    String
+  dateOfBirth              DateTime                   @map("date_of_birth")
+  gender                   String?
+  programId                String                     @map("program_id")
+  program                  Program                    @relation(fields: [programId], references: [id])
+  academicYear             String                     @map("academic_year")
+  status                   AdmissionApplicationStatus @default(SUBMITTED)
+  entranceExamScore        Decimal?                   @map("entrance_exam_score") @db.Decimal(6, 2)
+  previousEducation        Json?                      @map("previous_education")
+  documentsChecklist       Json?                      @map("documents_checklist")
+  reviewNotes              String?                    @map("review_notes")
+  decisionReason           String?                    @map("decision_reason")
+  decidedById              String?                    @map("decided_by_id")
+  decidedBy                User?                      @relation("ApplicationDecidedBy", fields: [decidedById], references: [id])
+  decidedAt                DateTime?                  @map("decided_at")
+  offerLetterUrl           String?                    @map("offer_letter_url")
+  enrolledStudentProfileId String?                    @unique @map("enrolled_student_profile_id")
+  enrolledStudentProfile   StudentProfile?            @relation(fields: [enrolledStudentProfileId], references: [id])
+  enrolledAt               DateTime?                  @map("enrolled_at")
+  auditLogs                AdmissionAuditLog[]
+  createdAt                DateTime                   @default(now()) @map("created_at")
+  updatedAt                DateTime                   @updatedAt @default(now()) @map("updated_at")
+
+  @@map("admission_applications")
+}
+
+model AdmissionAuditLog {
+  id             String               @id @default(uuid())
+  applicationId  String               @map("application_id")
+  application    AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  action         String
+  previousStatus String?              @map("previous_status")
+  newStatus      String               @map("new_status")
+  performedById  String               @map("performed_by_id")
+  performedBy    User                 @relation("AdmissionAudits", fields: [performedById], references: [id])
+  reason         String?
+  details        Json?
+  ipAddress      String?              @map("ip_address")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  @@map("admission_audit_logs")
+}
+
+model UserAuditLog {
+  id             String   @id @default(uuid())
+  targetUserId   String   @map("target_user_id")
+  targetUser     User     @relation("TargetUserAudits", fields: [targetUserId], references: [id], onDelete: Cascade)
+  performedById  String   @map("performed_by_id")
+  performedBy    User     @relation("PerformedUserAudits", fields: [performedById], references: [id])
+  action         String
+  previousRole   String?  @map("previous_role")
+  newRole        String?  @map("new_role")
+  details        Json?
+  ipAddress      String?  @map("ip_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("user_audit_logs")
+}
+
+model AcademicCorrectionLog {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  student        User     @relation("StudentAcademicCorrections", fields: [studentId], references: [id])
+  performedById  String   @map("performed_by_id")
+  performedBy    User     @relation("PerformedAcademicCorrections", fields: [performedById], references: [id])
+  targetEntity   String   @map("target_entity")
+  entityId       String   @map("entity_id")
+  reason         String
+  previousState  Json     @map("previous_state")
+  newState       Json     @map("new_state")
+  approvalRef    String?  @map("approval_ref")
+  ipAddress      String?  @map("ip_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("academic_correction_logs")
+}
+
 

@@ -4,7 +4,19 @@ import type { UserRole } from '@prisma/client';
 export const loginSchema = z.object({
   identifier: z.string().trim().min(1, 'Email, Roll number, or Employee ID is required'),
   password: z.string().min(1, 'Password is required'),
-  expectedRole: z.enum(['STUDENT', 'FACULTY', 'ADMIN', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER']).optional(),
+  expectedRole: z.enum([
+    'STUDENT',
+    'FACULTY',
+    'ADMIN',
+    'HOD',
+    'DEAN',
+    'REGISTRAR_ADMIN',
+    'EXAM_CONTROLLER',
+    'ADMISSIONS_OFFICER',
+    'FINANCE_OFFICER',
+    'IT_SUPPORT',
+    'SUPER_ADMIN',
+  ]).optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

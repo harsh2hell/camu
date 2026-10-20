@@ -11,7 +11,8 @@ import {
   BookOpen,
   Sparkles,
   Users,
-  LifeBuoy
+  LifeBuoy,
+  GraduationCap
 } from 'lucide-react';
 import type { UserSession } from '../api/auth';
 import { NotificationCenter } from './NotificationCenter';
@@ -81,77 +82,118 @@ export const Navbar: React.FC<NavbarProps> = ({
         <nav className="dbs-nav-tabs" aria-label="Portal Navigation">
           {isFaculty ? (
             <>
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'faculty-attendance' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('faculty-attendance')}
-              >
-                <CheckCircle2 size={16} className="tab-icon" />
-                <span>Attendance Marker</span>
-              </button>
+              {/* Faculty & Academic Operations */}
+              {(userSession?.role === 'FACULTY' || !userSession?.role || userSession?.role === 'HOD' || userSession?.role === 'DEAN') && (
+                <>
+                  <button
+                    type="button"
+                    className={`dbs-tab-btn ${activeTab === 'faculty-attendance' ? 'tab-active' : ''}`}
+                    onClick={() => onTabChange('faculty-attendance')}
+                  >
+                    <CheckCircle2 size={16} className="tab-icon" />
+                    <span>Attendance Marker</span>
+                  </button>
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'defaulters' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('defaulters')}
-              >
-                <FileText size={16} className="tab-icon" />
-                <span>Defaulters List</span>
-              </button>
+                  <button
+                    type="button"
+                    className={`dbs-tab-btn ${activeTab === 'defaulters' ? 'tab-active' : ''}`}
+                    onClick={() => onTabChange('defaulters')}
+                  >
+                    <FileText size={16} className="tab-icon" />
+                    <span>Defaulters List</span>
+                  </button>
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'faculty-assignments' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('faculty-assignments')}
-              >
-                <BookOpen size={16} className="tab-icon" />
-                <span>Course Assignments &amp; LMS</span>
-              </button>
+                  <button
+                    type="button"
+                    className={`dbs-tab-btn ${activeTab === 'faculty-assignments' ? 'tab-active' : ''}`}
+                    onClick={() => onTabChange('faculty-assignments')}
+                  >
+                    <BookOpen size={16} className="tab-icon" />
+                    <span>Course LMS</span>
+                  </button>
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'od-approvals' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('od-approvals')}
-              >
-                <Award size={16} className="tab-icon" />
-                <span>OD Approvals</span>
-              </button>
+                  <button
+                    type="button"
+                    className={`dbs-tab-btn ${activeTab === 'od-approvals' ? 'tab-active' : ''}`}
+                    onClick={() => onTabChange('od-approvals')}
+                  >
+                    <Award size={16} className="tab-icon" />
+                    <span>OD Approvals</span>
+                  </button>
+                </>
+              )}
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'finance-admin' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('finance-admin')}
-              >
-                <Receipt size={16} className="tab-icon" />
-                <span>Finance &amp; Fees</span>
-              </button>
+              {/* HOD / Dean Department Leadership */}
+              {(userSession?.role === 'HOD' || userSession?.role === 'DEAN' || userSession?.role === 'REGISTRAR_ADMIN' || userSession?.role === 'SUPER_ADMIN') && (
+                <button
+                  type="button"
+                  className={`dbs-tab-btn ${activeTab === 'department-leadership' ? 'tab-active' : ''}`}
+                  onClick={() => onTabChange('department-leadership')}
+                >
+                  <Users size={16} className="tab-icon" />
+                  <span>Dept Leadership</span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'campus-notices' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('campus-notices')}
-              >
-                <Bell size={16} className="tab-icon" />
-                <span>Notice Manager</span>
-              </button>
+              {/* Admissions Office */}
+              {(userSession?.role === 'ADMISSIONS_OFFICER' || userSession?.role === 'REGISTRAR_ADMIN' || userSession?.role === 'SUPER_ADMIN') && (
+                <button
+                  type="button"
+                  className={`dbs-tab-btn ${activeTab === 'admissions' ? 'tab-active' : ''}`}
+                  onClick={() => onTabChange('admissions')}
+                >
+                  <GraduationCap size={16} className="tab-icon" />
+                  <span>Admissions</span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'student-records' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('student-records')}
-              >
-                <Users size={16} className="tab-icon" />
-                <span>Mentorship &amp; Records</span>
-              </button>
+              {/* Finance & Accounts */}
+              {(userSession?.role === 'FINANCE_OFFICER' || userSession?.role === 'REGISTRAR_ADMIN' || userSession?.role === 'SUPER_ADMIN') && (
+                <button
+                  type="button"
+                  className={`dbs-tab-btn ${activeTab === 'finance-admin' ? 'tab-active' : ''}`}
+                  onClick={() => onTabChange('finance-admin')}
+                >
+                  <Receipt size={16} className="tab-icon" />
+                  <span>Finance &amp; Ledger</span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                className={`dbs-tab-btn ${activeTab === 'support-desk' ? 'tab-active' : ''}`}
-                onClick={() => onTabChange('support-desk')}
-              >
-                <LifeBuoy size={16} className="tab-icon" />
-                <span>Helpdesk Queues</span>
-              </button>
+              {/* Academic Admin & Registrar */}
+              {(userSession?.role === 'REGISTRAR_ADMIN' || userSession?.role === 'SUPER_ADMIN') && (
+                <button
+                  type="button"
+                  className={`dbs-tab-btn ${activeTab === 'academic-admin' ? 'tab-active' : ''}`}
+                  onClick={() => onTabChange('academic-admin')}
+                >
+                  <BookOpen size={16} className="tab-icon" />
+                  <span>Academic Admin</span>
+                </button>
+              )}
+
+              {/* Helpdesk & IT Support */}
+              {(userSession?.role === 'IT_SUPPORT' || userSession?.role === 'FACULTY' || userSession?.role === 'HOD' || userSession?.role === 'DEAN' || userSession?.role === 'REGISTRAR_ADMIN' || userSession?.role === 'SUPER_ADMIN') && (
+                <button
+                  type="button"
+                  className={`dbs-tab-btn ${activeTab === 'support-desk' ? 'tab-active' : ''}`}
+                  onClick={() => onTabChange('support-desk')}
+                >
+                  <LifeBuoy size={16} className="tab-icon" />
+                  <span>Helpdesk Queue</span>
+                </button>
+              )}
+
+              {/* Super Admin Central Governance */}
+              {userSession?.role === 'SUPER_ADMIN' && (
+                <button
+                  type="button"
+                  className={`dbs-tab-btn ${activeTab === 'super-admin' ? 'tab-active' : ''}`}
+                  onClick={() => onTabChange('super-admin')}
+                >
+                  <Award size={16} className="tab-icon" />
+                  <span>Central Governance</span>
+                </button>
+              )}
             </>
           ) : (
             <>

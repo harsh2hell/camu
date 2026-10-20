@@ -10,6 +10,7 @@ import {
   initiatePaymentSchema,
   invoiceIdParamSchema,
   receiptIdParamSchema,
+  studentIdParamSchema,
   studentInvoicesQuerySchema,
   adminInvoicesQuerySchema,
   adminTransactionsQuerySchema,
@@ -60,7 +61,7 @@ financeRouter.get(
 financeRouter.get(
   '/student/receipts/:id',
   requireAuth,
-  requireRole('STUDENT', 'REGISTRAR_ADMIN'),
+  requireRole('STUDENT', 'REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ params: receiptIdParamSchema }),
   (req, res, next) => financeController.getStudentReceipt(req, res, next)
 );
@@ -91,14 +92,23 @@ financeRouter.post(
 
 // ==========================================
 // Finance Administration Endpoints
-// Restricted to REGISTRAR_ADMIN role only
+// Restricted to REGISTRAR_ADMIN, FINANCE_OFFICER, and SUPER_ADMIN
 // ==========================================
+
+// Lookup any student's authoritative fee ledger & dues status
+financeRouter.get(
+  '/admin/students/:studentId/ledger',
+  requireAuth,
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
+  validate({ params: studentIdParamSchema }),
+  (req, res, next) => financeController.getAdminStudentLedger(req, res, next)
+);
 
 // Create and issue new fee invoice with line items
 financeRouter.post(
   '/admin/invoices',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ body: createInvoiceSchema }),
   (req, res, next) => financeController.createInvoice(req, res, next)
 );
@@ -107,7 +117,7 @@ financeRouter.post(
 financeRouter.patch(
   '/admin/invoices/:id/adjust',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ params: invoiceIdParamSchema, body: adjustInvoiceSchema }),
   (req, res, next) => financeController.adjustInvoice(req, res, next)
 );
@@ -116,7 +126,7 @@ financeRouter.patch(
 financeRouter.post(
   '/admin/invoices/:id/cancel',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ params: invoiceIdParamSchema, body: cancelInvoiceSchema }),
   (req, res, next) => financeController.cancelInvoice(req, res, next)
 );
@@ -125,7 +135,7 @@ financeRouter.post(
 financeRouter.post(
   '/admin/reconcile',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ body: reconcilePaymentSchema }),
   (req, res, next) => financeController.reconcilePayment(req, res, next)
 );
@@ -134,7 +144,7 @@ financeRouter.post(
 financeRouter.get(
   '/admin/invoices',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ query: adminInvoicesQuerySchema }),
   (req, res, next) => financeController.listAdminInvoices(req, res, next)
 );
@@ -143,7 +153,7 @@ financeRouter.get(
 financeRouter.get(
   '/admin/invoices/:id',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ params: invoiceIdParamSchema }),
   (req, res, next) => financeController.getAdminInvoiceDetails(req, res, next)
 );
@@ -152,7 +162,7 @@ financeRouter.get(
 financeRouter.get(
   '/admin/transactions',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   validate({ query: adminTransactionsQuerySchema }),
   (req, res, next) => financeController.listAdminTransactions(req, res, next)
 );
@@ -161,6 +171,6 @@ financeRouter.get(
 financeRouter.get(
   '/admin/audit-logs',
   requireAuth,
-  requireRole('REGISTRAR_ADMIN'),
+  requireRole('REGISTRAR_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'),
   (req, res, next) => financeController.listAdminAuditLogs(req, res, next)
 );

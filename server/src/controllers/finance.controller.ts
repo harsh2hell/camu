@@ -338,6 +338,24 @@ export class FinanceController {
       next(err);
     }
   }
+
+  /**
+   * GET /api/finance/admin/students/:studentId/ledger
+   * Retrieve ledger and invoice summary for any student (Admin view)
+   */
+  async getAdminStudentLedger(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('Authentication required');
+      const studentId = String(req.params.studentId);
+      const ledger = await financeService.getStudentLedgerForAdmin(studentId);
+      res.status(200).json({
+        status: 'success',
+        data: ledger,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const financeController = new FinanceController();

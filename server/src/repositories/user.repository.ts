@@ -33,10 +33,16 @@ export interface UserWithPassword {
 export const DEV_STUDENT_USER_ID = 'a0000000-0000-4000-8000-000000000001';
 export const DEV_FACULTY_USER_ID = 'a0000000-0000-4000-8000-000000000002';
 export const DEV_ADMIN_USER_ID = 'a0000000-0000-4000-8000-000000000099';
+export const DEV_ADMISSIONS_USER_ID = 'a0000000-0000-4000-8000-000000000051';
+export const DEV_FINANCE_USER_ID = 'a0000000-0000-4000-8000-000000000052';
+export const DEV_IT_USER_ID = 'a0000000-0000-4000-8000-000000000053';
+export const DEV_HOD_USER_ID = 'a0000000-0000-4000-8000-000000000054';
+export const DEV_SUPERADMIN_USER_ID = 'a0000000-0000-4000-8000-000000000055';
 
 const DEV_STUDENT_HASH = await passwordService.hashPassword('Password@Dev123');
 const DEV_FACULTY_HASH = await passwordService.hashPassword('Password@Dev123');
 const DEV_ADMIN_HASH = await passwordService.hashPassword('Password@Dev123');
+const DEV_SHARED_HASH = await passwordService.hashPassword('Password@Dev123');
 
 const DEV_ACCOUNTS: UserWithPassword[] = [
   {
@@ -81,6 +87,70 @@ const DEV_ACCOUNTS: UserWithPassword[] = [
     role: 'REGISTRAR_ADMIN',
     isActive: true,
     phone: '+91 9876543299',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: null,
+  },
+  {
+    id: DEV_ADMISSIONS_USER_ID,
+    email: 'admissions.dev@dgu.ac.in',
+    passwordHash: DEV_SHARED_HASH,
+    fullName: 'Admissions Office (Dev Fixture)',
+    role: 'ADMISSIONS_OFFICER',
+    isActive: true,
+    phone: '+91 9876543212',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: null,
+  },
+  {
+    id: DEV_FINANCE_USER_ID,
+    email: 'finance.dev@dgu.ac.in',
+    passwordHash: DEV_SHARED_HASH,
+    fullName: 'Finance & Accounts Office (Dev Fixture)',
+    role: 'FINANCE_OFFICER',
+    isActive: true,
+    phone: '+91 9876543213',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: null,
+  },
+  {
+    id: DEV_IT_USER_ID,
+    email: 'it.dev@dgu.ac.in',
+    passwordHash: DEV_SHARED_HASH,
+    fullName: 'IT & Support Center (Dev Fixture)',
+    role: 'IT_SUPPORT',
+    isActive: true,
+    phone: '+91 9876543214',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: null,
+  },
+  {
+    id: DEV_HOD_USER_ID,
+    email: 'hod.dev@dgu.ac.in',
+    passwordHash: DEV_SHARED_HASH,
+    fullName: 'Prof. Alok Gupta (HOD CSE Dev)',
+    role: 'HOD',
+    isActive: true,
+    phone: '+91 9876543215',
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    studentProfile: null,
+    facultyProfile: {
+      employeeCode: 'FAC-HOD-01',
+      designation: 'Head of Department - Computer Science & Engineering',
+      departmentId: 'd0000000-0000-4000-8000-000000000001',
+    },
+  },
+  {
+    id: DEV_SUPERADMIN_USER_ID,
+    email: 'superadmin.dev@dgu.ac.in',
+    passwordHash: DEV_SHARED_HASH,
+    fullName: 'University Super Administrator',
+    role: 'SUPER_ADMIN',
+    isActive: true,
+    phone: '+91 9876543216',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     studentProfile: null,
     facultyProfile: null,

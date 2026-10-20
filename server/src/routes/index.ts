@@ -11,6 +11,10 @@ import { noticeRouter } from './notice.route.js';
 import { profileRouter } from './profile.route.js';
 import { supportRouter } from './support.route.js';
 import { notificationRouter } from './notification.route.js';
+import { admissionsRouter } from './admissions.route.js';
+import { academicRouter } from './academic.route.js';
+import { departmentRouter } from './department.route.js';
+import { adminRouter } from './admin.route.js';
 
 export const apiRouter: Router = Router();
 
@@ -47,3 +51,10 @@ apiRouter.use('/support', supportRouter);
 
 // Mount Phase 11 Notifications & Communication Center
 apiRouter.use('/notifications', notificationRouter);
+
+// Mount Phase 19 University Department Portals & Centralized RBAC
+apiRouter.use('/admissions', admissionsRouter);
+apiRouter.use('/academic', academicRouter);
+apiRouter.use('/department', departmentRouter);
+apiRouter.use('/admin', adminRouter);
+

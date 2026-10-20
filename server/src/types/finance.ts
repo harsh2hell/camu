@@ -102,6 +102,10 @@ export const receiptIdParamSchema = z.object({
   id: z.string().min(1, 'Receipt identifier is required'),
 });
 
+export const studentIdParamSchema = z.object({
+  studentId: z.string().uuid('Valid student user UUID is required'),
+});
+
 // Query Parameter Schemas
 export const studentInvoicesQuerySchema = z.object({
   status: feeInvoiceStatusEnum.optional(),

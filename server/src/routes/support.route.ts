@@ -75,7 +75,7 @@ supportRouter.get(
 supportRouter.get(
   ['/summary', '/queue/summary'],
   requireAuth,
-  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER'),
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER', 'IT_SUPPORT', 'SUPER_ADMIN'),
   (req, res, next) => supportController.getQueueSummary(req, res, next)
 );
 
@@ -83,7 +83,7 @@ supportRouter.get(
 supportRouter.get(
   '/queue',
   requireAuth,
-  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER'),
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER', 'IT_SUPPORT', 'SUPER_ADMIN'),
   (req, res, next) => supportController.getStaffQueue(req, res, next)
 );
 
@@ -91,7 +91,7 @@ supportRouter.get(
 supportRouter.patch(
   '/tickets/:ticketId/status',
   requireAuth,
-  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER'),
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER', 'IT_SUPPORT', 'SUPER_ADMIN'),
   validate({ body: updateTicketStatusSchema }),
   (req, res, next) => supportController.updateTicketStatus(req, res, next)
 );
@@ -100,7 +100,7 @@ supportRouter.patch(
 supportRouter.all(
   '/tickets/:ticketId/assign',
   requireAuth,
-  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER'),
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN', 'EXAM_CONTROLLER', 'IT_SUPPORT', 'SUPER_ADMIN'),
   validate({ body: assignTicketSchema }),
   (req, res, next) => {
     if (req.method === 'PATCH' || req.method === 'POST') {
