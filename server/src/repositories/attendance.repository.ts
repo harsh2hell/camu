@@ -9,6 +9,8 @@ import type {
   EnrolledStudentDTO,
   StudentAttendanceRecordItem,
   DefaulterStudentDTO,
+  ActiveStudentSessionDTO,
+  QrSessionStatusDTO,
 } from '../types/attendance.js';
 import { calculateSubjectAttendance } from '../utils/attendanceCalculator.js';
 
@@ -686,6 +688,385 @@ export class AttendanceRepository {
     }
 
     return defaulters;
+  }
+
+  /**
+   * Concurrency-safe student QR check-in
+   * Enforces session open state and single attendance record per student
+   */
+  async recordStudentQrCheckIn(
+    sessionId: string,
+    studentUserId: string
+  ): Promise<{
+    sessionId: string;
+    status: AttendanceStatus;
+    markedAt: Date;
+    isAlreadyMarked: boolean;
+  }> {
+    const effectiveStudentId =
+      studentUserId === 'dev-student-uuid-001'
+        ? DEV_STUDENT_USER_ID
+        : studentUserId;
+
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const session = await tx.attendanceSession.findUnique({
+          where: { id: sessionId },
+        });
+
+        if (!session) {
+          throw new NotFoundError(`Attendance session '${sessionId}' does not exist.`);
+        }
+
+        if (session.isLocked) {
+          throw new ConflictError(
+            'This attendance session has been finalized and locked. QR check-in is no longer accepted.'
+          );
+        }
+
+        const existing = await tx.attendanceRecord.findUnique({
+          where: {
+            sessionId_studentId: {
+              sessionId,
+              studentId: effectiveStudentId,
+            },
+          },
+        });
+
+        if (existing) {
+          return {
+            sessionId,
+            status: existing.status,
+            markedAt: existing.updatedAt,
+            isAlreadyMarked: true,
+          };
+        }
+
+        const created = await tx.attendanceRecord.create({
+          data: {
+            sessionId,
+            studentId: effectiveStudentId,
+            status: 'PRESENT',
+            remarks: 'QR self check-in verified',
+          },
+        });
+
+        return {
+          sessionId,
+          status: created.status,
+          markedAt: created.updatedAt,
+          isAlreadyMarked: false,
+        };
+      });
+    } catch (err) {
+      if (err instanceof NotFoundError || err instanceof ConflictError) {
+        throw err;
+      }
+      logger.warn('attendance.repository: PostgreSQL recordStudentQrCheckIn failed, checking non-production fallback:', err);
+    }
+
+    if (config.NODE_ENV === 'production') {
+      throw new ServiceUnavailableError('Database service unavailable in production');
+    }
+
+    // Dev fallback
+    const devSession = devSessions.get(sessionId);
+    if (!devSession) {
+      throw new NotFoundError(`Attendance session '${sessionId}' does not exist.`);
+    }
+
+    if (devSession.isLocked) {
+      throw new ConflictError(
+        'This attendance session has been finalized and locked. QR check-in is no longer accepted.'
+      );
+    }
+
+    if (devSession.records.has(effectiveStudentId)) {
+      const rec = devSession.records.get(effectiveStudentId)!;
+      return {
+        sessionId,
+        status: rec.status,
+        markedAt: rec.updatedAt,
+        isAlreadyMarked: true,
+      };
+    }
+
+    const now = new Date();
+    devSession.records.set(effectiveStudentId, {
+      status: 'PRESENT',
+      remarks: 'QR self check-in verified',
+      updatedAt: now,
+    });
+
+    return {
+      sessionId,
+      status: 'PRESENT',
+      markedAt: now,
+      isAlreadyMarked: false,
+    };
+  }
+
+  /**
+   * Closes an attendance session atomically and marks any non-checked-in enrolled students as ABSENT
+   */
+  async closeSessionAndMarkAbsent(sessionId: string): Promise<{
+    sessionId: string;
+    isLocked: boolean;
+    totalEnrolled: number;
+    presentCount: number;
+    absentCount: number;
+    odCount: number;
+  }> {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const session = await tx.attendanceSession.findUnique({
+          where: { id: sessionId },
+          include: { records: true },
+        });
+
+        if (!session) {
+          throw new NotFoundError(`Attendance session '${sessionId}' does not exist.`);
+        }
+
+        // 1. Lock the session
+        await tx.attendanceSession.update({
+          where: { id: sessionId },
+          data: { isLocked: true },
+        });
+
+        // 2. Fetch enrolled students
+        const enrollments = await tx.enrollment.findMany({
+          where: { courseOfferingId: session.courseOfferingId },
+        });
+
+        const recordedStudentIds = new Set(session.records.map((r) => r.studentId));
+
+        // 3. Mark unrecorded students as ABSENT per institutional attendance policy
+        for (const enr of enrollments) {
+          if (!recordedStudentIds.has(enr.studentId)) {
+            await tx.attendanceRecord.create({
+              data: {
+                sessionId,
+                studentId: enr.studentId,
+                status: 'ABSENT',
+                remarks: 'Policy Default: Absent (did not check in before session close)',
+              },
+            });
+          }
+        }
+
+        const allRecords = await tx.attendanceRecord.findMany({
+          where: { sessionId },
+        });
+
+        const presentCount = allRecords.filter((r) => r.status === 'PRESENT').length;
+        const absentCount = allRecords.filter((r) => r.status === 'ABSENT').length;
+        const odCount = allRecords.filter((r) => r.status === 'ON_DUTY').length;
+
+        return {
+          sessionId,
+          isLocked: true,
+          totalEnrolled: enrollments.length > 0 ? enrollments.length : allRecords.length,
+          presentCount,
+          absentCount,
+          odCount,
+        };
+      });
+    } catch (err) {
+      if (err instanceof NotFoundError) throw err;
+      logger.warn('attendance.repository: PostgreSQL closeSessionAndMarkAbsent failed, checking non-production fallback:', err);
+    }
+
+    if (config.NODE_ENV === 'production') {
+      throw new ServiceUnavailableError('Database service unavailable in production');
+    }
+
+    // Dev fallback
+    const devSession = devSessions.get(sessionId);
+    if (!devSession) {
+      throw new NotFoundError(`Attendance session '${sessionId}' does not exist.`);
+    }
+
+    devSession.isLocked = true;
+    const offering = devOfferings.get(devSession.courseOfferingId);
+    const enrolled = offering ? offering.enrolledStudents : [];
+
+    for (const student of enrolled) {
+      if (!devSession.records.has(student.userId)) {
+        devSession.records.set(student.userId, {
+          status: 'ABSENT',
+          remarks: 'Policy Default: Absent (did not check in before session close)',
+          updatedAt: new Date(),
+        });
+      }
+    }
+
+    let presentCount = 0;
+    let absentCount = 0;
+    let odCount = 0;
+
+    for (const r of devSession.records.values()) {
+      if (r.status === 'PRESENT') presentCount++;
+      else if (r.status === 'ABSENT') absentCount++;
+      else if (r.status === 'ON_DUTY') odCount++;
+    }
+
+    return {
+      sessionId,
+      isLocked: true,
+      totalEnrolled: enrolled.length,
+      presentCount,
+      absentCount,
+      odCount,
+    };
+  }
+
+  /**
+   * Retrieves live session attendance status and check-in roster
+   */
+  async getSessionStatus(sessionId: string): Promise<QrSessionStatusDTO> {
+    const session = await this.findSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundError(`Attendance session '${sessionId}' does not exist.`);
+    }
+
+    const offering = await this.findOfferingById(session.courseOfferingId);
+    if (!offering) {
+      throw new NotFoundError(`Course offering '${session.courseOfferingId}' not found.`);
+    }
+
+    const students: QrSessionStatusDTO['students'] = [];
+    let presentCount = 0;
+    let absentCount = 0;
+
+    for (const enr of offering.enrolledStudents) {
+      const rec = session.records.get(enr.userId);
+      let status: 'PRESENT' | 'ABSENT' | 'ON_DUTY' | 'NOT_RECORDED' = 'NOT_RECORDED';
+      let markedAt: string | null = null;
+
+      if (rec) {
+        if (rec.status === 'PRESENT') {
+          status = 'PRESENT';
+          presentCount++;
+        } else if (rec.status === 'ABSENT') {
+          status = 'ABSENT';
+          absentCount++;
+        } else if (rec.status === 'ON_DUTY') {
+          status = 'ON_DUTY';
+        }
+        markedAt = rec.updatedAt.toISOString();
+      }
+
+      students.push({
+        studentUserId: enr.userId,
+        rollNumber: enr.rollNumber,
+        fullName: enr.fullName,
+        status,
+        markedAt,
+      });
+    }
+
+    return {
+      sessionId: session.id,
+      courseOfferingId: session.courseOfferingId,
+      courseCode: offering.courseCode,
+      courseTitle: offering.courseTitle,
+      facultyName: offering.facultyName,
+      topicTaught: session.topicTaught,
+      isLocked: session.isLocked,
+      totalEnrolled: offering.enrolledStudents.length,
+      presentCount,
+      absentCount,
+      activeToken: null,
+      students,
+    };
+  }
+
+  /**
+   * Retrieves open (active) attendance sessions for courses where the student is enrolled
+   */
+  async getActiveSessionsForStudent(studentUserId: string): Promise<ActiveStudentSessionDTO[]> {
+    const effectiveStudentId =
+      studentUserId === 'dev-student-uuid-001'
+        ? DEV_STUDENT_USER_ID
+        : studentUserId;
+
+    try {
+      const enrollments = await prisma.enrollment.findMany({
+        where: { studentId: effectiveStudentId },
+        include: {
+          courseOffering: {
+            include: {
+              course: true,
+              primaryFaculty: true,
+              sessions: {
+                where: { isLocked: false },
+                include: {
+                  records: {
+                    where: { studentId: effectiveStudentId },
+                  },
+                },
+                orderBy: { sessionDate: 'desc' },
+              },
+            },
+          },
+        },
+      });
+
+      const activeList: ActiveStudentSessionDTO[] = [];
+      for (const enr of enrollments) {
+        for (const sess of enr.courseOffering.sessions) {
+          activeList.push({
+            sessionId: sess.id,
+            courseOfferingId: sess.courseOfferingId,
+            courseCode: enr.courseOffering.course.code,
+            courseTitle: enr.courseOffering.course.title,
+            facultyName: enr.courseOffering.primaryFaculty.fullName,
+            startTime: sess.startTime,
+            topicTaught: sess.topicTaught,
+            sessionDate: sess.sessionDate.toISOString(),
+            isLocked: sess.isLocked,
+            hasCheckedIn: sess.records.length > 0 && sess.records[0].status === 'PRESENT',
+          });
+        }
+      }
+
+      return activeList;
+    } catch (err) {
+      logger.warn('attendance.repository: PostgreSQL getActiveSessionsForStudent failed, checking non-production fallback:', err);
+    }
+
+    if (config.NODE_ENV === 'production') {
+      throw new ServiceUnavailableError('Database service unavailable in production');
+    }
+
+    // Dev fallback
+    const activeList: ActiveStudentSessionDTO[] = [];
+    for (const sess of devSessions.values()) {
+      if (!sess.isLocked) {
+        const offering = devOfferings.get(sess.courseOfferingId);
+        if (offering) {
+          const isEnrolled = offering.enrolledStudents.some((s) => s.userId === effectiveStudentId);
+          if (isEnrolled) {
+            const studentRec = sess.records.get(effectiveStudentId);
+            activeList.push({
+              sessionId: sess.id,
+              courseOfferingId: sess.courseOfferingId,
+              courseCode: offering.courseCode,
+              courseTitle: offering.courseTitle,
+              facultyName: offering.facultyName,
+              startTime: sess.startTime,
+              topicTaught: sess.topicTaught,
+              sessionDate: sess.sessionDate.toISOString(),
+              isLocked: sess.isLocked,
+              hasCheckedIn: studentRec?.status === 'PRESENT',
+            });
+          }
+        }
+      }
+    }
+
+    return activeList;
   }
 
   /**

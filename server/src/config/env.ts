@@ -25,6 +25,10 @@ export const envSchema = z
       .default('placeholder_dev_receipt_signing_secret_v1_min_16_chars'),
     RECEIPT_SIGNING_KEY_VERSION: z.string().min(1, 'RECEIPT_SIGNING_KEY_VERSION cannot be empty').default('v1'),
     RECEIPT_HISTORICAL_SIGNING_KEYS: z.string().default('{}'),
+    QR_SIGNING_SECRET: z
+      .string()
+      .min(16, 'QR_SIGNING_SECRET must be at least 16 characters')
+      .default('placeholder_dev_qr_signing_secret_v1_min_16_chars'),
     SESSION_COOKIE_NAME: z.string().default('dbs_session'),
     SESSION_MAX_AGE_DAYS: z.coerce.number().int().positive().default(7),
     UPLOAD_DIR: z.string().default('server/uploads'),

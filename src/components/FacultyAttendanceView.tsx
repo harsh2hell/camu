@@ -8,10 +8,12 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
-  BookOpen
+  BookOpen,
+  QrCode
 } from 'lucide-react';
 import { attendanceApi } from '../api/attendance';
 import { timetableApi } from '../api/timetable';
+import { FacultyQrModal } from './FacultyQrModal';
 
 export interface FacultyRosterStudent {
   id: string;
@@ -39,6 +41,9 @@ export const FacultyAttendanceView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [activeQrSessionId, setActiveQrSessionId] = useState<string | null>(null);
+  const [isCreatingQrSession, setIsCreatingQrSession] = useState(false);
 
   // 1. Load authenticated faculty's assigned courses from timetable
   useEffect(() => {
@@ -151,6 +156,41 @@ export const FacultyAttendanceView: React.FC = () => {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenQrAttendance = async () => {
+    if (isSubmitted || isCreatingQrSession) return;
+    if (!selectedOfferingId) {
+      setErrorMsg('Please select an authorized course offering before generating QR attendance.');
+      return;
+    }
+    setIsCreatingQrSession(true);
+    setErrorMsg(null);
+    try {
+      let currentSessionId = activeQrSessionId;
+      if (!currentSessionId) {
+        const session = await attendanceApi.createSession({
+          courseOfferingId: selectedOfferingId,
+          startTime: '10:00 AM',
+          topicTaught: sessionTopic,
+        });
+        currentSessionId = session.id;
+        setActiveQrSessionId(session.id);
+      }
+      setIsQrModalOpen(true);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to initialize QR attendance session.');
+    } finally {
+      setIsCreatingQrSession(false);
+    }
+  };
+
+  const handleSessionFinalized = async () => {
+    setIsSubmitted(true);
+    setSuccessMsg('Attendance session closed and finalized to central database.');
+    if (selectedOfferingId) {
+      await loadRoster(selectedOfferingId);
     }
   };
 
@@ -277,6 +317,30 @@ export const FacultyAttendanceView: React.FC = () => {
 
           <button 
             type="button" 
+            className="btn btn-secondary"
+            onClick={handleOpenQrAttendance}
+            disabled={isSubmitted || isCreatingQrSession || students.length === 0}
+            style={{
+              background: 'linear-gradient(135deg, #1e40af, #2563eb)',
+              color: '#ffffff',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: 700,
+            }}
+            title="Display rotating QR code for student self check-in"
+          >
+            {isCreatingQrSession ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <QrCode size={16} />
+            )}
+            <span>Generate QR</span>
+          </button>
+
+          <button 
+            type="button" 
             className={`btn ${isSubmitted ? 'btn-ghost' : 'btn-primary'}`}
             onClick={handleSubmit}
             disabled={isSubmitted || isSubmitting || students.length === 0}
@@ -376,6 +440,17 @@ export const FacultyAttendanceView: React.FC = () => {
           );
         })}
       </div>
+
+      {activeQrSessionId && (
+        <FacultyQrModal
+          sessionId={activeQrSessionId}
+          courseCode={selectedCourse?.courseCode || 'CS302'}
+          courseTitle={selectedCourse?.courseTitle || 'Course Attendance'}
+          isOpen={isQrModalOpen}
+          onClose={() => setIsQrModalOpen(false)}
+          onSessionFinalized={handleSessionFinalized}
+        />
+      )}
 
       <style>{`
         .faculty-view-container {

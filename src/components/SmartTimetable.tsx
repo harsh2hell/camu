@@ -12,11 +12,15 @@ import {
   Calendar,
   Layers,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  QrCode
 } from 'lucide-react';
 import { type TimetableClass } from '../data/mockData';
 import { timetableApi } from '../api/timetable';
+import { attendanceApi } from '../api/attendance';
+import { StudentQrScannerModal } from './StudentQrScannerModal';
 import type { WeeklyScheduleDTO, TimetableSlotDTO } from '../../server/src/types/timetable';
+import type { ActiveStudentSessionDTO } from '../../server/src/types/attendance';
 
 // Dynamic weekly schedule state populated via /api/timetable/student
 
@@ -41,8 +45,20 @@ export const SmartTimetable: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cohortInfo, setCohortInfo] = useState<string>('B.Tech CSE (Section A)');
+  const [activeSessions, setActiveSessions] = useState<ActiveStudentSessionDTO[]>([]);
+  const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
+  const [scanningForCourse, setScanningForCourse] = useState<string | undefined>(undefined);
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const fetchActiveSessions = async () => {
+    try {
+      const sessions = await attendanceApi.getActiveSessions();
+      setActiveSessions(sessions);
+    } catch (err) {
+      console.warn('Could not fetch active attendance sessions:', err);
+    }
+  };
 
   const fetchSchedule = async () => {
     setIsLoading(true);
@@ -71,7 +87,14 @@ export const SmartTimetable: React.FC = () => {
 
   useEffect(() => {
     fetchSchedule();
+    fetchActiveSessions();
   }, []);
+
+  const handleScanSuccess = async (result: any) => {
+    showToast(`Attendance verified for ${result.courseCode}!`);
+    await fetchActiveSessions();
+    await fetchSchedule();
+  };
 
   const currentSchedule = scheduleData[selectedDay] || [];
 
@@ -212,6 +235,9 @@ export const SmartTimetable: React.FC = () => {
         {currentSchedule.map((item) => {
           const isOngoing = item.status === 'ongoing';
           const isCompleted = item.status === 'completed';
+          const activeSession = activeSessions.find(
+            (s) => s.courseCode === item.subjectCode && !s.isLocked
+          );
 
           return (
             <div 
@@ -263,14 +289,38 @@ export const SmartTimetable: React.FC = () => {
                     )}
                   </div>
 
-                  <button 
-                    type="button" 
-                    className="location-pill-btn"
-                    onClick={() => handleRoomClick(item.room, item.subjectTitle)}
-                  >
-                    <MapPin size={13} className="text-blue" />
-                    <span>{item.room}</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {activeSession && !activeSession.hasCheckedIn && (
+                      <button
+                        type="button"
+                        className="btn-mark-attendance"
+                        onClick={() => {
+                          setScanningForCourse(item.subjectCode);
+                          setIsScannerOpen(true);
+                        }}
+                        title="Active attendance session open! Tap to scan QR code"
+                      >
+                        <QrCode size={13} className="pulse-icon" />
+                        <span>Mark Attendance</span>
+                      </button>
+                    )}
+
+                    {activeSession && activeSession.hasCheckedIn && (
+                      <div className="attendance-verified-pill">
+                        <CheckCircle2 size={13} className="text-emerald" />
+                        <span>Present (QR Verified)</span>
+                      </div>
+                    )}
+
+                    <button 
+                      type="button" 
+                      className="location-pill-btn"
+                      onClick={() => handleRoomClick(item.room, item.subjectTitle)}
+                    >
+                      <MapPin size={13} className="text-blue" />
+                      <span>{item.room}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="lecture-title">{item.subjectTitle}</h3>
@@ -298,6 +348,14 @@ export const SmartTimetable: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Student In-App QR Scanner Modal */}
+      <StudentQrScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onSuccess={handleScanSuccess}
+        expectedCourseCode={scanningForCourse}
+      />
 
       <style>{`
         .timetable-page-container {
@@ -620,6 +678,44 @@ export const SmartTimetable: React.FC = () => {
           background: #faf5ff;
           border: 1px solid #e9d5ff;
           color: #7e22ce;
+        }
+
+        .btn-mark-attendance {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          color: #ffffff;
+          border: 1px solid rgba(59, 130, 246, 0.4);
+          font-size: 0.78rem;
+          font-weight: 700;
+          padding: 6px 14px;
+          border-radius: 9999px;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .btn-mark-attendance:hover {
+          background: linear-gradient(135deg, #1d4ed8, #1e40af);
+          transform: translateY(-1px);
+        }
+
+        .attendance-verified-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+          font-size: 0.76rem;
+          font-weight: 700;
+          padding: 5px 12px;
+          border-radius: 9999px;
+        }
+
+        .pulse-icon {
+          animation: pulse 1.5s infinite;
         }
 
         .location-pill-btn {

@@ -2,7 +2,7 @@ import {
   attendanceRepository,
   DEV_COURSE_OFFERING_ID,
 } from '../repositories/attendance.repository.js';
-import { ForbiddenError, BadRequestError, NotFoundError } from '../errors/AppError.js';
+import { ForbiddenError, BadRequestError, NotFoundError, ConflictError } from '../errors/AppError.js';
 import type { SafeUser } from '../types/auth.js';
 import type {
   CreateAttendanceSessionInput,
@@ -10,7 +10,12 @@ import type {
   AttendanceSessionDTO,
   EnrolledStudentDTO,
   DefaulterStudentDTO,
+  QrTokenResponseDTO,
+  QrSessionStatusDTO,
+  QrCheckInResultDTO,
+  ActiveStudentSessionDTO,
 } from '../types/attendance.js';
+import { generateQrToken, verifyQrToken } from '../utils/qrToken.js';
 import {
   calculateSubjectAttendance,
   calculateOverallAttendance,
@@ -241,6 +246,228 @@ export class AttendanceService {
 
     return attendanceRepository.getDefaulters(courseOfferingId, threshold);
   }
+
+  /**
+   * Faculty / Admin: Generate an HMAC-signed QR token for an active attendance session
+   */
+  async generateQrToken(user: SafeUser, sessionId: string): Promise<QrTokenResponseDTO> {
+    const session = await attendanceRepository.findSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundError(`Attendance session '${sessionId}' not found.`);
+    }
+
+    const offering = await attendanceRepository.findOfferingById(session.courseOfferingId);
+    if (!offering) {
+      throw new NotFoundError(`Course offering '${session.courseOfferingId}' not found.`);
+    }
+
+    const isAssigned = offering.facultyId === user.id;
+    const isAdmin = ['HOD', 'DEAN', 'REGISTRAR_ADMIN'].includes(user.role);
+
+    if (!isAssigned && !isAdmin) {
+      logger.warn('Unauthorized QR token generation attempt', {
+        userId: user.id,
+        sessionId,
+      });
+      throw new ForbiddenError(
+        'You are not authorized to generate QR attendance for this course session.'
+      );
+    }
+
+    if (session.isLocked) {
+      throw new ConflictError(
+        'This attendance session is closed and locked. QR attendance cannot be generated.'
+      );
+    }
+
+    // 60-second validity window with secure rotation
+    const qrData = generateQrToken(session.id, session.courseOfferingId, 60);
+
+    logger.info('QR attendance token generated', {
+      sessionId: session.id,
+      courseOfferingId: session.courseOfferingId,
+      facultyId: user.id,
+      expiresAt: qrData.expiresAt,
+    });
+
+    return {
+      token: qrData.token,
+      sessionId: session.id,
+      courseOfferingId: session.courseOfferingId,
+      courseCode: offering.courseCode,
+      courseTitle: offering.courseTitle,
+      expiresAt: qrData.expiresAt,
+      expiresInSeconds: qrData.expiresInSeconds,
+      isLocked: false,
+    };
+  }
+
+  /**
+   * Faculty / Admin: Retrieve live check-in progress and student roster
+   */
+  async getSessionLiveStatus(user: SafeUser, sessionId: string): Promise<QrSessionStatusDTO> {
+    const session = await attendanceRepository.findSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundError(`Attendance session '${sessionId}' not found.`);
+    }
+
+    const offering = await attendanceRepository.findOfferingById(session.courseOfferingId);
+    if (!offering) {
+      throw new NotFoundError(`Course offering '${session.courseOfferingId}' not found.`);
+    }
+
+    const isAssigned = offering.facultyId === user.id;
+    const isAdmin = ['HOD', 'DEAN', 'REGISTRAR_ADMIN'].includes(user.role);
+
+    if (!isAssigned && !isAdmin) {
+      throw new ForbiddenError(
+        'You are not authorized to view attendance status for this session.'
+      );
+    }
+
+    return attendanceRepository.getSessionStatus(sessionId);
+  }
+
+  /**
+   * Faculty / Admin: Close and finalize attendance session
+   * Atomically locks session and marks unrecorded students as ABSENT
+   */
+  async closeAttendanceSession(
+    user: SafeUser,
+    sessionId: string
+  ): Promise<{
+    sessionId: string;
+    isLocked: boolean;
+    totalEnrolled: number;
+    presentCount: number;
+    absentCount: number;
+    odCount: number;
+  }> {
+    const session = await attendanceRepository.findSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundError(`Attendance session '${sessionId}' not found.`);
+    }
+
+    const offering = await attendanceRepository.findOfferingById(session.courseOfferingId);
+    if (!offering) {
+      throw new NotFoundError(`Course offering '${session.courseOfferingId}' not found.`);
+    }
+
+    const isAssigned = offering.facultyId === user.id;
+    const isAdmin = ['HOD', 'DEAN', 'REGISTRAR_ADMIN'].includes(user.role);
+
+    if (!isAssigned && !isAdmin) {
+      logger.warn('Unauthorized attendance session closure attempt', {
+        userId: user.id,
+        sessionId,
+      });
+      throw new ForbiddenError(
+        'You are not authorized to close attendance for this course session.'
+      );
+    }
+
+    const result = await attendanceRepository.closeSessionAndMarkAbsent(sessionId);
+
+    logger.info('Attendance session closed and finalized', {
+      sessionId,
+      facultyId: user.id,
+      presentCount: result.presentCount,
+      absentCount: result.absentCount,
+    });
+
+    return result;
+  }
+
+  /**
+   * Student: Check in using scanned QR token
+   * Validates cryptographic signature, expiry, session open status, and student enrollment
+   */
+  async verifyAndCheckIn(studentUser: SafeUser, qrTokenString: string): Promise<QrCheckInResultDTO> {
+    if (studentUser.role !== 'STUDENT') {
+      throw new ForbiddenError('Only authenticated students are authorized to check in via QR code.');
+    }
+
+    // 1. Verify cryptographic HMAC-SHA256 signature and TTL expiry
+    const decoded = verifyQrToken(qrTokenString);
+
+    // 2. Verify attendance session exists and is bound to course offering
+    const session = await attendanceRepository.findSessionById(decoded.sessionId);
+    if (!session) {
+      throw new NotFoundError('Attendance session does not exist.');
+    }
+
+    if (session.courseOfferingId !== decoded.courseOfferingId) {
+      throw new BadRequestError('QR token binding mismatch: session does not match course offering.');
+    }
+
+    // 3. Verify session is still open (not locked)
+    if (session.isLocked) {
+      throw new ConflictError(
+        'This attendance session has been finalized and locked. Check-in is no longer accepted.'
+      );
+    }
+
+    // 4. Verify student is actually enrolled in this course offering
+    const offering = await attendanceRepository.findOfferingById(session.courseOfferingId);
+    if (!offering) {
+      throw new NotFoundError('Course offering not found.');
+    }
+
+    const effectiveStudentId =
+      studentUser.id === 'dev-student-uuid-001'
+        ? DEV_COURSE_OFFERING_ID // fallback ID check
+        : studentUser.id;
+
+    const isEnrolled = offering.enrolledStudents.some(
+      (s) => s.userId === studentUser.id || s.userId === effectiveStudentId
+    );
+
+    if (!isEnrolled) {
+      logger.warn('Unauthorized QR check-in attempt: student not enrolled', {
+        studentId: studentUser.id,
+        courseOfferingId: session.courseOfferingId,
+        courseCode: offering.courseCode,
+      });
+      throw new BadRequestError(
+        `You are not enrolled in course offering '${offering.courseCode} - ${offering.courseTitle}'. Check-in rejected.`
+      );
+    }
+
+    // 5. Transactionally record attendance (concurrency-safe)
+    const result = await attendanceRepository.recordStudentQrCheckIn(
+      session.id,
+      studentUser.id
+    );
+
+    logger.info('Student QR check-in recorded', {
+      studentId: studentUser.id,
+      sessionId: session.id,
+      isAlreadyMarked: result.isAlreadyMarked,
+    });
+
+    return {
+      sessionId: session.id,
+      courseCode: offering.courseCode,
+      courseTitle: offering.courseTitle,
+      facultyName: offering.facultyName,
+      status: 'PRESENT',
+      studentId: studentUser.id,
+      studentName: studentUser.fullName,
+      markedAt: result.markedAt.toISOString(),
+      isAlreadyMarked: result.isAlreadyMarked,
+    };
+  }
+
+  /**
+   * Student: Get active open attendance sessions for enrolled courses
+   */
+  async getActiveSessionsForStudent(studentUser: SafeUser): Promise<ActiveStudentSessionDTO[]> {
+    if (studentUser.role !== 'STUDENT') {
+      throw new ForbiddenError('Only students can view eligible active attendance sessions.');
+    }
+    return attendanceRepository.getActiveSessionsForStudent(studentUser.id);
+  }
 }
 
 export const attendanceService = new AttendanceService();
+

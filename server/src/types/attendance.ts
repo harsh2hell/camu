@@ -70,3 +70,73 @@ export interface DefaulterStudentDTO {
   status: 'warning' | 'danger';
   isDebarred: boolean;
 }
+
+export const qrCheckInSchema = z.object({
+  qrToken: z.string().min(1, 'QR token is required'),
+});
+
+export type QrCheckInInput = z.infer<typeof qrCheckInSchema>;
+
+export interface QrTokenResponseDTO {
+  token: string;
+  sessionId: string;
+  courseOfferingId: string;
+  courseCode: string;
+  courseTitle: string;
+  expiresAt: number;
+  expiresInSeconds: number;
+  isLocked: boolean;
+}
+
+export interface QrSessionStudentStatus {
+  studentUserId: string;
+  rollNumber: string;
+  fullName: string;
+  status: 'PRESENT' | 'ABSENT' | 'ON_DUTY' | 'NOT_RECORDED';
+  markedAt?: string | null;
+}
+
+export interface QrSessionStatusDTO {
+  sessionId: string;
+  courseOfferingId: string;
+  courseCode: string;
+  courseTitle: string;
+  facultyName: string;
+  topicTaught?: string | null;
+  isLocked: boolean;
+  totalEnrolled: number;
+  presentCount: number;
+  absentCount: number;
+  activeToken?: {
+    token: string;
+    expiresAt: number;
+    expiresInSeconds: number;
+  } | null;
+  students: QrSessionStudentStatus[];
+}
+
+export interface QrCheckInResultDTO {
+  sessionId: string;
+  courseCode: string;
+  courseTitle: string;
+  facultyName: string;
+  status: 'PRESENT';
+  studentId: string;
+  studentName: string;
+  markedAt: string;
+  isAlreadyMarked: boolean;
+}
+
+export interface ActiveStudentSessionDTO {
+  sessionId: string;
+  courseOfferingId: string;
+  courseCode: string;
+  courseTitle: string;
+  facultyName: string;
+  startTime: string;
+  topicTaught?: string | null;
+  sessionDate: string;
+  isLocked: boolean;
+  hasCheckedIn: boolean;
+}
+

@@ -4,6 +4,10 @@ import type {
   EnrolledStudentDTO,
   DefaulterStudentDTO,
   StudentAttendanceRecordItem,
+  QrTokenResponseDTO,
+  QrSessionStatusDTO,
+  QrCheckInResultDTO,
+  ActiveStudentSessionDTO,
 } from '../../server/src/types/attendance';
 import type { OverallAttendanceSummary } from '../../server/src/utils/attendanceCalculator';
 
@@ -76,4 +80,78 @@ export const attendanceApi = {
     }
     return res.data;
   },
+
+  /**
+   * Generates or rotates cryptographically signed QR attendance token (Faculty only)
+   */
+  async generateQrToken(sessionId: string): Promise<QrTokenResponseDTO> {
+    const res = await apiClient.post<ApiResponse<QrTokenResponseDTO>>(
+      `/attendance/sessions/${encodeURIComponent(sessionId)}/qr/generate`
+    );
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to generate QR attendance token.');
+    }
+    return res.data;
+  },
+
+  /**
+   * Retrieves live session attendance progress and check-in roster (Faculty only)
+   */
+  async getQrStatus(sessionId: string): Promise<QrSessionStatusDTO> {
+    const res = await apiClient.get<ApiResponse<QrSessionStatusDTO>>(
+      `/attendance/sessions/${encodeURIComponent(sessionId)}/qr/status`
+    );
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to retrieve live QR attendance status.');
+    }
+    return res.data;
+  },
+
+  /**
+   * Closes and finalizes attendance session, marking absent students per policy (Faculty only)
+   */
+  async closeSession(sessionId: string): Promise<{
+    sessionId: string;
+    isLocked: boolean;
+    totalEnrolled: number;
+    presentCount: number;
+    absentCount: number;
+    odCount: number;
+  }> {
+    const res = await apiClient.post<ApiResponse<{
+      sessionId: string;
+      isLocked: boolean;
+      totalEnrolled: number;
+      presentCount: number;
+      absentCount: number;
+      odCount: number;
+    }>>(`/attendance/sessions/${encodeURIComponent(sessionId)}/close`);
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to finalize attendance session.');
+    }
+    return res.data;
+  },
+
+  /**
+   * Retrieves currently active open attendance sessions for courses student is enrolled in (Student only)
+   */
+  async getActiveSessions(): Promise<ActiveStudentSessionDTO[]> {
+    const res = await apiClient.get<ApiResponse<ActiveStudentSessionDTO[]>>('/attendance/active-sessions');
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to retrieve active class attendance sessions.');
+    }
+    return res.data;
+  },
+
+  /**
+   * Checks in using scanned QR token (Student only)
+   */
+  async checkInWithQr(qrToken: string): Promise<QrCheckInResultDTO> {
+    const res = await apiClient.post<ApiResponse<QrCheckInResultDTO>>('/attendance/qr/check-in', { qrToken });
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to verify QR check-in.');
+    }
+    return res.data;
+  },
 };
+

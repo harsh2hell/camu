@@ -5,6 +5,7 @@ import { validate } from '../middlewares/validate.js';
 import {
   createAttendanceSessionSchema,
   recordAttendanceBatchSchema,
+  qrCheckInSchema,
 } from '../types/attendance.js';
 
 export const attendanceRouter: Router = Router();
@@ -49,3 +50,45 @@ attendanceRouter.get(
   requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN'),
   (req, res, next) => attendanceController.getDefaulters(req, res, next)
 );
+
+// 6. Faculty / Admin: Generate or rotate cryptographically signed QR token
+attendanceRouter.post(
+  '/sessions/:id/qr/generate',
+  requireAuth,
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN'),
+  (req, res, next) => attendanceController.generateQrToken(req, res, next)
+);
+
+// 7. Faculty / Admin: Retrieve live session attendance progress and check-in roster
+attendanceRouter.get(
+  '/sessions/:id/qr/status',
+  requireAuth,
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN'),
+  (req, res, next) => attendanceController.getSessionLiveStatus(req, res, next)
+);
+
+// 8. Faculty / Admin: Close and finalize attendance session
+attendanceRouter.post(
+  '/sessions/:id/close',
+  requireAuth,
+  requireRole('FACULTY', 'HOD', 'DEAN', 'REGISTRAR_ADMIN'),
+  (req, res, next) => attendanceController.closeSession(req, res, next)
+);
+
+// 9. Student: Retrieve currently active open attendance sessions for enrolled courses
+attendanceRouter.get(
+  '/active-sessions',
+  requireAuth,
+  requireRole('STUDENT'),
+  (req, res, next) => attendanceController.getActiveSessions(req, res, next)
+);
+
+// 10. Student: Check in via scanned QR token
+attendanceRouter.post(
+  '/qr/check-in',
+  requireAuth,
+  requireRole('STUDENT'),
+  validate({ body: qrCheckInSchema }),
+  (req, res, next) => attendanceController.checkIn(req, res, next)
+);
+
