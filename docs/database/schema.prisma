@@ -61,6 +61,18 @@ enum AssignmentSubmissionStatus {
   @@map("assignment_submission_status")
 }
 
+enum FeePaymentStatus {
+  DRAFT
+  ISSUED
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+
+  @@map("fee_payment_status")
+}
+
 
 model Department {
   id          String    @id @default(uuid())
@@ -144,6 +156,12 @@ model User {
   submissions        AssignmentSubmission[]
   noticesPosted      Notice[]
   uploadedFiles      UploadedFile[]
+  feeInvoices        FeeInvoice[]        @relation("StudentInvoices")
+  createdInvoices    FeeInvoice[]        @relation("CreatedInvoices")
+  cancelledInvoices  FeeInvoice[]        @relation("CancelledInvoices")
+  feeTransactions    FeeTransaction[]    @relation("StudentTransactions")
+  reconciledTxns     FeeTransaction[]    @relation("ReconciledTransactions")
+  performedAuditLogs FeeAuditLog[]       @relation("PerformedAuditLogs")
 
   @@map("users")
 }
@@ -360,32 +378,101 @@ model Notice {
 }
 
 model FeeInvoice {
-  id            String           @id @default(uuid())
-  studentId     String           @map("student_id")
-  invoiceNumber String           @unique @map("invoice_number")
-  academicTerm  String           @map("academic_term")
-  category      String
-  totalAmount   Decimal          @map("total_amount") @db.Decimal(10, 2)
-  paidAmount    Decimal          @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
-  dueDate       DateTime         @map("due_date")
-  status        String           @default("PENDING")
-  receiptUrl    String?          @map("receipt_url")
-  transactions  FeeTransaction[]
-  createdAt     DateTime         @default(now()) @map("created_at")
+  id                 String           @id @default(uuid())
+  studentId          String           @map("student_id")
+  student            User             @relation("StudentInvoices", fields: [studentId], references: [id], onDelete: Cascade)
+  invoiceNumber      String           @unique @map("invoice_number")
+  academicTerm       String           @map("academic_term")
+  academicYear       String           @default("2026-27") @map("academic_year")
+  semester           Int              @default(1)
+  category           String
+  description        String?
+  subtotalAmount     Decimal          @default(0.00) @map("subtotal_amount") @db.Decimal(10, 2)
+  concessionAmount   Decimal          @default(0.00) @map("concession_amount") @db.Decimal(10, 2)
+  concessionReason   String?          @map("concession_reason")
+  totalAmount        Decimal          @map("total_amount") @db.Decimal(10, 2)
+  paidAmount         Decimal          @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
+  dueDate            DateTime         @map("due_date") @db.Date
+  issueDate          DateTime         @default(now()) @map("issue_date") @db.Date
+  status             FeePaymentStatus @default(PENDING)
+  receiptUrl         String?          @map("receipt_url")
+  createdById        String?          @map("created_by_id")
+  createdBy          User?            @relation("CreatedInvoices", fields: [createdById], references: [id])
+  cancelledAt        DateTime?        @map("cancelled_at")
+  cancelledById      String?          @map("cancelled_by_id")
+  cancelledBy        User?            @relation("CancelledInvoices", fields: [cancelledById], references: [id])
+  cancellationReason String?          @map("cancellation_reason")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @default(now()) @map("updated_at")
 
+  items              FeeInvoiceItem[]
+  transactions       FeeTransaction[]
+  auditLogs          FeeAuditLog[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([dueDate])
   @@map("fee_invoices")
 }
 
-model FeeTransaction {
-  id             String     @id @default(uuid())
-  invoiceId      String     @map("invoice_id")
-  invoice        FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  transactionRef String     @unique @map("transaction_ref")
-  paymentMode    String     @map("payment_mode")
-  amount         Decimal    @db.Decimal(10, 2)
-  paidAt         DateTime   @default(now()) @map("paid_at")
+model FeeInvoiceItem {
+  id          String     @id @default(uuid())
+  invoiceId   String     @map("invoice_id")
+  invoice     FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  amount      Decimal    @db.Decimal(10, 2)
+  createdAt   DateTime   @default(now()) @map("created_at")
 
+  @@index([invoiceId])
+  @@map("fee_invoice_items")
+}
+
+model FeeTransaction {
+  id              String        @id @default(uuid())
+  invoiceId       String        @map("invoice_id")
+  invoice         FeeInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  studentId       String?       @map("student_id")
+  student         User?         @relation("StudentTransactions", fields: [studentId], references: [id], onDelete: Cascade)
+  transactionRef  String        @unique @map("transaction_ref")
+  paymentMode     String        @map("payment_mode")
+  amount          Decimal       @db.Decimal(10, 2)
+  status          String        @default("PENDING")
+  gatewayProvider String?       @default("UNCONFIGURED") @map("gateway_provider")
+  gatewayResponse String?       @map("gateway_response")
+  receiptNumber   String?       @unique @map("receipt_number")
+  reconciledById  String?       @map("reconciled_by_id")
+  reconciledBy    User?         @relation("ReconciledTransactions", fields: [reconciledById], references: [id])
+  reconciledAt    DateTime?     @map("reconciled_at")
+  notes           String?
+  paidAt          DateTime?     @default(now()) @map("paid_at")
+  verificationSource String?    @default("MANUAL_STAFF_ENTRY") @map("verification_source")
+  receiptKeyVersion  String?    @default("v1") @map("receipt_key_version")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  auditLogs       FeeAuditLog[]
+
+  @@index([invoiceId])
+  @@index([studentId])
+  @@index([status])
   @@map("fee_transactions")
+}
+
+model FeeAuditLog {
+  id            String          @id @default(uuid())
+  invoiceId     String?         @map("invoice_id")
+  invoice       FeeInvoice?     @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  transactionId String?         @map("transaction_id")
+  transaction   FeeTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  action        String
+  performedById String          @map("performed_by_id")
+  performedBy   User            @relation("PerformedAuditLogs", fields: [performedById], references: [id], onDelete: Cascade)
+  details       Json            @default("{}")
+  ipAddress     String?         @map("ip_address")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  @@index([invoiceId])
+  @@index([action])
+  @@index([performedById])
+  @@map("fee_audit_logs")
 }
 
 model HostelGatePass {

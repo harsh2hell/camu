@@ -8,6 +8,7 @@ import { LeaveODManager } from './components/LeaveODManager';
 import { FacultyAttendanceView } from './components/FacultyAttendanceView';
 import { FacultyAssignmentsView } from './components/FacultyAssignmentsView';
 import { DefaultersView } from './components/DefaultersView';
+import { FinanceAdminView } from './components/FinanceAdminView';
 import { authApi, type UserSession } from './api/auth';
 import { ShieldAlert, ShieldCheck, Lock, LogOut, ArrowLeft } from 'lucide-react';
 
@@ -150,12 +151,12 @@ export function App() {
         } else {
           setPortalView('student-login');
         }
-      } else if (existing.role === 'FACULTY') {
-        // Authenticated as Faculty
+      } else if (existing.role === 'FACULTY' || existing.role === 'REGISTRAR_ADMIN') {
+        // Authenticated as Faculty or Registrar Admin
         setSession(existing);
         setCurrentRole('FACULTY');
         setPortalView('teacher-login');
-        setActiveTab('faculty-attendance');
+        setActiveTab(existing.role === 'REGISTRAR_ADMIN' ? 'finance-admin' : 'faculty-attendance');
       }
     } else {
       // Unauthenticated visitor
@@ -242,11 +243,12 @@ export function App() {
 
   const handleLoginSuccess = (newSession: UserSession) => {
     setSession(newSession);
-    const role = newSession.role === 'FACULTY' ? 'FACULTY' : 'STUDENT';
+    const isStaffOrAdmin = newSession.role === 'FACULTY' || newSession.role === 'REGISTRAR_ADMIN';
+    const role = isStaffOrAdmin ? 'FACULTY' : 'STUDENT';
     setCurrentRole(role);
-    localStorage.setItem('dbs_portal_mode', role === 'FACULTY' ? 'teacher' : 'student');
+    localStorage.setItem('dbs_portal_mode', isStaffOrAdmin ? 'teacher' : 'student');
     localStorage.setItem('dbs_last_user_role', role);
-    setActiveTab(role === 'FACULTY' ? 'faculty-attendance' : 'dashboard');
+    setActiveTab(newSession.role === 'REGISTRAR_ADMIN' ? 'finance-admin' : (isStaffOrAdmin ? 'faculty-attendance' : 'dashboard'));
     setShowSecurityChallenge(false);
 
     if (role === 'STUDENT') {
@@ -445,6 +447,7 @@ export function App() {
             {activeTab === 'defaulters' && <DefaultersView />}
             {activeTab === 'faculty-assignments' && <FacultyAssignmentsView />}
             {activeTab === 'od-approvals' && <LeaveODManager />}
+            {activeTab === 'finance-admin' && <FinanceAdminView />}
           </>
         )}
       </main>

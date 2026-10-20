@@ -1,11 +1,13 @@
 import { apiClient, type ApiResponse } from './client';
 import type { SafeUser } from '../../server/src/types/auth';
 
+import type { UserRole } from '@prisma/client';
+
 export interface UserSession {
   id: string;
   name: string;
   email: string;
-  role: 'STUDENT' | 'FACULTY' | 'ADMIN';
+  role: UserRole | 'STUDENT' | 'FACULTY' | 'ADMIN';
   token: string;
   rollNo?: string;
   department?: string;

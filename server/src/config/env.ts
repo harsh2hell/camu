@@ -18,6 +18,12 @@ export const envSchema = z
       .default('http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,https://autonex.studio,https://student.autonex.studio,https://teacher.autonex.studio'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters').default('placeholder_dev_jwt_secret_minimum_16_chars'),
+    RECEIPT_SIGNING_SECRET: z
+      .string()
+      .min(16, 'RECEIPT_SIGNING_SECRET must be at least 16 characters')
+      .default('placeholder_dev_receipt_signing_secret_v1_min_16_chars'),
+    RECEIPT_SIGNING_KEY_VERSION: z.string().min(1, 'RECEIPT_SIGNING_KEY_VERSION cannot be empty').default('v1'),
+    RECEIPT_HISTORICAL_SIGNING_KEYS: z.string().default('{}'),
     SESSION_COOKIE_NAME: z.string().default('dbs_session'),
     SESSION_MAX_AGE_DAYS: z.coerce.number().int().positive().default(7),
     UPLOAD_DIR: z.string().default('server/uploads'),
@@ -37,6 +43,42 @@ export const envSchema = z
   )
   .refine(
     (data) => {
+      // In production, reject placeholder receipt signing secret
+      if (data.NODE_ENV === 'production' && data.RECEIPT_SIGNING_SECRET.includes('placeholder')) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Production deployment cannot use placeholder RECEIPT_SIGNING_SECRET',
+      path: ['RECEIPT_SIGNING_SECRET'],
+    }
+  )
+  .refine(
+    (data) => {
+      // Validate RECEIPT_HISTORICAL_SIGNING_KEYS is valid JSON mapping string -> string (min 16 chars)
+      try {
+        const parsed = JSON.parse(data.RECEIPT_HISTORICAL_SIGNING_KEYS);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          return false;
+        }
+        for (const [key, secret] of Object.entries(parsed)) {
+          if (typeof key !== 'string' || typeof secret !== 'string' || secret.length < 16) {
+            return false;
+          }
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: 'RECEIPT_HISTORICAL_SIGNING_KEYS must be valid JSON object with secret strings of length >= 16',
+      path: ['RECEIPT_HISTORICAL_SIGNING_KEYS'],
+    }
+  )
+  .refine(
+    (data) => {
       // In production, require real, non-placeholder DATABASE_URL
       if (
         data.NODE_ENV === 'production' &&
@@ -51,7 +93,6 @@ export const envSchema = z
       path: ['DATABASE_URL'],
     }
   );
-
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
@@ -72,3 +113,20 @@ export function validateEnv(rawEnv: NodeJS.ProcessEnv = process.env): EnvConfig 
 
 // Global parsed and validated configuration instance
 export const config = validateEnv();
+
+/**
+ * Safely parses and returns configured historical receipt signing keys for rotation
+ */
+export function getHistoricalReceiptKeys(rawJson?: string): Record<string, string> {
+  try {
+    const jsonStr = rawJson ?? config.RECEIPT_HISTORICAL_SIGNING_KEYS;
+    const parsed = JSON.parse(jsonStr);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+

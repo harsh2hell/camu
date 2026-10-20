@@ -5,6 +5,7 @@ import { attendanceRouter } from './attendance.route.js';
 import { timetableRouter } from './timetable.route.js';
 import { calendarRouter } from './calendar.route.js';
 import { assignmentRouter } from './assignment.route.js';
+import { financeRouter } from './finance.route.js';
 
 export const apiRouter: Router = Router();
 
@@ -24,4 +25,5 @@ apiRouter.use('/calendar', calendarRouter);
 // Mount Phase 5 Assignments & LMS Implementation
 apiRouter.use('/assignments', assignmentRouter);
 
-
+// Mount Phase 6 Fees & Finance
+apiRouter.use('/finance', financeRouter);

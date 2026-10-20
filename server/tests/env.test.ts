@@ -41,15 +41,28 @@ describe('Environment Configuration Validation', () => {
     ).toThrowError(/Production deployment cannot use default placeholder or localhost DATABASE_URL/);
   });
 
+  it('should reject placeholder RECEIPT_SIGNING_SECRET in production mode', () => {
+    expect(() =>
+      validateEnv({
+        NODE_ENV: 'production',
+        JWT_SECRET: 'super_secure_production_secret_key_32_chars_minimum',
+        RECEIPT_SIGNING_SECRET: 'placeholder_dev_receipt_signing_secret_min_16',
+        DATABASE_URL: 'postgresql://dbs_prod_user:strong_prod_pass_992@db.dgu.ac.in:5432/dbs_camu_prod?sslmode=require',
+      })
+    ).toThrowError(/Production deployment cannot use placeholder RECEIPT_SIGNING_SECRET/);
+  });
+
   it('should accept production mode with a custom non-placeholder secret and production database URL', () => {
     const prodConfig = validateEnv({
       NODE_ENV: 'production',
       JWT_SECRET: 'super_secure_production_secret_key_32_chars_minimum',
+      RECEIPT_SIGNING_SECRET: 'super_secure_prod_receipt_secret_32_chars_min',
       DATABASE_URL: 'postgresql://dbs_prod_user:strong_prod_pass_992@db.dgu.ac.in:5432/dbs_camu_prod?sslmode=require',
     });
 
     expect(prodConfig.NODE_ENV).toBe('production');
     expect(prodConfig.JWT_SECRET).toBe('super_secure_production_secret_key_32_chars_minimum');
+    expect(prodConfig.RECEIPT_SIGNING_SECRET).toBe('super_secure_prod_receipt_secret_32_chars_min');
     expect(prodConfig.DATABASE_URL).toContain('db.dgu.ac.in');
   });
 });

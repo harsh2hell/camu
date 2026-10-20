@@ -99,6 +99,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Award size={16} className="tab-icon" />
                 <span>OD Approvals</span>
               </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'finance-admin' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('finance-admin')}
+              >
+                <Receipt size={16} className="tab-icon" />
+                <span>Finance &amp; Fees</span>
+              </button>
             </>
           ) : (
             <>

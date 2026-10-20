@@ -107,6 +107,34 @@ class ApiClient {
     }
   }
 
+  async patch<T>(endpoint: string, body: any): Promise<T> {
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'PATCH',
+        headers: this.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent('dbs-session-expired', { detail: { status: 401 } }));
+        }
+        let errMsg = `HTTP Error: ${response.status} ${response.statusText}`;
+        try {
+          const errData = await response.json();
+          if (errData?.error?.message) errMsg = errData.error.message;
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errMsg);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn(`[API PATCH Failed: ${endpoint}]`, err);
+      throw err;
+    }
+  }
+
   async checkHealth(): Promise<ApiResponse<{ status: string; timestamp: string; database: { status: string } }>> {
     return this.get('/health');
   }
