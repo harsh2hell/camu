@@ -9,6 +9,7 @@ import { financeRouter } from './finance.route.js';
 import { leaveRouter } from './leave.route.js';
 import { noticeRouter } from './notice.route.js';
 import { profileRouter } from './profile.route.js';
+import { supportRouter } from './support.route.js';
 
 export const apiRouter: Router = Router();
 
@@ -39,3 +40,6 @@ apiRouter.use('/notices', noticeRouter);
 
 // Mount Phase 9 Student Profile & Academic Records
 apiRouter.use('/profile', profileRouter);
+
+// Mount Phase 10 Student Support & Helpdesk
+apiRouter.use('/support', supportRouter);

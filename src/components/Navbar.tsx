@@ -10,7 +10,8 @@ import {
   FileText,
   BookOpen,
   Sparkles,
-  Users
+  Users,
+  LifeBuoy
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
@@ -126,6 +127,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Users size={16} className="tab-icon" />
                 <span>Mentorship &amp; Records</span>
+              </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'support-desk' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('support-desk')}
+              >
+                <LifeBuoy size={16} className="tab-icon" />
+                <span>Helpdesk Queues</span>
               </button>
             </>
           ) : (

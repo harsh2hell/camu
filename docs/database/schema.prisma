@@ -95,6 +95,7 @@ model Department {
   faculty     FacultyProfile[]
   courses     Course[]
   notices     Notice[]
+  tickets     SupportTicket[]
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("departments")
@@ -185,6 +186,13 @@ model User {
   performedProfileAudits ProfileAuditLog[] @relation("PerformedProfileAudits")
   studentGrades        StudentGrade[]      @relation("StudentGrades")
   gradesEntered        StudentGrade[]      @relation("GradeEnteredBy")
+  ticketsCreated       SupportTicket[]     @relation("StudentTickets")
+  assignedTickets      SupportTicket[]     @relation("StaffAssignedTickets")
+  resolvedTickets      SupportTicket[]     @relation("StaffResolvedTickets")
+  closedTickets        SupportTicket[]     @relation("StaffClosedTickets")
+  reopenedTickets      SupportTicket[]     @relation("StaffReopenedTickets")
+  ticketMessages       TicketMessage[]     @relation("TicketMessageSender")
+  ticketAudits         TicketAuditLog[]    @relation("TicketAuditActor")
 
   @@map("users")
 }
@@ -686,5 +694,85 @@ model ProfileAuditLog {
   @@index([changedById])
   @@index([createdAt(sort: Desc)])
   @@map("profile_audit_logs")
+}
+
+model SupportTicket {
+  id               String            @id @default(uuid())
+  ticketNumber     String            @unique @map("ticket_number") @db.VarChar(32)
+  studentId        String            @map("student_id")
+  student          User              @relation("StudentTickets", fields: [studentId], references: [id], onDelete: Cascade)
+  category         String            @db.VarChar(64)
+  priority         String            @default("MEDIUM") @db.VarChar(32)
+  status           String            @default("OPEN") @db.VarChar(32)
+  subject          String            @db.VarChar(255)
+  description      String            @db.Text
+  departmentId     String?           @map("department_id")
+  department       Department?       @relation(fields: [departmentId], references: [id])
+  assignedStaffId  String?           @map("assigned_staff_id")
+  assignedStaff    User?             @relation("StaffAssignedTickets", fields: [assignedStaffId], references: [id])
+  resolutionNotes  String?           @map("resolution_notes") @db.Text
+  resolvedAt       DateTime?         @map("resolved_at")
+  resolvedById     String?           @map("resolved_by_id")
+  resolvedBy       User?             @relation("StaffResolvedTickets", fields: [resolvedById], references: [id])
+  closedAt         DateTime?         @map("closed_at")
+  closedById       String?           @map("closed_by_id")
+  closedBy         User?             @relation("StaffClosedTickets", fields: [closedById], references: [id])
+  reopenedAt       DateTime?         @map("reopened_at")
+  reopenedById     String?           @map("reopened_by_id")
+  reopenedBy       User?             @relation("StaffReopenedTickets", fields: [reopenedById], references: [id])
+  reopenReason     String?           @map("reopen_reason") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @default(now()) @map("updated_at")
+
+  messages         TicketMessage[]
+  auditLogs        TicketAuditLog[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([category])
+  @@index([assignedStaffId])
+  @@index([departmentId])
+  @@index([createdAt(sort: Desc)])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id                 String        @id @default(uuid())
+  ticketId           String        @map("ticket_id")
+  ticket             SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId           String        @map("sender_id")
+  sender             User          @relation("TicketMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  message            String        @db.Text
+  isInternal         Boolean       @default(false) @map("is_internal")
+  attachmentFileKey  String?       @map("attachment_file_key") @db.VarChar(255)
+  attachmentName     String?       @map("attachment_name") @db.VarChar(255)
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@index([createdAt(sort: Asc)])
+  @@map("ticket_messages")
+}
+
+model TicketAuditLog {
+  id                 String        @id @default(uuid())
+  ticketId           String        @map("ticket_id")
+  ticket             SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedById      String        @map("performed_by_id")
+  performedBy        User          @relation("TicketAuditActor", fields: [performedById], references: [id], onDelete: Restrict)
+  action             String        @db.VarChar(64)
+  previousStatus     String?       @map("previous_status") @db.VarChar(32)
+  newStatus          String?       @map("new_status") @db.VarChar(32)
+  previousAssigneeId String?       @map("previous_assignee_id")
+  newAssigneeId      String?       @map("new_assignee_id")
+  reason             String?       @db.Text
+  details            Json          @default("{}")
+  ipAddress          String?       @map("ip_address") @db.VarChar(45)
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  @@index([ticketId])
+  @@index([performedById])
+  @@index([createdAt(sort: Desc)])
+  @@map("ticket_audit_logs")
 }
 

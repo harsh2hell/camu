@@ -41,6 +41,7 @@ import {
   ChevronRight,
   Mail,
   Loader2,
+  LifeBuoy,
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
@@ -57,6 +58,7 @@ import { LeaveODManager } from './LeaveODManager';
 import { LMSAssignments } from './LMSAssignments';
 import { NoticeBoardView } from './NoticeBoardView';
 import { StudentProfileView } from './StudentProfileView';
+import { StudentSupportView } from './StudentSupportView';
 
 interface StudentDashboardProps {
   activeTab?: string;
@@ -313,12 +315,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         },
         {
           id: 'feedback',
-          title: 'CAMU Feedback & Grievance Cell',
-          sub: 'Service requests, curriculum suggestions & helpdesk',
-          icon: <AlertCircle size={16} />,
-          badge: 'CAMU Desk',
-          badgeColor: 'badge-slate',
-          onClick: () => setActiveCamuModal('feedback'),
+          title: 'CAMU Helpdesk & Grievance Cell',
+          sub: 'Submit service requests, complaints & track resolution',
+          icon: <LifeBuoy size={16} />,
+          badge: '24/7 Desk',
+          badgeColor: 'badge-emerald',
+          onClick: () => onNavigateTab('support'),
         },
       ],
     },
@@ -791,6 +793,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     >
                       <ShieldCheck size={14} />
                       <span>Hostel Digital Gatepass</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        onNavigateTab('support');
+                        setShowProfileMenu(false);
+                      }}
+                    >
+                      <LifeBuoy size={14} />
+                      <span>Helpdesk &amp; Support</span>
                     </button>
                     {onLogout && (
                       <button 
@@ -1326,6 +1338,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               {activeTab === 'lms' && 'LMS Course Assignments'}
               {activeTab === 'notices' && 'Campus Notice Board'}
               {activeTab === 'profile' && 'Student Profile & Academic Records'}
+              {activeTab === 'support' && 'Student Support & Helpdesk Cell'}
             </span>
           </div>
         </div>
@@ -1339,6 +1352,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           {activeTab === 'lms' && <LMSAssignments />}
           {activeTab === 'notices' && <NoticeBoardView />}
           {activeTab === 'profile' && <StudentProfileView />}
+          {activeTab === 'support' && <StudentSupportView />}
         </div>
       </div>
     )}
