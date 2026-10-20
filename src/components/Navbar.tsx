@@ -108,6 +108,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Receipt size={16} className="tab-icon" />
                 <span>Finance &amp; Fees</span>
               </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'campus-notices' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('campus-notices')}
+              >
+                <Bell size={16} className="tab-icon" />
+                <span>Notice Manager</span>
+              </button>
             </>
           ) : (
             <>
@@ -190,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button" 
             className="dbs-icon-btn" 
             aria-label="Campus Notices"
-            onClick={() => onTabChange('notices')}
+            onClick={() => onTabChange(isFaculty ? 'campus-notices' : 'notices')}
           >
             <Bell size={18} />
             {unreadCount > 0 && <span className="dbs-notif-dot">{unreadCount}</span>}

@@ -77,11 +77,38 @@ export class CalendarRepository {
           ? [filters.category]
           : ['ACADEMIC', 'EXAM', 'HOLIDAY', 'EVENT'];
 
+      const now = new Date();
+      const whereNotice: any = {
+        status: 'PUBLISHED',
+        category: { in: allowedCategories },
+        OR: [{ targetRole: null }, { targetRole: role }],
+        AND: [
+          {
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+        ],
+      };
+
+      if (role === 'STUDENT') {
+        const studentProfile = await prisma.studentProfile.findUnique({
+          where: { userId },
+          include: { batch: { include: { program: true } } },
+        });
+        const deptId = studentProfile?.batch?.program?.departmentId;
+        const progId = studentProfile?.batch?.programId;
+        const batchId = studentProfile?.batchId;
+        const sem = studentProfile?.currentSemester;
+
+        whereNotice.AND.push(
+          { OR: [{ departmentId: null }, ...(deptId ? [{ departmentId: deptId }] : [])] },
+          { OR: [{ programId: null }, ...(progId ? [{ programId: progId }] : [])] },
+          { OR: [{ batchId: null }, ...(batchId ? [{ batchId }] : [])] },
+          { OR: [{ targetSemester: null }, ...(sem ? [{ targetSemester: sem }] : [])] }
+        );
+      }
+
       const notices = await prisma.notice.findMany({
-        where: {
-          category: { in: allowedCategories },
-          OR: [{ targetRole: null }, { targetRole: role }],
-        },
+        where: whereNotice,
         orderBy: [{ isPinned: 'desc' }, { eventDate: 'asc' }, { createdAt: 'desc' }],
       });
 

@@ -222,6 +222,7 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
   let existingSub: { studentId: string } | null = null;
   let existingAssignment: { id: string } | null = null;
   let existingLeave: { studentId: string } | null = null;
+  let existingNotice: { postedById: string } | null = null;
 
   // 2. Authoritative persistent database check
   try {
@@ -263,6 +264,18 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
         select: { studentId: true },
       });
     }
+
+    if (!dbRecord && !existingSub && !existingAssignment && !existingLeave) {
+      existingNotice = await prisma.notice.findFirst({
+        where: {
+          OR: [
+            { attachmentFileKey: fileKey },
+            { attachmentUrl: { contains: fileKey } },
+          ],
+        },
+        select: { postedById: true },
+      });
+    }
   } catch (err) {
     if (err instanceof AppError) throw err;
     logger.error('Authoritative upload ownership verification failed due to database error; failing closed:', {
@@ -296,11 +309,18 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
     return;
   }
 
+  if (existingNotice) {
+    if (existingNotice.postedById !== userId) {
+      throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
+    }
+    return;
+  }
+
   if (existingAssignment) {
     return;
   }
 
-  // 4. Unknown file key: not found in uploaded_files, submissions, leaves, or assignments
+  // 4. Unknown file key: not found in uploaded_files, submissions, leaves, notices, or assignments
   // Must fail closed rather than silently approving!
   throw new NotFoundError('Referenced upload file not found.');
 }
@@ -448,6 +468,24 @@ export async function cleanupOrphanFiles(options: CleanupOptions = {}): Promise<
       }
       if (l.supportingDocUrl && !l.supportingDocUrl.startsWith('http')) {
         activeFileKeys.add(path.basename(l.supportingDocUrl));
+      }
+    }
+
+    const activeNotices = await prisma.notice.findMany({
+      where: {
+        OR: [
+          { attachmentFileKey: { not: null } },
+          { attachmentUrl: { not: null } },
+        ],
+      },
+      select: { attachmentFileKey: true, attachmentUrl: true },
+    });
+    for (const n of activeNotices) {
+      if (n.attachmentFileKey) {
+        activeFileKeys.add(path.basename(n.attachmentFileKey));
+      }
+      if (n.attachmentUrl && !n.attachmentUrl.startsWith('http')) {
+        activeFileKeys.add(path.basename(n.attachmentUrl));
       }
     }
   } catch (err) {

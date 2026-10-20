@@ -9,6 +9,7 @@ import { FacultyAttendanceView } from './components/FacultyAttendanceView';
 import { FacultyAssignmentsView } from './components/FacultyAssignmentsView';
 import { DefaultersView } from './components/DefaultersView';
 import { FinanceAdminView } from './components/FinanceAdminView';
+import { FacultyNoticeManagerView } from './components/FacultyNoticeManagerView';
 import { authApi, type UserSession } from './api/auth';
 import { ShieldAlert, ShieldCheck, Lock, LogOut, ArrowLeft } from 'lucide-react';
 
@@ -448,6 +449,7 @@ export function App() {
             {activeTab === 'faculty-assignments' && <FacultyAssignmentsView />}
             {activeTab === 'od-approvals' && <FacultyLeaveApprovalView />}
             {activeTab === 'finance-admin' && <FinanceAdminView />}
+            {(activeTab === 'campus-notices' || activeTab === 'notices') && <FacultyNoticeManagerView />}
           </>
         )}
       </main>

@@ -7,6 +7,7 @@ import { calendarRouter } from './calendar.route.js';
 import { assignmentRouter } from './assignment.route.js';
 import { financeRouter } from './finance.route.js';
 import { leaveRouter } from './leave.route.js';
+import { noticeRouter } from './notice.route.js';
 
 export const apiRouter: Router = Router();
 
@@ -31,3 +32,6 @@ apiRouter.use('/finance', financeRouter);
 
 // Mount Phase 7 Leave & On-Duty Management
 apiRouter.use('/leave-od', leaveRouter);
+
+// Mount Phase 8 Notices & Announcements Management
+apiRouter.use('/notices', noticeRouter);

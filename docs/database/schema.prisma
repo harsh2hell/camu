@@ -43,6 +43,16 @@ enum LeaveStatus {
   @@map("leave_status")
 }
 
+enum NoticeStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+  CANCELLED
+
+  @@map("notice_status")
+}
+
 enum DayOfWeek {
   MONDAY
   TUESDAY
@@ -84,6 +94,7 @@ model Department {
   programs    Program[]
   faculty     FacultyProfile[]
   courses     Course[]
+  notices     Notice[]
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("departments")
@@ -98,6 +109,7 @@ model Program {
   durationSemesters  Int        @default(8) @map("duration_semesters")
   degreeLevel        String     @map("degree_level")
   batches            Batch[]
+  notices            Notice[]
   createdAt          DateTime   @default(now()) @map("created_at")
 
   @@map("programs")
@@ -168,6 +180,8 @@ model User {
   assignedLeaveApprovals LeaveApplication[] @relation("AssignedApprover")
   approvedLeaveApplications LeaveApplication[] @relation("LeaveApprovedBy")
   performedLeaveAudits LeaveAuditLog[]     @relation("PerformedLeaveAudits")
+  performedNoticeAudits NoticeAuditLog[]   @relation("PerformedNoticeAudits")
+  noticeAcknowledgements NoticeAcknowledgement[] @relation("UserNoticeAcknowledgements")
 
   @@map("users")
 }
@@ -404,21 +418,67 @@ model AssignmentSubmission {
 }
 
 model Notice {
-  id            String    @id @default(uuid())
-  title         String
-  content       String
-  category      String    @default("ACADEMIC")
-  targetRole    UserRole? @map("target_role")
-  batchId       String?   @map("batch_id")
-  batch         Batch?    @relation(fields: [batchId], references: [id])
-  isPinned      Boolean   @default(false) @map("is_pinned")
-  attachmentUrl String?   @map("attachment_url")
-  postedById    String    @map("posted_by")
-  postedBy      User      @relation(fields: [postedById], references: [id])
-  eventDate     DateTime? @map("event_date")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id                String                  @id @default(uuid())
+  title             String
+  content           String
+  category          String                  @default("ACADEMIC")
+  priority          String                  @default("NORMAL")
+  status            NoticeStatus            @default(PUBLISHED)
+  targetRole        UserRole?               @map("target_role")
+  departmentId      String?                 @map("department_id")
+  department        Department?             @relation(fields: [departmentId], references: [id])
+  programId         String?                 @map("program_id")
+  program           Program?                @relation(fields: [programId], references: [id])
+  batchId           String?                 @map("batch_id")
+  batch             Batch?                  @relation(fields: [batchId], references: [id])
+  targetSemester    Int?                    @map("target_semester")
+  isPinned          Boolean                 @default(false) @map("is_pinned")
+  attachmentUrl     String?                 @map("attachment_url")
+  attachmentFileKey String?                 @map("attachment_file_key")
+  postedById        String                  @map("posted_by")
+  postedBy          User                    @relation(fields: [postedById], references: [id])
+  eventDate         DateTime?               @map("event_date")
+  publishAt         DateTime?               @map("publish_at")
+  publishedAt       DateTime?               @default(now()) @map("published_at")
+  expiresAt         DateTime?               @map("expires_at")
+  archivedAt        DateTime?               @map("archived_at")
+  cancelledAt       DateTime?               @map("cancelled_at")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @default(now()) @map("updated_at")
+
+  auditLogs         NoticeAuditLog[]
+  acknowledgements  NoticeAcknowledgement[]
 
   @@map("notices")
+}
+
+model NoticeAuditLog {
+  id             String       @id @default(uuid())
+  noticeId       String       @map("notice_id")
+  notice         Notice       @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  action         String
+  previousStatus String?      @map("previous_status")
+  newStatus      String       @map("new_status")
+  performedById  String       @map("performed_by_id")
+  performedBy    User         @relation("PerformedNoticeAudits", fields: [performedById], references: [id], onDelete: Cascade)
+  reason         String?
+  details        Json         @default("{}")
+  ipAddress      String?      @map("ip_address")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@map("notice_audit_logs")
+}
+
+model NoticeAcknowledgement {
+  id             String       @id @default(uuid())
+  noticeId       String       @map("notice_id")
+  notice         Notice       @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  userId         String       @map("user_id")
+  user           User         @relation("UserNoticeAcknowledgements", fields: [userId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime     @default(now()) @map("acknowledged_at")
+
+  @@unique([noticeId, userId])
+  @@map("notice_acknowledgements")
 }
 
 model FeeInvoice {
