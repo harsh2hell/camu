@@ -56,6 +56,7 @@ import { HostelGatePassView } from './HostelGatePassView';
 import { LeaveODManager } from './LeaveODManager';
 import { LMSAssignments } from './LMSAssignments';
 import { NoticeBoardView } from './NoticeBoardView';
+import { StudentProfileView } from './StudentProfileView';
 
 interface StudentDashboardProps {
   activeTab?: string;
@@ -374,11 +375,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         {
           id: 'camu_profile',
           title: 'My Camu Student Profile',
-          sub: 'Harendra Pratap Singh • Roll No: 0251BTCS097',
+          sub: 'Student details, mentor, department & academic standing',
           icon: <User size={16} />,
           badge: 'Active',
           badgeColor: 'badge-emerald',
-          onClick: () => setActiveCamuModal('profile'),
+          onClick: () => onNavigateTab('profile'),
         },
         {
           id: 'institution',
@@ -751,6 +752,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     <span>{CURRENT_STUDENT.rollNo} • {CURRENT_STUDENT.program}</span>
                   </div>
                   <div className="oak-profile-dropdown-body">
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        onNavigateTab('profile');
+                        setShowProfileMenu(false);
+                      }}
+                    >
+                      <User size={14} />
+                      <span>My Student Profile</span>
+                    </button>
                     <button 
                       type="button" 
                       onClick={() => {
@@ -1314,6 +1325,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               {activeTab === 'leaves' && 'Leave & On-Duty (OD) Management'}
               {activeTab === 'lms' && 'LMS Course Assignments'}
               {activeTab === 'notices' && 'Campus Notice Board'}
+              {activeTab === 'profile' && 'Student Profile & Academic Records'}
             </span>
           </div>
         </div>
@@ -1326,6 +1338,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           {activeTab === 'leaves' && <LeaveODManager />}
           {activeTab === 'lms' && <LMSAssignments />}
           {activeTab === 'notices' && <NoticeBoardView />}
+          {activeTab === 'profile' && <StudentProfileView />}
         </div>
       </div>
     )}
@@ -1904,6 +1917,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <button 
                 type="button" 
                 className="camu-btn-primary"
+                onClick={() => {
+                  setActiveCamuModal(null);
+                  onNavigateTab('profile');
+                }}
+              >
+                <User size={15} />
+                <span>Open Full Profile & Records</span>
+              </button>
+
+              <button 
+                type="button" 
+                className="camu-btn-secondary"
                 onClick={() => showCamuToast('Downloading DBS Student ID Card (PDF)...')}
               >
                 <Download size={15} />

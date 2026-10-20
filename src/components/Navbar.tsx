@@ -9,7 +9,8 @@ import {
   QrCode,
   FileText,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
@@ -116,6 +117,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Bell size={16} className="tab-icon" />
                 <span>Notice Manager</span>
+              </button>
+
+              <button
+                type="button"
+                className={`dbs-tab-btn ${activeTab === 'student-records' ? 'tab-active' : ''}`}
+                onClick={() => onTabChange('student-records')}
+              >
+                <Users size={16} className="tab-icon" />
+                <span>Mentorship &amp; Records</span>
               </button>
             </>
           ) : (

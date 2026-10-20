@@ -182,28 +182,38 @@ model User {
   performedLeaveAudits LeaveAuditLog[]     @relation("PerformedLeaveAudits")
   performedNoticeAudits NoticeAuditLog[]   @relation("PerformedNoticeAudits")
   noticeAcknowledgements NoticeAcknowledgement[] @relation("UserNoticeAcknowledgements")
+  performedProfileAudits ProfileAuditLog[] @relation("PerformedProfileAudits")
+  studentGrades        StudentGrade[]      @relation("StudentGrades")
+  gradesEntered        StudentGrade[]      @relation("GradeEnteredBy")
 
   @@map("users")
 }
 
 model StudentProfile {
-  id               String   @id @default(uuid())
-  userId           String   @unique @map("user_id")
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rollNumber       String   @unique @map("roll_number")
-  registrationNo   String   @unique @map("registration_no")
-  batchId          String   @map("batch_id")
-  batch            Batch    @relation(fields: [batchId], references: [id])
-  sectionId        String   @map("section_id")
-  section          Section  @relation(fields: [sectionId], references: [id])
-  currentSemester  Int      @default(1) @map("current_semester")
-  currentCgpa      Decimal  @default(0.00) @map("current_cgpa") @db.Decimal(4, 2)
-  mentorFacultyId  String?  @map("mentor_faculty_id")
-  mentor           User?    @relation("FacultyMentor", fields: [mentorFacultyId], references: [id])
-  bloodGroup       String?  @map("blood_group")
-  emergencyContact String?  @map("emergency_contact")
-  guardianName     String?  @map("guardian_name")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id               String            @id @default(uuid())
+  userId           String            @unique @map("user_id")
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rollNumber       String            @unique @map("roll_number")
+  registrationNo   String            @unique @map("registration_no")
+  batchId          String            @map("batch_id")
+  batch            Batch             @relation(fields: [batchId], references: [id])
+  sectionId        String            @map("section_id")
+  section          Section           @relation(fields: [sectionId], references: [id])
+  currentSemester  Int               @default(1) @map("current_semester")
+  currentCgpa      Decimal           @default(0.00) @map("current_cgpa") @db.Decimal(4, 2)
+  mentorFacultyId  String?           @map("mentor_faculty_id")
+  mentor           User?             @relation("FacultyMentor", fields: [mentorFacultyId], references: [id])
+  bloodGroup       String?           @map("blood_group")
+  emergencyContact String?           @map("emergency_contact")
+  guardianName     String?           @map("guardian_name")
+  personalEmail    String?           @map("personal_email") @db.VarChar(255)
+  addressLine      String?           @map("address_line")
+  city             String?           @db.VarChar(64)
+  state            String?           @db.VarChar(64)
+  pincode          String?           @db.VarChar(16)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime?         @default(now()) @map("updated_at")
+  auditLogs        ProfileAuditLog[]
 
   @@map("student_profiles")
 }
@@ -255,6 +265,7 @@ model CourseOffering {
   timetableSlots   TimetableSlot[]
   sessions         AttendanceSession[]
   assignments      Assignment[]
+  examComponents   ExamComponent[]
   createdAt        DateTime            @default(now()) @map("created_at")
 
   @@unique([courseId, sectionId, academicYear, semester])
@@ -629,5 +640,51 @@ model UploadedFile {
   @@index([uploadedById])
   @@index([fileKey])
   @@map("uploaded_files")
+}
+
+model ExamComponent {
+  id               String         @id @default(uuid())
+  courseOfferingId String         @map("course_offering_id")
+  courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  name             String         @db.VarChar(64)
+  maxMarks         Decimal        @default(100.00) @map("max_marks") @db.Decimal(5, 2)
+  weightagePercent Decimal        @map("weightage_percent") @db.Decimal(5, 2)
+  grades           StudentGrade[]
+
+  @@map("exam_components")
+}
+
+model StudentGrade {
+  id              String        @id @default(uuid())
+  studentId       String        @map("student_id")
+  student         User          @relation("StudentGrades", fields: [studentId], references: [id], onDelete: Cascade)
+  examComponentId String        @map("exam_component_id")
+  examComponent   ExamComponent @relation(fields: [examComponentId], references: [id], onDelete: Cascade)
+  obtainedMarks   Decimal       @map("obtained_marks") @db.Decimal(5, 2)
+  enteredBy       String?       @map("entered_by")
+  grader          User?         @relation("GradeEnteredBy", fields: [enteredBy], references: [id])
+  createdAt       DateTime?     @default(now()) @map("created_at")
+
+  @@unique([studentId, examComponentId])
+  @@map("student_grades")
+}
+
+model ProfileAuditLog {
+  id               String         @id @default(uuid())
+  studentProfileId String         @map("student_profile_id")
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  changedById      String         @map("changed_by_id")
+  changedBy        User           @relation("PerformedProfileAudits", fields: [changedById], references: [id], onDelete: Cascade)
+  action           String         @db.VarChar(64)
+  changedFields    Json           @default("{}") @map("changed_fields")
+  previousValues   Json           @default("{}") @map("previous_values")
+  newValues        Json           @default("{}") @map("new_values")
+  ipAddress        String?        @map("ip_address") @db.VarChar(45)
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([studentProfileId])
+  @@index([changedById])
+  @@index([createdAt(sort: Desc)])
+  @@map("profile_audit_logs")
 }
 
