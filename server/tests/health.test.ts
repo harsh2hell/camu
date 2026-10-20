@@ -20,6 +20,8 @@ describe('GET /api/health', () => {
     expect(data.system.memoryUsageMb).toBeDefined();
     expect(data.database).toBeDefined();
     expect(['connected', 'disconnected']).toContain(data.database.status);
+    expect(data.backgroundJobs).toBeDefined();
+    expect(typeof data.backgroundJobs.isRunning).toBe('boolean');
   });
 
   it('should not expose database credentials, secrets or environment variables in health payload', async () => {

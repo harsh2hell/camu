@@ -8,6 +8,8 @@ import {
 } from '../errors/AppError.js';
 import { logger } from '../lib/logger.js';
 import { FileStorage } from '../lib/fileStorage.js';
+import { prisma } from '../lib/prisma.js';
+import { notificationService } from './notification.service.js';
 import type { 
   createAssignmentSchema, 
   updateAssignmentSchema, 
@@ -247,6 +249,28 @@ export class AssignmentService {
     });
 
     logger.info(`New assignment created: id=${assignment.id}, offering=${payload.courseOfferingId}, published=${payload.isPublished}`);
+
+    // Notification Integration: If published, notify enrolled students
+    if (assignment.isPublished) {
+      const enrollments = await prisma.enrollment.findMany({
+        where: { courseOfferingId: payload.courseOfferingId },
+        select: { studentId: true },
+      });
+      const studentIds = enrollments.map((e) => e.studentId);
+      if (studentIds.length > 0) {
+        await notificationService.sendBatchNotifications(studentIds, {
+          type: 'ASSIGNMENT',
+          title: `New Assignment: ${assignment.title}`,
+          message: `A new course assignment has been published. Due: ${new Date(assignment.dueDate).toLocaleDateString()}. Total Marks: ${assignment.totalMarks}.`,
+          priority: 'MEDIUM',
+          resourceType: 'ASSIGNMENT',
+          resourceId: assignment.id,
+          actionUrl: '/student-dashboard?tab=assignments',
+          idempotencyKey: `ASSIGNMENT_PUB:${assignment.id}`,
+        });
+      }
+    }
+
     return assignment;
   }
 
@@ -338,6 +362,20 @@ export class AssignmentService {
     });
 
     logger.info(`Submission graded: submissionId=${submissionId}, score=${payload.score}, faculty=${facultyId}`);
+
+    // Notification Integration: Notify student about graded assignment
+    await notificationService.sendNotification({
+      recipientId: gradedSubmission.studentId,
+      type: 'ASSIGNMENT',
+      title: `Assignment Graded: ${assignment.title}`,
+      message: `Your submission for "${assignment.title}" has been graded: ${payload.score}/${assignment.totalMarks}.${payload.feedback ? ' Feedback: ' + payload.feedback : ''}`,
+      priority: 'MEDIUM',
+      resourceType: 'ASSIGNMENT',
+      resourceId: assignment.id,
+      actionUrl: '/student-dashboard?tab=assignments',
+      idempotencyKey: `ASSIGNMENT_GRADED:${submissionId}:${payload.score}`,
+    });
+
     return gradedSubmission;
   }
 

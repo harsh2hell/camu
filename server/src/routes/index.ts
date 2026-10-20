@@ -10,6 +10,7 @@ import { leaveRouter } from './leave.route.js';
 import { noticeRouter } from './notice.route.js';
 import { profileRouter } from './profile.route.js';
 import { supportRouter } from './support.route.js';
+import { notificationRouter } from './notification.route.js';
 
 export const apiRouter: Router = Router();
 
@@ -43,3 +44,6 @@ apiRouter.use('/profile', profileRouter);
 
 // Mount Phase 10 Student Support & Helpdesk
 apiRouter.use('/support', supportRouter);
+
+// Mount Phase 11 Notifications & Communication Center
+apiRouter.use('/notifications', notificationRouter);

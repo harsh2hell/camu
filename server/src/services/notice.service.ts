@@ -24,6 +24,7 @@ import type {
 import type { UserRole, NoticeStatus } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { notificationService } from './notification.service.js';
 
 export class NoticeService {
   private repo: NoticeRepository;
@@ -131,7 +132,7 @@ export class NoticeService {
     const eventDate = payload.eventDate ? new Date(payload.eventDate) : null;
     const expiresAt = payload.expiresAt ? new Date(payload.expiresAt) : null;
 
-    return this.repo.createNotice(
+    const notice = await this.repo.createNotice(
       {
         title: payload.title,
         content: payload.content,
@@ -154,6 +155,32 @@ export class NoticeService {
       },
       ipAddress
     );
+
+    // Notification Integration: If published immediately, notify target audience
+    if (notice.status === 'PUBLISHED') {
+      const recipientIds = await this.repo.getAudienceUserIds({
+        targetRole: notice.targetRole,
+        departmentId: notice.departmentId,
+        programId: notice.programId,
+        batchId: notice.batchId,
+        targetSemester: notice.targetSemester,
+      });
+
+      if (recipientIds.length > 0) {
+        await notificationService.sendBatchNotifications(recipientIds, {
+          type: 'NOTICE',
+          title: `Campus Notice: ${notice.title}`,
+          message: notice.content.length > 150 ? notice.content.substring(0, 147) + '...' : notice.content,
+          priority: notice.priority === 'URGENT' ? 'URGENT' : notice.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+          resourceType: 'NOTICE',
+          resourceId: notice.id,
+          actionUrl: '/student-dashboard?tab=notices',
+          idempotencyKey: `NOTICE_PUB:${notice.id}`,
+        });
+      }
+    }
+
+    return notice;
   }
 
   /**
@@ -247,7 +274,7 @@ export class NoticeService {
     const publishAt = payload.publishAt ? new Date(payload.publishAt) : null;
     const expiresAt = payload.expiresAt ? new Date(payload.expiresAt) : undefined;
 
-    return this.repo.publishNotice(
+    const published = await this.repo.publishNotice(
       noticeId,
       {
         publishNow: payload.publishNow,
@@ -257,6 +284,32 @@ export class NoticeService {
       user.id,
       ipAddress
     );
+
+    // Notification Integration: If published, notify audience
+    if (published.status === 'PUBLISHED') {
+      const recipientIds = await this.repo.getAudienceUserIds({
+        targetRole: published.targetRole,
+        departmentId: published.departmentId,
+        programId: published.programId,
+        batchId: published.batchId,
+        targetSemester: published.targetSemester,
+      });
+
+      if (recipientIds.length > 0) {
+        await notificationService.sendBatchNotifications(recipientIds, {
+          type: 'NOTICE',
+          title: `Campus Notice: ${published.title}`,
+          message: published.content.length > 150 ? published.content.substring(0, 147) + '...' : published.content,
+          priority: published.priority === 'URGENT' ? 'URGENT' : published.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+          resourceType: 'NOTICE',
+          resourceId: published.id,
+          actionUrl: '/student-dashboard?tab=notices',
+          idempotencyKey: `NOTICE_PUB:${published.id}`,
+        });
+      }
+    }
+
+    return published;
   }
 
   /**
@@ -457,10 +510,40 @@ export class NoticeService {
   }
 
   /**
-   * Background processor invocation
+   * Reliable scheduled notice processor with idempotent notification dispatch
    */
   async triggerScheduledProcessing(): Promise<number> {
-    return this.repo.processDueScheduledNotices();
+    const { count, notices } = await this.repo.processDueScheduledNoticesWithDetails();
+    for (const notice of notices) {
+      try {
+        const recipientIds = await this.repo.getAudienceUserIds({
+          targetRole: notice.targetRole,
+          departmentId: notice.departmentId,
+          programId: notice.programId,
+          batchId: notice.batchId,
+          targetSemester: notice.targetSemester,
+        });
+
+        if (recipientIds.length > 0) {
+          await notificationService.sendBatchNotifications(recipientIds, {
+            type: 'NOTICE',
+            title: `Campus Notice: ${notice.title}`,
+            message: notice.content.length > 150 ? notice.content.substring(0, 147) + '...' : notice.content,
+            priority: notice.priority === 'URGENT' ? 'URGENT' : notice.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+            resourceType: 'NOTICE',
+            resourceId: notice.id,
+            actionUrl: '/student-dashboard?tab=notices',
+            idempotencyKey: `NOTICE_PUB:${notice.id}`,
+          });
+        }
+      } catch (err) {
+        logger.error('Failed to dispatch notifications for scheduled notice:', {
+          noticeId: notice.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return count;
   }
 }
 

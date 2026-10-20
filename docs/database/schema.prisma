@@ -193,6 +193,7 @@ model User {
   reopenedTickets      SupportTicket[]     @relation("StaffReopenedTickets")
   ticketMessages       TicketMessage[]     @relation("TicketMessageSender")
   ticketAudits         TicketAuditLog[]    @relation("TicketAuditActor")
+  notifications        Notification[]      @relation("UserNotifications")
 
   @@map("users")
 }
@@ -774,5 +775,29 @@ model TicketAuditLog {
   @@index([performedById])
   @@index([createdAt(sort: Desc)])
   @@map("ticket_audit_logs")
+}
+
+model Notification {
+  id              String    @id @default(uuid())
+  recipientId     String    @map("recipient_id")
+  recipient       User      @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  type            String    @db.VarChar(64)
+  title           String    @db.VarChar(255)
+  message         String    @db.Text
+  priority        String    @default("MEDIUM") @db.VarChar(16)
+  isRead          Boolean   @default(false) @map("is_read")
+  readAt          DateTime? @map("read_at")
+  resourceType    String?   @map("resource_type") @db.VarChar(64)
+  resourceId      String?   @map("resource_id") @db.VarChar(255)
+  actionUrl       String?   @map("action_url") @db.VarChar(255)
+  metadata        Json      @default("{}")
+  idempotencyKey  String?   @map("idempotency_key") @db.VarChar(128)
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([recipientId, isRead, createdAt(sort: Desc)])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([type])
+  @@map("notifications")
 }
 

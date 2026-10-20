@@ -325,13 +325,25 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
   throw new NotFoundError('Referenced upload file not found.');
 }
 
-/**
- * Resolves safe file path and verifies against path traversal
- */
 export function getSafeFilePath(fileKeyOrUrl: string): string {
-  const fileKey = path.basename(fileKeyOrUrl);
-  // Ensure no path traversal characters
-  if (fileKey.includes('..') || fileKey.includes('/') || fileKey.includes('\\')) {
+  // Ensure no path traversal characters in raw input
+  if (fileKeyOrUrl.includes('..') || fileKeyOrUrl.includes('\\')) {
+    throw new BadRequestError('Invalid file key format.');
+  }
+
+  // Support /uploads/ prefix if present
+  let cleanKey = fileKeyOrUrl;
+  if (cleanKey.startsWith('/uploads/')) {
+    cleanKey = cleanKey.substring(9);
+  }
+
+  // File key cannot contain directory separators
+  if (cleanKey.includes('/') || cleanKey.includes('\\')) {
+    throw new BadRequestError('Invalid file key format.');
+  }
+
+  const fileKey = path.basename(cleanKey);
+  if (fileKey !== cleanKey || fileKey.includes('..')) {
     throw new BadRequestError('Invalid file key format.');
   }
 

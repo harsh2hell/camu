@@ -11,8 +11,28 @@ import { config } from './config/env.js';
 export function createApp(): Application {
   const app: Application = express();
 
+  // 0. Reverse Proxy Configuration (Strictly configured for trusted hops or networks, never blindly 'true')
+  if (config.TRUST_PROXY === 'false' || config.TRUST_PROXY === '0') {
+    app.set('trust proxy', false);
+  } else if (/^\d+$/.test(config.TRUST_PROXY)) {
+    app.set('trust proxy', parseInt(config.TRUST_PROXY, 10));
+  } else {
+    app.set('trust proxy', config.TRUST_PROXY);
+  }
+
   // 1. Security & CORS
   app.use(corsMiddleware);
+
+  // 1b. Defense-in-depth HTTP Security Headers
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (config.NODE_ENV === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+  });
 
   // 2. Cookie Parser & Body Parser with explicit payload size limits (15mb for assignment submissions)
   app.use(cookieParser());

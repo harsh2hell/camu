@@ -1,5 +1,6 @@
 import { checkDatabaseConnection } from '../lib/prisma.js';
 import { config } from '../config/env.js';
+import { getBackgroundJobStatus, type BackgroundJobStatus } from './backgroundJobs.js';
 
 export interface HealthCheckResult {
   status: 'ok' | 'degraded';
@@ -18,6 +19,7 @@ export interface HealthCheckResult {
     status: 'connected' | 'disconnected';
     latencyMs?: number;
   };
+  backgroundJobs: BackgroundJobStatus;
 }
 
 export class HealthService {
@@ -42,6 +44,7 @@ export class HealthService {
         status: dbProbe.connected ? 'connected' : 'disconnected',
         ...(dbProbe.latencyMs !== undefined ? { latencyMs: dbProbe.latencyMs } : {}),
       },
+      backgroundJobs: getBackgroundJobStatus(),
     };
   }
 }

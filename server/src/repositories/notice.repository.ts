@@ -90,11 +90,34 @@ export class NoticeRepository {
    * Multi-instance safe via SKIP LOCKED row selection.
    */
   async processDueScheduledNotices(): Promise<number> {
+    const result = await this.processDueScheduledNoticesWithDetails();
+    return result.count;
+  }
+
+  /**
+   * Concurrency-safe scheduled notice processor returning transitioned notice records
+   * Multi-instance safe via SKIP LOCKED row selection.
+   */
+  async processDueScheduledNoticesWithDetails(): Promise<{
+    count: number;
+    notices: Array<{
+      id: string;
+      title: string;
+      content: string;
+      priority: string;
+      targetRole?: UserRole | null;
+      departmentId?: string | null;
+      programId?: string | null;
+      batchId?: string | null;
+      targetSemester?: number | null;
+    }>;
+  }> {
     try {
       const now = new Date();
       return await prisma.$transaction(async (tx) => {
         const dueRows = await tx.$queryRaw<any[]>`
-          SELECT id, title, posted_by FROM notices
+          SELECT id, title, content, priority, target_role, department_id, program_id, batch_id, target_semester, posted_by
+          FROM notices
           WHERE status = 'SCHEDULED'::notice_status
             AND publish_at IS NOT NULL
             AND publish_at <= ${now}
@@ -102,9 +125,10 @@ export class NoticeRepository {
         `;
 
         if (!dueRows || dueRows.length === 0) {
-          return 0;
+          return { count: 0, notices: [] };
         }
 
+        const transitioned: any[] = [];
         for (const row of dueRows) {
           await tx.notice.update({
             where: { id: row.id },
@@ -124,14 +148,26 @@ export class NoticeRepository {
               reason: 'Scheduled publication time arrived; automatically published by database processor.',
             },
           });
+
+          transitioned.push({
+            id: row.id,
+            title: row.title,
+            content: row.content,
+            priority: row.priority,
+            targetRole: row.target_role,
+            departmentId: row.department_id,
+            programId: row.program_id,
+            batchId: row.batch_id,
+            targetSemester: row.target_semester,
+          });
         }
 
         logger.info(`Processed ${dueRows.length} scheduled notices to PUBLISHED state.`);
-        return dueRows.length;
+        return { count: dueRows.length, notices: transitioned };
       });
     } catch (err) {
       logger.error('Error during processDueScheduledNotices:', err);
-      return 0;
+      return { count: 0, notices: [] };
     }
   }
 
@@ -910,6 +946,53 @@ export class NoticeRepository {
       logger.error('Failed to calculate audience preview:', err);
       throw new ServiceUnavailableError('Failed to calculate audience preview.');
     }
+  }
+
+  /**
+   * Resolve list of recipient user IDs matching audience criteria
+   */
+  async getAudienceUserIds(criteria: {
+    targetRole?: UserRole | null;
+    departmentId?: string | null;
+    programId?: string | null;
+    batchId?: string | null;
+    targetSemester?: number | null;
+  }): Promise<string[]> {
+    const userIds = new Set<string>();
+
+    if (criteria.targetRole === 'STUDENT' || !criteria.targetRole) {
+      const studentWhere: Prisma.StudentProfileWhereInput = {};
+      if (criteria.batchId) {
+        studentWhere.batchId = criteria.batchId;
+      } else if (criteria.programId) {
+        studentWhere.batch = { programId: criteria.programId };
+      } else if (criteria.departmentId) {
+        studentWhere.batch = { program: { departmentId: criteria.departmentId } };
+      }
+      if (criteria.targetSemester) {
+        studentWhere.currentSemester = criteria.targetSemester;
+      }
+
+      const students = await prisma.studentProfile.findMany({
+        where: studentWhere,
+        select: { userId: true },
+      });
+      students.forEach((s) => userIds.add(s.userId));
+    }
+
+    if (criteria.targetRole === 'FACULTY' || !criteria.targetRole) {
+      const facultyWhere: Prisma.FacultyProfileWhereInput = {};
+      if (criteria.departmentId) {
+        facultyWhere.departmentId = criteria.departmentId;
+      }
+      const faculty = await prisma.facultyProfile.findMany({
+        where: facultyWhere,
+        select: { userId: true },
+      });
+      faculty.forEach((f) => userIds.add(f.userId));
+    }
+
+    return Array.from(userIds);
   }
 }
 

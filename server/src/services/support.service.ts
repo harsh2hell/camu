@@ -22,6 +22,7 @@ import { VALID_STATUS_TRANSITIONS } from '../types/support.js';
 import type { UserRole } from '@prisma/client';
 import { logger } from '../lib/logger.js';
 import { prisma } from '../lib/prisma.js';
+import { notificationService } from './notification.service.js';
 
 export class SupportService {
   constructor(private repo: SupportRepository = supportRepository) {}
@@ -166,6 +167,8 @@ export class SupportService {
     return {
       id: rawTicket.id,
       ticketNumber: rawTicket.ticketNumber,
+      studentId: rawTicket.studentId,
+      assignedStaffId: rawTicket.assignedStaffId,
       student: {
         id: rawTicket.student.id,
         fullName: rawTicket.student.fullName,
@@ -267,13 +270,45 @@ export class SupportService {
       await this.verifyStaffTicketAccess(caller, rawTicket);
     }
 
-    return this.repo.addMessage(
+    const msg = await this.repo.addMessage(
       rawTicket.id,
       caller.id,
       input,
       !isStudent,
       ipAddress
     );
+
+    // Notification Integration:
+    // If staff posted a public reply (isInternal = false), notify the student.
+    // Internal notes (isInternal = true) MUST NEVER trigger student notifications or be exposed!
+    if (!isStudent && !input.isInternal) {
+      await notificationService.sendNotification({
+        recipientId: rawTicket.studentId,
+        type: 'SUPPORT_TICKET',
+        title: `Response on Support Ticket ${rawTicket.ticketNumber}`,
+        message: `An institutional representative responded to your ticket: "${rawTicket.subject}".`,
+        priority: 'MEDIUM',
+        resourceType: 'SUPPORT_TICKET',
+        resourceId: rawTicket.id,
+        actionUrl: '/student-dashboard?tab=support',
+        idempotencyKey: `TICKET_MSG:${msg.id}`,
+      });
+    } else if (isStudent && rawTicket.assignedStaffId) {
+      // If student posted a response, notify the assigned staff member
+      await notificationService.sendNotification({
+        recipientId: rawTicket.assignedStaffId,
+        type: 'SUPPORT_TICKET',
+        title: `Student Reply on Ticket ${rawTicket.ticketNumber}`,
+        message: `Student replied to ticket: "${rawTicket.subject}".`,
+        priority: 'MEDIUM',
+        resourceType: 'SUPPORT_TICKET',
+        resourceId: rawTicket.id,
+        actionUrl: '/staff-helpdesk',
+        idempotencyKey: `TICKET_MSG:${msg.id}`,
+      });
+    }
+
+    return msg;
   }
 
   /**
@@ -321,7 +356,7 @@ export class SupportService {
       throw new ForbiddenError('Only Registrar Administrators can transition closed tickets.');
     }
 
-    return this.repo.updateTicketStatus(
+    const updated = await this.repo.updateTicketStatus(
       rawTicket.id,
       staffUser.id,
       newStatus,
@@ -329,6 +364,23 @@ export class SupportService {
       input.resolutionNotes,
       ipAddress
     );
+
+    // Notify student on resolution or closure
+    if (newStatus === 'RESOLVED' || newStatus === 'CLOSED') {
+      await notificationService.sendNotification({
+        recipientId: rawTicket.studentId,
+        type: 'SUPPORT_TICKET',
+        title: `Ticket ${rawTicket.ticketNumber} ${newStatus === 'RESOLVED' ? 'Resolved' : 'Closed'}`,
+        message: `Your support ticket "${rawTicket.subject}" has been marked as ${newStatus.toLowerCase()}.${input.resolutionNotes ? ' Resolution: ' + input.resolutionNotes : ''}`,
+        priority: 'MEDIUM',
+        resourceType: 'SUPPORT_TICKET',
+        resourceId: rawTicket.id,
+        actionUrl: '/student-dashboard?tab=support',
+        idempotencyKey: `TICKET_STATUS:${rawTicket.id}:${newStatus}`,
+      });
+    }
+
+    return updated;
   }
 
   /**
@@ -394,13 +446,30 @@ export class SupportService {
       }
     }
 
-    return this.repo.assignTicket(
+    const assigned = await this.repo.assignTicket(
       rawTicket.id,
       staffUser.id,
       input.assignedStaffId,
       input.reason,
       ipAddress
     );
+
+    // If assigned to a staff member (other than the assigner themselves), send notification
+    if (input.assignedStaffId && input.assignedStaffId !== staffUser.id) {
+      await notificationService.sendNotification({
+        recipientId: input.assignedStaffId,
+        type: 'SUPPORT_TICKET',
+        title: `Ticket Assigned: ${rawTicket.ticketNumber}`,
+        message: `You have been assigned to support ticket: "${rawTicket.subject}".`,
+        priority: 'MEDIUM',
+        resourceType: 'SUPPORT_TICKET',
+        resourceId: rawTicket.id,
+        actionUrl: '/staff-helpdesk',
+        idempotencyKey: `TICKET_ASSIGN:${rawTicket.id}:${input.assignedStaffId}`,
+      });
+    }
+
+    return assigned;
   }
 
   /**

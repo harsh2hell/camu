@@ -59,6 +59,8 @@ import { LMSAssignments } from './LMSAssignments';
 import { NoticeBoardView } from './NoticeBoardView';
 import { StudentProfileView } from './StudentProfileView';
 import { StudentSupportView } from './StudentSupportView';
+import { NotificationCenter } from './NotificationCenter';
+import { getUnreadNotificationCount } from '../api/notifications';
 
 interface StudentDashboardProps {
   activeTab?: string;
@@ -95,6 +97,19 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
   // Notifications Modal
   const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    getUnreadNotificationCount()
+      .then((res) => {
+        if (isMounted) setUnreadCount(res.data.unreadCount);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Calendar Modal
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -727,10 +742,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               type="button" 
               className="oak-header-pill-btn has-badge" 
               onClick={() => setShowNotifications(true)}
-              title="Notifications"
+              title="Communications & Alerts"
+              aria-label={`Notifications (${unreadCount} unread)`}
             >
               <Bell size={17} />
-              <span className="oak-notif-dot" />
+              {unreadCount > 0 && <span className="oak-notif-dot" />}
             </button>
 
             {/* Student Profile Pill */}
@@ -1506,31 +1522,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* 8. NOTIFICATIONS POPUP */}
-      {showNotifications && (
-        <div className="oak-modal-overlay" onClick={() => setShowNotifications(false)}>
-          <div className="oak-notif-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="oak-detail-modal-header">
-              <h3 className="oak-detail-title">Academic Notifications</h3>
-              <button type="button" className="oak-modal-close-btn" onClick={() => setShowNotifications(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="oak-notif-items">
-              <div className="oak-notif-item">
-                <span className="oak-notif-time">10 mins ago</span>
-                <h4 className="oak-notif-heading">Timetable Room Relocation</h4>
-                <p className="oak-notif-body">Operating Systems Lab scheduled at 2:00 PM has been moved to Turing Lab 4.</p>
-              </div>
-              <div className="oak-notif-item">
-                <span className="oak-notif-time">2 hours ago</span>
-                <h4 className="oak-notif-heading">OD Application Approved</h4>
-                <p className="oak-notif-body">Your On-Duty request for National Hackathon 2026 has been approved by HoD.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 8. DATABASE-BACKED NOTIFICATION CENTER */}
+      <NotificationCenter
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        onNavigate={(tab) => {
+          onNavigateTab(tab);
+        }}
+        onUnreadCountChange={(cnt) => setUnreadCount(cnt)}
+      />
 
       {/* 9. CALENDAR POPUP */}
       {showCalendarModal && (

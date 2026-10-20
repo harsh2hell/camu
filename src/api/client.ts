@@ -135,6 +135,33 @@ class ApiClient {
     }
   }
 
+  async delete<T>(endpoint: string): Promise<T> {
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent('dbs-session-expired', { detail: { status: 401 } }));
+        }
+        let errMsg = `HTTP Error: ${response.status} ${response.statusText}`;
+        try {
+          const errData = await response.json();
+          if (errData?.error?.message) errMsg = errData.error.message;
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errMsg);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn(`[API DELETE Failed: ${endpoint}]`, err);
+      throw err;
+    }
+  }
+
   async checkHealth(): Promise<ApiResponse<{ status: string; timestamp: string; database: { status: string } }>> {
     return this.get('/health');
   }

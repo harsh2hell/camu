@@ -8,6 +8,7 @@ export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(8000),
+    HOST: z.string().default('127.0.0.1'),
     API_PREFIX: z.string().default('/api'),
     DATABASE_URL: z
       .string()
@@ -27,6 +28,7 @@ export const envSchema = z
     SESSION_COOKIE_NAME: z.string().default('dbs_session'),
     SESSION_MAX_AGE_DAYS: z.coerce.number().int().positive().default(7),
     UPLOAD_DIR: z.string().default('server/uploads'),
+    TRUST_PROXY: z.string().default('false'),
   })
   .refine(
     (data) => {

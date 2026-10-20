@@ -29,4 +29,7 @@ dist-ssr
 # Uploads & Test Artifacts
 server/uploads/*
 !server/uploads/.gitkeep
+server/backups/*
+!server/backups/.gitkeep
+*.dump
 .vitest/

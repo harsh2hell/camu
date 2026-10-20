@@ -10,6 +10,7 @@ import {
   ConflictError,
   ServiceUnavailableError,
 } from '../errors/AppError.js';
+import { notificationService } from './notification.service.js';
 import type {
   createLeaveApplicationSchema,
   withdrawApplicationSchema,
@@ -351,6 +352,19 @@ export class LeaveService {
     if (payload.action === 'APPROVE') {
       await this.syncApprovedLeaveToAttendance(applicationId);
     }
+
+    // Trigger notification to student regarding the approver's decision
+    await notificationService.sendNotification({
+      recipientId: decided.studentId,
+      type: 'LEAVE_OD',
+      title: `Leave/OD Application ${payload.action === 'APPROVE' ? 'Approved' : payload.action === 'REJECT' ? 'Rejected' : 'Correction Requested'}`,
+      message: `Your ${decided.category.replace('_', ' ')} request (${decided.startDate} to ${decided.endDate}) has been ${payload.action === 'APPROVE' ? 'approved' : payload.action === 'REJECT' ? 'rejected' : 'flagged for correction'} by ${approverUser.role}.${payload.reason ? ' Note: ' + payload.reason : ''}`,
+      priority: payload.action === 'APPROVE' ? 'MEDIUM' : 'HIGH',
+      resourceType: 'LEAVE_APPLICATION',
+      resourceId: applicationId,
+      actionUrl: '/student-dashboard?tab=leave-od',
+      idempotencyKey: `LEAVE_DECISION:${applicationId}:${payload.action}`,
+    });
 
     return decided;
   }

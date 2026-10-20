@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
+import { NotificationCenter } from './NotificationCenter';
+import { getUnreadNotificationCount } from '../api/notifications';
 
 interface NavbarProps {
   currentRole: 'STUDENT' | 'FACULTY';
@@ -44,6 +46,20 @@ export const Navbar: React.FC<NavbarProps> = ({
     .toUpperCase();
 
   const isFaculty = currentRole === 'FACULTY';
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [liveUnreadCount, setLiveUnreadCount] = React.useState<number>(unreadCount);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    getUnreadNotificationCount()
+      .then((res) => {
+        if (isMounted) setLiveUnreadCount(res.data.unreadCount);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <header className="dbs-navbar">
@@ -218,11 +234,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button 
             type="button" 
             className="dbs-icon-btn" 
-            aria-label="Campus Notices"
-            onClick={() => onTabChange(isFaculty ? 'campus-notices' : 'notices')}
+            aria-label={`Communications & Alerts (${liveUnreadCount} unread)`}
+            title="Communications & Alerts"
+            onClick={() => setShowNotifications(true)}
           >
             <Bell size={18} />
-            {unreadCount > 0 && <span className="dbs-notif-dot">{unreadCount}</span>}
+            {liveUnreadCount > 0 && <span className="dbs-notif-dot">{liveUnreadCount > 99 ? '99+' : liveUnreadCount}</span>}
           </button>
 
           {/* User Profile Pill */}
@@ -524,6 +541,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           }
         }
       `}</style>
+
+      <NotificationCenter
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        onNavigate={(tab) => {
+          onTabChange(tab);
+        }}
+        onUnreadCountChange={(cnt) => setLiveUnreadCount(cnt)}
+      />
     </header>
   );
 };

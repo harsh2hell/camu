@@ -6,6 +6,7 @@ import {
   NotFoundError,
   BadRequestError,
 } from '../errors/AppError.js';
+import { notificationService } from './notification.service.js';
 import { toMinorUnits, fromMinorUnits } from '../utils/financialMath.js';
 import type {
   FeeInvoiceDTO,
@@ -413,7 +414,7 @@ export class FinanceService {
     adminUserId: string,
     ipAddress?: string
   ) {
-    return financeRepository.reconcilePayment(
+    const result = await financeRepository.reconcilePayment(
       {
         invoiceId: payload.invoiceId,
         amount: payload.amount,
@@ -425,6 +426,21 @@ export class FinanceService {
       adminUserId,
       ipAddress
     );
+
+    // Notification Integration: Notify student about confirmed payment and receipt
+    await notificationService.sendNotification({
+      recipientId: result.invoice.studentId,
+      type: 'FINANCE',
+      title: 'Fee Payment Confirmed',
+      message: `Payment of ₹${result.transaction.amount.toFixed(2)} received for invoice ${result.invoice.invoiceNumber} (${result.invoice.category}). Digital receipt ${result.receiptNumber} is now available.`,
+      priority: 'MEDIUM',
+      resourceType: 'FEE_RECEIPT',
+      resourceId: result.receiptNumber,
+      actionUrl: '/student-dashboard?tab=finance',
+      idempotencyKey: `PAYMENT_CONFIRMED:${result.transaction.id}`,
+    });
+
+    return result;
   }
 
   /**
