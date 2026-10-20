@@ -35,7 +35,10 @@ enum LeaveStatus {
   PENDING
   RECOMMENDED_BY_MENTOR
   APPROVED_BY_HOD
+  APPROVED
   REJECTED
+  WITHDRAWN
+  NEEDS_CORRECTION
 
   @@map("leave_status")
 }
@@ -162,6 +165,9 @@ model User {
   feeTransactions    FeeTransaction[]    @relation("StudentTransactions")
   reconciledTxns     FeeTransaction[]    @relation("ReconciledTransactions")
   performedAuditLogs FeeAuditLog[]       @relation("PerformedAuditLogs")
+  assignedLeaveApprovals LeaveApplication[] @relation("AssignedApprover")
+  approvedLeaveApplications LeaveApplication[] @relation("LeaveApprovedBy")
+  performedLeaveAudits LeaveAuditLog[]     @relation("PerformedLeaveAudits")
 
   @@map("users")
 }
@@ -307,21 +313,59 @@ model AttendanceRecord {
 }
 
 model LeaveApplication {
-  id               String      @id @default(uuid())
-  studentId        String      @map("student_id")
-  student          User        @relation("StudentLeaves", fields: [studentId], references: [id], onDelete: Cascade)
-  leaveType        String      @map("leave_type")
-  startDate        DateTime    @map("start_date")
-  endDate          DateTime    @map("end_date")
-  reason           String
-  supportingDocUrl String?     @map("supporting_doc_url")
-  status           LeaveStatus @default(PENDING)
-  mentorRemarks    String?     @map("mentor_remarks")
-  hodRemarks       String?     @map("hod_remarks")
-  approvedBy       String?     @map("approved_by")
-  createdAt        DateTime    @default(now()) @map("created_at")
+  id                 String          @id @default(uuid())
+  studentId          String          @map("student_id")
+  student            User            @relation("StudentLeaves", fields: [studentId], references: [id], onDelete: Cascade)
+  category           String          @default("LEAVE")
+  leaveType          String          @map("leave_type")
+  title              String?
+  startDate          DateTime        @map("start_date") @db.Date
+  endDate            DateTime        @map("end_date") @db.Date
+  reason             String
+  supportingDocUrl   String?         @map("supporting_doc_url")
+  supportingFileKey  String?         @map("supporting_file_key")
+  status             LeaveStatus     @default(PENDING)
+  mentorRemarks      String?         @map("mentor_remarks")
+  hodRemarks         String?         @map("hod_remarks")
+  assignedApproverId String?         @map("assigned_approver_id")
+  assignedApprover   User?           @relation("AssignedApprover", fields: [assignedApproverId], references: [id])
+  approvedBy         String?         @map("approved_by")
+  approver           User?           @relation("LeaveApprovedBy", fields: [approvedBy], references: [id])
+  decisionReason     String?         @map("decision_reason")
+  decidedAt          DateTime?       @map("decided_at")
+  withdrawnAt        DateTime?       @map("withdrawn_at")
+  withdrawalReason   String?         @map("withdrawal_reason")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @default(now()) @map("updated_at")
 
+  auditLogs          LeaveAuditLog[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([assignedApproverId])
+  @@index([startDate, endDate])
+  @@index([category])
   @@map("leave_applications")
+}
+
+model LeaveAuditLog {
+  id             String           @id @default(uuid())
+  applicationId  String           @map("application_id")
+  application    LeaveApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  action         String
+  previousStatus String?          @map("previous_status")
+  newStatus      String           @map("new_status")
+  performedById  String           @map("performed_by_id")
+  performedBy    User             @relation("PerformedLeaveAudits", fields: [performedById], references: [id], onDelete: Cascade)
+  reason         String?
+  details        Json             @default("{}")
+  ipAddress      String?          @map("ip_address")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@index([applicationId])
+  @@index([action])
+  @@index([performedById])
+  @@map("leave_audit_logs")
 }
 
 model Assignment {

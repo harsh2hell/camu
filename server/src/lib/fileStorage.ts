@@ -221,6 +221,7 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
   let dbRecord: { uploadedById: string } | null = null;
   let existingSub: { studentId: string } | null = null;
   let existingAssignment: { id: string } | null = null;
+  let existingLeave: { studentId: string } | null = null;
 
   // 2. Authoritative persistent database check
   try {
@@ -250,6 +251,18 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
         select: { id: true },
       });
     }
+
+    if (!dbRecord && !existingSub && !existingAssignment) {
+      existingLeave = await prisma.leaveApplication.findFirst({
+        where: {
+          OR: [
+            { supportingFileKey: fileKey },
+            { supportingDocUrl: { contains: fileKey } },
+          ],
+        },
+        select: { studentId: true },
+      });
+    }
   } catch (err) {
     if (err instanceof AppError) throw err;
     logger.error('Authoritative upload ownership verification failed due to database error; failing closed:', {
@@ -276,11 +289,18 @@ export async function verifyUploadOwnership(fileKeyOrUrl: string, userId: string
     return;
   }
 
+  if (existingLeave) {
+    if (existingLeave.studentId !== userId) {
+      throw new ForbiddenError('You are not authorized to attach files uploaded by another user.');
+    }
+    return;
+  }
+
   if (existingAssignment) {
     return;
   }
 
-  // 4. Unknown file key: not found in uploaded_files, submissions, or assignments
+  // 4. Unknown file key: not found in uploaded_files, submissions, leaves, or assignments
   // Must fail closed rather than silently approving!
   throw new NotFoundError('Referenced upload file not found.');
 }
@@ -410,6 +430,24 @@ export async function cleanupOrphanFiles(options: CleanupOptions = {}): Promise<
     for (const a of activeAssignments) {
       if (a.attachmentUrl && !a.attachmentUrl.startsWith('http')) {
         activeFileKeys.add(path.basename(a.attachmentUrl));
+      }
+    }
+
+    const activeLeaves = await prisma.leaveApplication.findMany({
+      where: {
+        OR: [
+          { supportingFileKey: { not: null } },
+          { supportingDocUrl: { not: null } },
+        ],
+      },
+      select: { supportingFileKey: true, supportingDocUrl: true },
+    });
+    for (const l of activeLeaves) {
+      if (l.supportingFileKey) {
+        activeFileKeys.add(path.basename(l.supportingFileKey));
+      }
+      if (l.supportingDocUrl && !l.supportingDocUrl.startsWith('http')) {
+        activeFileKeys.add(path.basename(l.supportingDocUrl));
       }
     }
   } catch (err) {

@@ -4,7 +4,7 @@ import { PortalChoicePage } from './components/PortalChoicePage';
 import { CamuLoginPage } from './components/CamuLoginPage';
 import { TeacherLoginPage } from './components/TeacherLoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
-import { LeaveODManager } from './components/LeaveODManager';
+import { FacultyLeaveApprovalView } from './components/FacultyLeaveApprovalView';
 import { FacultyAttendanceView } from './components/FacultyAttendanceView';
 import { FacultyAssignmentsView } from './components/FacultyAssignmentsView';
 import { DefaultersView } from './components/DefaultersView';
@@ -446,7 +446,7 @@ export function App() {
             {activeTab === 'faculty-attendance' && <FacultyAttendanceView />}
             {activeTab === 'defaulters' && <DefaultersView />}
             {activeTab === 'faculty-assignments' && <FacultyAssignmentsView />}
-            {activeTab === 'od-approvals' && <LeaveODManager />}
+            {activeTab === 'od-approvals' && <FacultyLeaveApprovalView />}
             {activeTab === 'finance-admin' && <FinanceAdminView />}
           </>
         )}
