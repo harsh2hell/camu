@@ -290,6 +290,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     }
   };
 
+  // Pending assignments count from real LMS API
+  const pendingAssignmentsCount = liveAssignments.filter(
+    (a) => a.submissionStatus !== 'SUBMITTED_ON_TIME' && a.submissionStatus !== 'SUBMITTED_LATE' && a.submissionStatus !== 'GRADED'
+  ).length;
+
   // Curated Navigation Categories grouping all 23+ Camu functions
   const navCategories = [
     {
@@ -303,8 +308,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Assignments & LMS Deliverables',
           sub: 'Problem sets, submission deadlines & lab briefs',
           icon: <FileText size={16} />,
-          badge: '2 Due Soon',
-          badgeColor: 'badge-amber',
+          badge: `${pendingAssignmentsCount} Due`,
+          badgeColor: pendingAssignmentsCount > 0 ? 'badge-amber' : 'badge-emerald',
           onClick: () => onNavigateTab('lms'),
         },
         {
@@ -321,7 +326,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Assessments & Gradebook',
           sub: 'Continuous assessments, SGPA & term credits',
           icon: <Trophy size={16} />,
-          badge: '8.64 CGPA',
+          badge: liveProfile?.currentCgpa ? `${liveProfile.currentCgpa.toFixed(2)} CGPA` : (academicRecords?.currentCgpa ? `${academicRecords.currentCgpa.toFixed(2)} CGPA` : 'Gradebook'),
           badgeColor: 'badge-emerald',
           onClick: () => onNavigateTab('grades'),
         },
@@ -330,7 +335,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Exam Schedules & Datesheets',
           sub: 'Mid-term, End-term datesheets & re-evaluation',
           icon: <CheckSquare size={16} />,
-          badge: 'Odd Sem',
+          badge: academicRecords ? `Sem ${academicRecords.currentSemester}` : 'Exam Cell',
           badgeColor: 'badge-purple',
           onClick: () => setActiveCamuModal('exams'),
         },
@@ -347,7 +352,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Attendance Analytics & Biometrics',
           sub: '75% mandatory criteria tracker & eligibility',
           icon: <BarChart2 size={16} />,
-          badge: liveAttendanceSummary ? `${liveAttendanceSummary.overallPercentage}% ${liveAttendanceSummary.isExamEligible ? 'Safe' : 'Debarred'}` : '86.4% Safe',
+          badge: liveAttendanceSummary ? `${liveAttendanceSummary.overallPercentage}% ${liveAttendanceSummary.isExamEligible ? 'Safe' : 'Debarred'}` : 'Attendance',
           badgeColor: liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'badge-rose' : 'badge-emerald',
           onClick: () => setActiveCamuModal('attendance'),
         },
@@ -356,7 +361,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Leave & On-Duty (OD) Pass',
           sub: 'Medical leave, sports OD & hackathon permissions',
           icon: <CalendarIcon size={16} />,
-          badge: '1 Pending',
+          badge: 'OD / Leave',
           badgeColor: 'badge-amber',
           onClick: () => onNavigateTab('leaves'),
         },
@@ -365,7 +370,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Hostel Digital Gate Pass',
           sub: 'Warden verification, digital QR pass & outings',
           icon: <KeyRound size={16} />,
-          badge: 'Active QR',
+          badge: 'Gate Pass',
           badgeColor: 'badge-blue',
           onClick: () => onNavigateTab('gatepass'),
         },
@@ -374,7 +379,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Student Activities & Clubs',
           sub: 'ACM Student Chapter, campus clubs & sports',
           icon: <Users size={16} />,
-          badge: '3 Clubs',
+          badge: 'Clubs',
           badgeColor: 'badge-purple',
           onClick: () => setActiveCamuModal('activities'),
         },
@@ -391,7 +396,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'University Noticeboard & Circulars',
           sub: 'Registrar, Dean Academics & exam circulars',
           icon: <Bell size={16} />,
-          badge: 'Pinned Circular',
+          badge: upcomingNotices.length > 0 ? `${upcomingNotices.length} Notices` : 'Circulars',
           badgeColor: 'badge-blue',
           onClick: () => onNavigateTab('notices'),
         },
@@ -400,8 +405,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Official Department Messages',
           sub: 'Direct faculty notices, alerts & announcements',
           icon: <Mail size={16} />,
-          badge: '4 Unread',
-          badgeColor: 'badge-amber',
+          badge: unreadCount > 0 ? `${unreadCount} Unread` : 'Inbox',
+          badgeColor: unreadCount > 0 ? 'badge-amber' : 'badge-emerald',
           onClick: () => setActiveCamuModal('messages'),
         },
         {
@@ -409,7 +414,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Student Counselling & Mentorship',
           sub: 'Book 1-on-1 slot with advisor or wellness guide',
           icon: <HeartHandshake size={16} />,
-          badge: 'Available',
+          badge: 'Advisory',
           badgeColor: 'badge-emerald',
           onClick: () => setActiveCamuModal('counselling'),
         },
@@ -418,7 +423,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'CAMU Helpdesk & Grievance Cell',
           sub: 'Submit service requests, complaints & track resolution',
           icon: <LifeBuoy size={16} />,
-          badge: '24/7 Desk',
+          badge: 'Support Desk',
           badgeColor: 'badge-emerald',
           onClick: () => onNavigateTab('support'),
         },
@@ -435,8 +440,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Billing & Fee Receipts',
           sub: 'Semester tuition dues, online fee clearance & receipts',
           icon: <CreditCard size={16} />,
-          badge: '₹0 Dues',
-          badgeColor: 'badge-emerald',
+          badge: liveLedger ? (liveLedger.totalOutstanding > 0 ? `₹${liveLedger.totalOutstanding.toLocaleString('en-IN')} Due` : 'Fee Cleared') : 'Fee Ledger',
+          badgeColor: liveLedger && liveLedger.totalOutstanding > 0 ? 'badge-amber' : 'badge-emerald',
           onClick: () => onNavigateTab('fees'),
         },
         {
@@ -444,7 +449,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Official Transcripts & Grade Sheets',
           sub: 'Semester marksheets, bonafide & document vault',
           icon: <FileCheck size={16} />,
-          badge: 'Verified',
+          badge: 'Vault',
           badgeColor: 'badge-blue',
           onClick: () => setActiveCamuModal('transcripts'),
         },
@@ -453,8 +458,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Institutional Clearance (No-Dues)',
           sub: 'Library, labs, sports & accounts no-dues clearance',
           icon: <ShieldCheck size={16} />,
-          badge: '100% Cleared',
-          badgeColor: 'badge-emerald',
+          badge: liveLedger ? (liveLedger.totalOutstanding === 0 ? 'Fee Cleared' : 'Accounts Due') : 'Clearance',
+          badgeColor: liveLedger && liveLedger.totalOutstanding === 0 ? 'badge-emerald' : 'badge-amber',
           onClick: () => setActiveCamuModal('clearance'),
         },
         {
@@ -462,7 +467,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           title: 'Course Enrollment & Electives',
           sub: 'Semester course registration & elective tracks',
           icon: <BookOpen size={16} />,
-          badge: '24.0 Credits',
+          badge: academicRecords?.totalEnrolledCredits ? `${academicRecords.totalEnrolledCredits.toFixed(1)} Credits` : 'Registered',
           badgeColor: 'badge-amber',
           onClick: () => setActiveCamuModal('enrollment'),
         },
@@ -541,11 +546,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Pending assignments count from real LMS API
-  const pendingAssignmentsCount = liveAssignments.filter(
-    (a) => a.submissionStatus !== 'SUBMITTED_ON_TIME' && a.submissionStatus !== 'SUBMITTED_LATE' && a.submissionStatus !== 'GRADED'
-  ).length;
 
   // Real course faculty derived from enrolled courses or assigned mentor
   const courseFaculty = React.useMemo(() => {
@@ -1048,7 +1048,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     </div>
                     <div className="oak-stat-bottom">
                       <span className="oak-stat-number">
-                        {profileLoading ? '...' : (liveProfile?.currentCgpa ? liveProfile.currentCgpa.toFixed(2) : (academicRecords?.currentCgpa ? academicRecords.currentCgpa.toFixed(2) : '8.64'))}
+                        {profileLoading ? '...' : (liveProfile?.currentCgpa ? liveProfile.currentCgpa.toFixed(2) : (academicRecords?.currentCgpa ? academicRecords.currentCgpa.toFixed(2) : '--'))}
                       </span>
                       <button 
                         type="button" 
@@ -1165,7 +1165,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
               {/* Circular Gauge Ring */}
               {(() => {
-                const currentPct = liveAttendanceSummary?.overallPercentage ?? (liveProfile?.currentCgpa ? Math.round((liveProfile.currentCgpa / 10) * 100) : 85);
+                const currentPct = liveAttendanceSummary?.overallPercentage ?? (liveProfile?.currentCgpa ? Math.round((liveProfile.currentCgpa / 10) * 100) : (academicRecords?.currentCgpa ? Math.round((academicRecords.currentCgpa / 10) * 100) : 0));
                 const strokeOffset = Math.round(377 - (377 * Math.min(100, Math.max(0, currentPct))) / 100);
                 return (
                   <div className="oak-circular-gauge-wrapper">
@@ -1430,10 +1430,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   </svg>
                   <div className="oak-sunburst-caption">
                     <span className="oak-sunburst-score">
-                      {liveProfile?.currentCgpa ? `${liveProfile.currentCgpa.toFixed(2)} CGPA` : '8.64 CGPA'}
+                      {liveProfile?.currentCgpa ? `${liveProfile.currentCgpa.toFixed(2)} CGPA` : (academicRecords?.currentCgpa ? `${academicRecords.currentCgpa.toFixed(2)} CGPA` : '-- CGPA')}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                      {academicRecords?.academicStanding || 'FIRST CLASS WITH DISTINCTION'}
+                      {academicRecords?.academicStanding || 'Good Academic Standing'}
                     </span>
                   </div>
                 </div>
@@ -2269,49 +2269,39 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             <div className="camu-eligibility-box">
-              <CheckCircle2 size={18} className="text-emerald" />
+              <CheckCircle2 size={18} className={liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'text-amber' : 'text-emerald'} />
               <div>
-                <strong>Hall Ticket Status: Released &amp; Authorized</strong>
-                <p>Eligible for Odd Semester Examinations with 86.4% verified biometric attendance.</p>
+                <strong>
+                  Hall Ticket Status: {liveAttendanceSummary && !liveAttendanceSummary.isExamEligible ? 'Conditional / Attendance Warning' : 'Authorized & Eligible'}
+                </strong>
+                <p>
+                  {liveAttendanceSummary 
+                    ? `Verified attendance: ${liveAttendanceSummary.overallPercentage}% (${liveAttendanceSummary.isExamEligible ? 'Meets mandatory 75% criterion' : 'Below mandatory 75% criterion'}).`
+                    : 'Verified biometric attendance synchronized with Examination Cell.'}
+                </p>
               </div>
             </div>
 
             <div className="camu-exam-schedule-list">
-              <div className="camu-exam-row">
-                <div className="camu-exam-date">
-                  <span className="exam-day">22</span>
-                  <span className="exam-mo">OCT</span>
+              {(!academicRecords?.enrolledCourses || academicRecords.enrolledCourses.length === 0) ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+                  <p>No enrolled course examinations published for the current academic session.</p>
                 </div>
-                <div className="camu-exam-info">
-                  <strong>CS302 &bull; Design &amp; Analysis of Algorithms</strong>
-                  <span>10:00 AM - 11:30 AM &bull; Room LT-204 (Block 1)</span>
-                </div>
-                <span className="camu-exam-badge">Theory Exam</span>
-              </div>
-
-              <div className="camu-exam-row">
-                <div className="camu-exam-date">
-                  <span className="exam-day">26</span>
-                  <span className="exam-mo">OCT</span>
-                </div>
-                <div className="camu-exam-info">
-                  <strong>CS304 &bull; Database Management Systems</strong>
-                  <span>02:00 PM - 03:30 PM &bull; Room LT-201 (Block 1)</span>
-                </div>
-                <span className="camu-exam-badge">Theory Exam</span>
-              </div>
-
-              <div className="camu-exam-row">
-                <div className="camu-exam-date">
-                  <span className="exam-day">30</span>
-                  <span className="exam-mo">OCT</span>
-                </div>
-                <div className="camu-exam-info">
-                  <strong>CS306 &bull; Computer Networks &amp; Security</strong>
-                  <span>10:00 AM - 11:30 AM &bull; Main Academic Auditorium</span>
-                </div>
-                <span className="camu-exam-badge">Theory Exam</span>
-              </div>
+              ) : (
+                academicRecords.enrolledCourses.map((c, idx) => (
+                  <div key={c.courseOfferingId} className="camu-exam-row">
+                    <div className="camu-exam-date">
+                      <span className="exam-day">{20 + idx * 3}</span>
+                      <span className="exam-mo">OCT</span>
+                    </div>
+                    <div className="camu-exam-info">
+                      <strong>{c.courseCode} &bull; {c.courseTitle}</strong>
+                      <span>Semester {c.semester} &bull; {c.credits}.0 Credits &bull; {c.primaryFaculty.fullName}</span>
+                    </div>
+                    <span className="camu-exam-badge">Theory Exam</span>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="camu-profile-actions">
@@ -2411,46 +2401,47 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <div className="camu-record-card">
                 <FileCheck size={20} className="text-blue" />
                 <div className="camu-record-info">
-                  <strong>Semester 1 Grade Card (SGPA: 8.42)</strong>
-                  <span>Issued by Controller of Examinations &bull; Digital Signature Verified</span>
+                  <strong>Official Academic Gradebook Record (CGPA: {liveProfile?.currentCgpa?.toFixed(2) || academicRecords?.currentCgpa?.toFixed(2) || 'N/A'})</strong>
+                  <span>Program: {academicRecords?.program.name || 'B.Tech CSE'} &bull; Department: {academicRecords?.department.name || 'Computing'}</span>
                 </div>
                 <button 
                   type="button" 
                   className="camu-record-dl"
-                  onClick={() => showCamuToast('Downloading Semester 1 Transcript...')}
+                  onClick={() => {
+                    onNavigateTab('grades');
+                    setActiveCamuModal(null);
+                  }}
+                  title="Open Gradebook"
                 >
-                  <Download size={14} />
+                  <ArrowUpRight size={14} />
                 </button>
               </div>
 
               <div className="camu-record-card">
                 <FileCheck size={20} className="text-emerald" />
                 <div className="camu-record-info">
-                  <strong>Semester 2 Grade Card (SGPA: 8.78)</strong>
-                  <span>Issued by Controller of Examinations &bull; Digital Signature Verified</span>
+                  <strong>Semester {academicRecords?.currentSemester || 3} Registered Credits ({academicRecords?.totalEnrolledCredits.toFixed(1) || '24.0'} Credits)</strong>
+                  <span>Enrolled Cohort: {academicRecords?.batch.batchName || '2025-2029'} (Section {academicRecords?.section.name || 'A'})</span>
                 </div>
                 <button 
                   type="button" 
                   className="camu-record-dl"
-                  onClick={() => showCamuToast('Downloading Semester 2 Transcript...')}
+                  onClick={() => {
+                    onNavigateTab('grades');
+                    setActiveCamuModal(null);
+                  }}
+                  title="View Enrolled Courses"
                 >
-                  <Download size={14} />
+                  <ArrowUpRight size={14} />
                 </button>
               </div>
 
               <div className="camu-record-card">
                 <ShieldCheck size={20} className="text-amber" />
                 <div className="camu-record-info">
-                  <strong>Anti-Ragging Undertaking &amp; Police Verification</strong>
-                  <span>Reference: DGU/2025/REG/492 &bull; Active on Record</span>
+                  <strong>Student Institutional Record &amp; Registration</strong>
+                  <span>Roll Number: {liveProfile?.rollNumber || '0251BTCS097'} &bull; Registration: {academicRecords?.student.registrationNo || 'DGU2025CS097'}</span>
                 </div>
-                <button 
-                  type="button" 
-                  className="camu-record-dl"
-                  onClick={() => showCamuToast('Viewing Undertaking Copy...')}
-                >
-                  <FileText size={14} />
-                </button>
               </div>
             </div>
 
@@ -2483,10 +2474,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             <div className="camu-eligibility-box">
-              <CheckCircle2 size={18} className="text-emerald" />
+              <CheckCircle2 size={18} className={liveLedger && liveLedger.totalOutstanding > 0 ? 'text-amber' : 'text-emerald'} />
               <div>
-                <strong>Overall Clearance: 100% Cleared</strong>
-                <p>Eligible for Semester Promotion, Examination Hall Ticket and Laboratory Access.</p>
+                <strong>
+                  {liveLedger && liveLedger.totalOutstanding > 0 
+                    ? 'Clearance in Progress: Fee Balance Due' 
+                    : 'Overall Institutional Clearance: Granted'}
+                </strong>
+                <p>
+                  {liveLedger && liveLedger.totalOutstanding > 0
+                    ? `Outstanding fee ledger balance of ₹${liveLedger.totalOutstanding.toLocaleString('en-IN')} pending settlement at Accounts Office.`
+                    : 'All institutional clearance criteria verified across Library, Labs, Accounts & Hostel.'}
+                </p>
               </div>
             </div>
 
@@ -2501,7 +2500,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               <div className="clearance-item">
                 <span className="clearance-name">Finance &amp; Accounts Department</span>
-                <span className="clearance-badge ok">Cleared &bull; ₹0 Outstanding</span>
+                <span className={`clearance-badge ${liveLedger && liveLedger.totalOutstanding > 0 ? 'pending' : 'ok'}`}>
+                  {liveLedger && liveLedger.totalOutstanding > 0 
+                    ? `Due &bull; ₹${liveLedger.totalOutstanding.toLocaleString('en-IN')} Outstanding` 
+                    : 'Cleared &bull; ₹0 Outstanding'}
+                </span>
               </div>
               <div className="clearance-item">
                 <span className="clearance-name">Hostel Warden &amp; Mess</span>
@@ -2542,22 +2545,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             <div className="camu-form-group">
-              <label>Grievance / Request Category</label>
-              <select className="camu-select">
-                <option>Service Request - Academic / Coursework</option>
-                <option>Examination &amp; Grading Grievance</option>
-                <option>Campus Infrastructure &amp; Wi-Fi Facilities</option>
-                <option>Hostel Accommodation &amp; Mess</option>
-              </select>
-            </div>
-
-            <div className="camu-form-group">
-              <label>Description &amp; Specific Details</label>
-              <textarea 
-                rows={4} 
-                placeholder="Describe your query or grievance in detail for Registrar review..." 
-                className="camu-textarea"
-              />
+              <label>Official Student Support Desk</label>
+              <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '4px 0 16px', lineHeight: 1.5 }}>
+                Submit queries, track grievance resolution, and converse directly with faculty and administrative staff through the authoritative Student Support ticketing system.
+              </p>
             </div>
 
             <div className="camu-profile-actions">
@@ -2565,12 +2556,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 type="button" 
                 className="camu-btn-primary"
                 onClick={() => {
-                  showCamuToast('Service Request registered successfully! Ticket: #DGU-GRV-84920');
+                  onNavigateTab('support');
                   setActiveCamuModal(null);
                 }}
               >
-                <CheckCircle2 size={15} />
-                <span>Submit Grievance to Registrar</span>
+                <LifeBuoy size={15} />
+                <span>Go to Support &amp; Helpdesk Cell</span>
               </button>
             </div>
           </div>
@@ -2640,29 +2631,22 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             <div className="camu-records-list">
-              <div className="camu-record-card">
-                <Mail size={18} className="text-blue" />
-                <div className="camu-record-info">
-                  <strong>Office of Controller of Examinations</strong>
-                  <span>Odd Semester Mid-Term Examination Datesheet published on noticeboard.</span>
+              {upcomingNotices.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+                  <Mail size={24} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <p>No new official circulars or messages in your inbox.</p>
                 </div>
-              </div>
-
-              <div className="camu-record-card">
-                <Mail size={18} className="text-emerald" />
-                <div className="camu-record-info">
-                  <strong>Training &amp; Placement Cell</strong>
-                  <span>TCS &amp; Deloitte Placement Drive registration closes on 25th October.</span>
-                </div>
-              </div>
-
-              <div className="camu-record-card">
-                <Mail size={18} className="text-amber" />
-                <div className="camu-record-info">
-                  <strong>Dr. Rajesh Sharma (Faculty Advisor)</strong>
-                  <span>Algorithms problem set 4 solutions due on 22nd October 11:59 PM.</span>
-                </div>
-              </div>
+              ) : (
+                upcomingNotices.slice(0, 4).map((n) => (
+                  <div key={n.id} className="camu-record-card" onClick={() => { onNavigateTab('notices'); setActiveCamuModal(null); }} style={{ cursor: 'pointer' }}>
+                    <Mail size={18} className="text-blue" />
+                    <div className="camu-record-info">
+                      <strong>{n.title}</strong>
+                      <span>{n.authorName || 'Office of Registrar'} &bull; {new Date(n.publishedAt || n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="camu-profile-actions">
@@ -2705,26 +2689,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             <div className="camu-clearance-grid">
-              <div className="clearance-item">
-                <span className="clearance-name">CS302 &bull; Design &amp; Analysis of Algorithms</span>
-                <span className="clearance-badge ok">4.0 Credits</span>
-              </div>
-              <div className="clearance-item">
-                <span className="clearance-name">CS304 &bull; Database Management Systems</span>
-                <span className="clearance-badge ok">4.0 Credits</span>
-              </div>
-              <div className="clearance-item">
-                <span className="clearance-name">CS306 &bull; Computer Networks</span>
-                <span className="clearance-badge ok">4.0 Credits</span>
-              </div>
-              <div className="clearance-item">
-                <span className="clearance-name">CS308 &bull; Operating Systems</span>
-                <span className="clearance-badge ok">4.0 Credits</span>
-              </div>
-              <div className="clearance-item">
-                <span className="clearance-name">CS310 &bull; Cloud Computing &amp; DevOps</span>
-                <span className="clearance-badge ok">4.0 Credits</span>
-              </div>
+              {(!academicRecords?.enrolledCourses || academicRecords.enrolledCourses.length === 0) ? (
+                <p style={{ padding: '16px', color: '#64748b' }}>No course enrollments found for current semester.</p>
+              ) : (
+                academicRecords.enrolledCourses.map((c) => (
+                  <div key={c.courseOfferingId} className="clearance-item">
+                    <span className="clearance-name">{c.courseCode} &bull; {c.courseTitle}</span>
+                    <span className="clearance-badge ok">{c.credits}.0 Credits</span>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="camu-profile-actions">

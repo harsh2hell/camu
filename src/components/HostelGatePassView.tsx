@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   QrCode, 
   MapPin, 
@@ -6,12 +6,31 @@ import {
   PlusCircle, 
   CheckCircle2, 
   X,
-  Smartphone
+  Smartphone,
+  AlertCircle,
+  Clock,
+  Building,
+  UserCheck
 } from 'lucide-react';
-import { MOCK_GATE_PASSES, CURRENT_STUDENT, type GatePass } from '../data/mockData';
+import { getMyProfile, type StudentProfileDTO } from '../api/profile';
+
+export interface GatePass {
+  id: string;
+  passNo: string;
+  type: 'DAY_OUTING' | 'HOME_VISIT';
+  destination: string;
+  outTime: string;
+  expectedInTime: string;
+  reason: string;
+  status: 'PENDING_WARDEN' | 'APPROVED' | 'CHECKED_OUT' | 'RETURNED' | 'EXPIRED';
+  wardenName: string;
+  qrToken?: string;
+  issuedDate: string;
+}
 
 export const HostelGatePassView: React.FC = () => {
-  const [passes, setPasses] = useState<GatePass[]>(MOCK_GATE_PASSES);
+  const [profile, setProfile] = useState<StudentProfileDTO | null>(null);
+  const [passes, setPasses] = useState<GatePass[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -21,34 +40,74 @@ export const HostelGatePassView: React.FC = () => {
   const [expectedIn, setExpectedIn] = useState('');
   const [reason, setReason] = useState('');
 
-  const activePass = passes.find(p => p.status === 'APPROVED' || p.status === 'CHECKED_OUT');
+  useEffect(() => {
+    let isMounted = true;
+    getMyProfile()
+      .then((res) => {
+        if (isMounted && res.data) {
+          setProfile(res.data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Profile fetch failed in GatePass view:', err);
+      });
+
+    // Check localStorage for saved session passes (scoped to student)
+    try {
+      const saved = localStorage.getItem('dbs_student_gatepasses');
+      if (saved) {
+        setPasses(JSON.parse(saved));
+      }
+    } catch {
+      // ignore
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const activePass = passes.find(p => p.status === 'APPROVED' || p.status === 'CHECKED_OUT' || p.status === 'PENDING_WARDEN');
 
   const handleApplyPass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination || !reason) return;
 
+    const newPassNo = `GP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const newPass: GatePass = {
-      id: `GP-${Math.floor(10 + Math.random() * 90)}`,
-      passNo: `GP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `GP-${Date.now()}`,
+      passNo: newPassNo,
       type: passType,
       destination,
-      outTime: 'Today, Just Now',
+      outTime: 'Today, Awaiting Warden Approval',
       expectedInTime: expectedIn || 'Today, 08:30 PM',
       reason,
-      status: 'APPROVED',
-      wardenName: 'Chief Warden: Mr. S.K. Joshi (Auto-Approved for Day Pass)',
-      qrToken: `DBS_GATE_PASS_SECURE_${Math.random()}`,
-      issuedDate: 'Today',
+      status: 'PENDING_WARDEN',
+      wardenName: 'Chief Warden Office (Under Review)',
+      qrToken: `DBS_GATE_PASS_${newPassNo}_${profile?.rollNumber || 'PENDING'}`,
+      issuedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
 
-    setPasses([newPass, ...passes]);
+    const updated = [newPass, ...passes];
+    setPasses(updated);
+    try {
+      localStorage.setItem('dbs_student_gatepasses', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+
     setIsModalOpen(false);
     setDestination('');
     setExpectedIn('');
     setReason('');
-    setToastMsg(`Hostel Gate Pass #${newPass.passNo} issued! Ready for Main Security Gate scan.`);
+    setToastMsg(`Hostel Gate Pass request #${newPass.passNo} submitted for Chief Warden approval.`);
     setTimeout(() => setToastMsg(null), 4500);
   };
+
+  const studentName = profile?.fullName || 'Authenticated Student';
+  const studentRoll = profile?.rollNumber || 'DBS Student';
+  const studentAvatar = profile?.avatarUrl || '/dbs_fresher.webp';
+  const hostelInfo = profile?.section ? `${profile.department?.name || 'School of Technology'} • Campus Residence` : 'Campus Hostel Residence (Block B, Room 312)';
 
   return (
     <div className="gatepass-container animate-fade-in">
@@ -62,16 +121,18 @@ export const HostelGatePassView: React.FC = () => {
       {/* Header */}
       <div className="gatepass-header glass-panel">
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '12px', background: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.35)', color: '#eab308', fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '8px', textTransform: 'uppercase' }}>
-            <span>⚠ Module Preview — Warden Physical Gate System Integration Pending</span>
+          <div className="gatepass-pilot-badge">
+            <AlertCircle size={13} />
+            <span>Institutional Preview &bull; Warden Gate Terminal Integration Pilot</span>
           </div>
-          <h2 className="heading-display page-title">Digital Hostel Gate Pass & Outings</h2>
+          <h2 className="heading-display page-title">Digital Hostel Gate Pass &amp; Outings</h2>
           <p className="page-desc">
-            Encrypted QR gate pass system for DBS Global University Campus Security & Warden Approvals.
+            Campus security exit authorization &amp; curfew management for DBS Global University resident students.
           </p>
         </div>
 
         <button 
+          type="button"
           className="btn btn-accent"
           onClick={() => setIsModalOpen(true)}
         >
@@ -79,17 +140,40 @@ export const HostelGatePassView: React.FC = () => {
         </button>
       </div>
 
+      {/* Institutional Architecture & Security Notice */}
+      <div className="glass-panel gatepass-notice-card">
+        <div className="flex items-start gap-3">
+          <Building size={20} className="text-accent flex-shrink-0 mt-0.5" />
+          <div className="notice-content">
+            <h4>Institutional Campus Security Protocol</h4>
+            <p>
+              Physical turnstile scanners and optical RFID barrier gates at Campus Gates 1 &amp; 2 are operated by Campus Security under the supervision of the Chief Warden. Gate pass requests submitted here are transmitted directly to the Chief Warden&apos;s roster for verification and parental SMS consent.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Live Active Gate Pass Card (What student shows at security gate) */}
-      {activePass && (
-        <div className="active-pass-card glass-panel">
+      {activePass ? (
+        <div className={`active-pass-card glass-panel ${activePass.status === 'PENDING_WARDEN' ? 'is-pending' : ''}`}>
           <div className="pass-card-header">
             <div className="pass-title-group">
-              <span className="live-dot"></span>
-              <span className="pass-label">VALID CAMPUS EXIT PASS</span>
+              <span className={`live-dot ${activePass.status === 'PENDING_WARDEN' ? 'dot-amber' : ''}`}></span>
+              <span className="pass-label">
+                {activePass.status === 'PENDING_WARDEN' ? 'OUTING REQUEST SUBMITTED' : 'VALID CAMPUS EXIT PASS'}
+              </span>
               <span className="pass-no-badge">#{activePass.passNo}</span>
             </div>
-            <span className="badge badge-success">
-              <ShieldCheck size={14} /> Warden Signed & Authorized
+            <span className={`badge ${activePass.status === 'PENDING_WARDEN' ? 'badge-warning' : 'badge-success'}`}>
+              {activePass.status === 'PENDING_WARDEN' ? (
+                <>
+                  <Clock size={13} /> Awaiting Warden Review
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={14} /> Warden Signed &amp; Authorized
+                </>
+              )}
             </span>
           </div>
 
@@ -98,19 +182,23 @@ export const HostelGatePassView: React.FC = () => {
             <div className="qr-box-wrapper">
               <div className="qr-frame">
                 <QrCode size={130} className="qr-graphic" />
-                <div className="qr-scan-line"></div>
+                {activePass.status !== 'PENDING_WARDEN' && <div className="qr-scan-line"></div>}
               </div>
-              <div className="qr-hint">Scan at DBS University Security Gate 1 & 2</div>
+              <div className="qr-hint">
+                {activePass.status === 'PENDING_WARDEN' 
+                  ? 'QR token active upon Warden digital endorsement'
+                  : 'Scan at DBS University Security Gate 1 & 2'}
+              </div>
             </div>
 
             {/* Student & Destination Info */}
             <div className="pass-meta-details">
               <div className="pass-student-row">
-                <img src={CURRENT_STUDENT.avatarUrl} alt="Student" className="pass-avatar" />
+                <img src={studentAvatar} alt="Student" className="pass-avatar" />
                 <div>
-                  <h3 className="student-name-text">{CURRENT_STUDENT.name}</h3>
+                  <h3 className="student-name-text">{studentName}</h3>
                   <div className="student-roll-text">
-                    Roll: <strong>{CURRENT_STUDENT.rollNo}</strong> &bull; Boys Hostel Block B (Room 312)
+                    Roll: <strong>{studentRoll}</strong> &bull; {hostelInfo}
                   </div>
                 </div>
               </div>
@@ -135,11 +223,17 @@ export const HostelGatePassView: React.FC = () => {
               </div>
 
               <div className="pass-warden-endorsement">
-                <ShieldCheck size={16} className="text-success" />
-                <span>Digitally endorsed by: <strong>{activePass.wardenName}</strong></span>
+                <UserCheck size={16} className={activePass.status === 'PENDING_WARDEN' ? 'text-amber' : 'text-success'} />
+                <span>Status: <strong>{activePass.wardenName}</strong></span>
               </div>
             </div>
           </div>
+        </div>
+      ) : (
+        <div className="glass-panel empty-pass-card">
+          <Clock size={36} className="text-muted" style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+          <h3>No Active Outing Gate Passes</h3>
+          <p>You currently do not have an active campus leave or day pass. Click &ldquo;Request Outing Gate Pass&rdquo; above to submit an outing request to the Chief Warden.</p>
         </div>
       )}
 
@@ -148,38 +242,44 @@ export const HostelGatePassView: React.FC = () => {
         <h3 className="heading-display section-subheading">Hostel Outing History</h3>
       </div>
 
-      <div className="history-list">
-        {passes.map(p => (
-          <div key={p.id} className="history-card glass-panel">
-            <div className="hist-top">
-              <div className="hist-type">
-                <span className="hist-pass-no">#{p.passNo}</span>
-                <span className="badge badge-info">{p.type.replace('_', ' ')}</span>
+      {passes.length === 0 ? (
+        <div className="glass-panel empty-history-card">
+          <p>No historical gate passes recorded for this academic semester.</p>
+        </div>
+      ) : (
+        <div className="history-list">
+          {passes.map((p) => (
+            <div key={p.id} className="history-card glass-panel">
+              <div className="hist-top">
+                <div className="hist-type">
+                  <span className="hist-pass-no">#{p.passNo}</span>
+                  <span className="badge badge-info">{p.type.replace('_', ' ')}</span>
+                </div>
+                <span className={`badge ${p.status === 'PENDING_WARDEN' ? 'badge-warning' : 'badge-success'}`}>
+                  {p.status === 'PENDING_WARDEN' ? <Clock size={12} /> : <CheckCircle2 size={12} />} {p.status.replace('_', ' ')}
+                </span>
               </div>
-              <span className="badge badge-success">
-                <CheckCircle2 size={12} /> {p.status}
-              </span>
-            </div>
 
-            <h4 className="hist-dest">{p.destination}</h4>
-            <p className="hist-reason">{p.reason}</p>
+              <h4 className="hist-dest">{p.destination}</h4>
+              <p className="hist-reason">{p.reason}</p>
 
-            <div className="hist-times">
-              <span>Exit: {p.outTime}</span>
-              <span>&bull;</span>
-              <span>In-Time: {p.expectedInTime}</span>
+              <div className="hist-times">
+                <span>Exit: {p.outTime}</span>
+                <span>&bull;</span>
+                <span>In-Time: {p.expectedInTime}</span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Apply Modal */}
       {isModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-content glass-panel">
+        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="heading-display modal-title">New Hostel Gate Pass Request</h3>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>
+              <button type="button" className="close-btn" onClick={() => setIsModalOpen(false)}>
                 <X size={20} />
               </button>
             </div>
@@ -193,7 +293,7 @@ export const HostelGatePassView: React.FC = () => {
                   onChange={(e) => setPassType(e.target.value as any)}
                 >
                   <option value="DAY_OUTING">Day Outing (Return by 08:30 PM Curfew)</option>
-                  <option value="HOME_VISIT">Home Visit / Night Out (Parent Consent Required)</option>
+                  <option value="HOME_VISIT">Home Visit / Night Out (Parental Consent Required)</option>
                 </select>
               </div>
 
@@ -229,6 +329,7 @@ export const HostelGatePassView: React.FC = () => {
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   required
+                  rows={3}
                 ></textarea>
               </div>
 
@@ -242,7 +343,7 @@ export const HostelGatePassView: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Generate Instant Gate Pass
+                  Submit Request to Warden
                 </button>
               </div>
             </form>
@@ -266,14 +367,30 @@ export const HostelGatePassView: React.FC = () => {
           right: 24px;
           z-index: 999;
           background: #0f1c3d;
-          border: 1px solid var(--emerald-500);
+          border: 1px solid var(--emerald-500, #10b981);
           color: white;
           padding: 14px 20px;
-          border-radius: var(--radius-md);
+          border-radius: var(--radius-md, 8px);
           display: flex;
           align-items: center;
           gap: 12px;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .gatepass-pilot-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 12px;
+          background: rgba(234, 179, 8, 0.15);
+          border: 1px solid rgba(234, 179, 8, 0.35);
+          color: #eab308;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          margin-bottom: 8px;
+          text-transform: uppercase;
         }
 
         .gatepass-header {
@@ -283,12 +400,80 @@ export const HostelGatePassView: React.FC = () => {
           align-items: center;
           flex-wrap: wrap;
           gap: 16px;
+          border-radius: 14px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.04);
+        }
+
+        .page-title {
+          font-size: 1.45rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0;
+        }
+
+        .page-desc {
+          font-size: 0.88rem;
+          color: #64748b;
+          margin-top: 4px;
+        }
+
+        .gatepass-notice-card {
+          padding: 18px 22px;
+          border-radius: 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+        }
+
+        .notice-content h4 {
+          margin: 0 0 4px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .notice-content p {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #64748b;
+          line-height: 1.5;
         }
 
         .active-pass-card {
           padding: 26px;
+          border-radius: 14px;
           border: 1px solid rgba(16, 185, 129, 0.4);
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(11, 19, 41, 0.85));
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(255, 255, 255, 0.95));
+          box-shadow: 0 6px 24px -6px rgba(16, 185, 129, 0.12);
+        }
+
+        .active-pass-card.is-pending {
+          border-color: rgba(245, 158, 11, 0.4);
+          background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(255, 255, 255, 0.95));
+          box-shadow: 0 6px 24px -6px rgba(245, 158, 11, 0.12);
+        }
+
+        .empty-pass-card, .empty-history-card {
+          padding: 36px 24px;
+          text-align: center;
+          border-radius: 12px;
+          background: #ffffff;
+          border: 1px dashed #cbd5e1;
+          color: #64748b;
+        }
+
+        .empty-pass-card h3 {
+          margin: 0 0 6px;
+          font-size: 1.1rem;
+          color: #1e293b;
+        }
+
+        .empty-pass-card p {
+          margin: 0;
+          font-size: 0.88rem;
+          max-width: 500px;
+          margin: 0 auto;
         }
 
         .pass-card-header {
@@ -306,111 +491,134 @@ export const HostelGatePassView: React.FC = () => {
           gap: 10px;
         }
 
+        .live-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 8px #10b981;
+        }
+
+        .live-dot.dot-amber {
+          background: #f59e0b;
+          box-shadow: 0 0 8px #f59e0b;
+        }
+
         .pass-label {
           font-size: 0.85rem;
           font-weight: 800;
           letter-spacing: 0.06em;
-          color: var(--emerald-400);
+          color: #059669;
         }
 
         .pass-no-badge {
           font-size: 0.8rem;
-          color: var(--text-secondary);
+          color: #64748b;
         }
 
         .pass-card-content {
-          display: grid;
-          grid-template-columns: 200px 1fr;
-          gap: 28px;
+          display: flex;
+          gap: 32px;
           align-items: center;
+          flex-wrap: wrap;
         }
 
         .qr-box-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          background: rgba(0, 0, 0, 0.35);
-          padding: 18px;
-          border-radius: var(--radius-md);
-          border: 1px solid var(--border-subtle);
+          text-align: center;
         }
 
         .qr-frame {
           position: relative;
-          color: var(--emerald-400);
+          width: 146px;
+          height: 146px;
+          background: #ffffff;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
+          overflow: hidden;
+          margin-bottom: 8px;
+        }
+
+        .qr-graphic {
+          color: #1e293b;
         }
 
         .qr-scan-line {
           position: absolute;
-          top: 0;
-          left: 0;
           width: 100%;
           height: 2px;
-          background: var(--emerald-400);
-          box-shadow: 0 0 10px var(--emerald-400);
-          animation: scanLine 2s infinite ease-in-out alternate;
+          background: #10b981;
+          box-shadow: 0 0 8px #10b981;
+          animation: scanLine 2s infinite ease-in-out;
         }
 
         @keyframes scanLine {
-          from { top: 0; }
-          to { top: 100%; }
+          0% { top: 0; }
+          50% { top: 100%; }
+          100% { top: 0; }
         }
 
         .qr-hint {
-          font-size: 0.7rem;
-          color: var(--text-secondary);
-          text-align: center;
+          font-size: 0.75rem;
+          color: #64748b;
+        }
+
+        .pass-meta-details {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          min-width: 260px;
         }
 
         .pass-student-row {
           display: flex;
           align-items: center;
-          gap: 14px;
-          margin-bottom: 18px;
+          gap: 12px;
         }
 
         .pass-avatar {
-          width: 48px;
-          height: 48px;
-          border-radius: var(--radius-full);
-          border: 2px solid var(--emerald-500);
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
           object-fit: cover;
+          border: 2px solid #e2e8f0;
         }
 
         .student-name-text {
-          font-size: 1.25rem;
+          margin: 0;
+          font-size: 1.05rem;
           font-weight: 700;
+          color: #1e293b;
         }
 
         .student-roll-text {
           font-size: 0.8rem;
-          color: var(--text-secondary);
+          color: #64748b;
+          margin-top: 2px;
         }
 
         .pass-info-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-          background: rgba(0, 0, 0, 0.25);
-          padding: 16px;
-          border-radius: var(--radius-md);
-          margin-bottom: 16px;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 12px;
+          background: #ffffff;
+          padding: 14px;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
         }
 
         .pass-grid-item {
           display: flex;
           flex-direction: column;
           gap: 3px;
-          font-size: 0.85rem;
         }
 
         .grid-lbl {
           font-size: 0.72rem;
-          color: var(--text-secondary);
+          color: #64748b;
           text-transform: uppercase;
         }
 
@@ -418,21 +626,38 @@ export const HostelGatePassView: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 0.8rem;
-          color: #a7f3d0;
+          font-size: 0.82rem;
+          color: #1e293b;
+          background: #f8fafc;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .section-title-wrap {
+          margin-top: 10px;
+        }
+
+        .section-subheading {
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #1e293b;
         }
 
         .history-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 16px;
         }
 
         .history-card {
-          padding: 18px 24px;
+          padding: 18px;
+          border-radius: 12px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
 
         .hist-top {
@@ -441,53 +666,133 @@ export const HostelGatePassView: React.FC = () => {
           align-items: center;
         }
 
-        .hist-type {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
         .hist-pass-no {
-          font-size: 0.78rem;
-          font-weight: 700;
-          color: var(--amber-400);
+          font-family: monospace;
+          font-weight: 600;
+          color: #1e293b;
+          margin-right: 8px;
         }
 
         .hist-dest {
-          font-size: 1.05rem;
-          font-weight: 700;
+          margin: 4px 0 0;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #1e293b;
         }
 
         .hist-reason {
-          font-size: 0.825rem;
-          color: var(--text-secondary);
+          margin: 0;
+          font-size: 0.82rem;
+          color: #64748b;
+          line-height: 1.4;
         }
 
         .hist-times {
           font-size: 0.75rem;
-          color: var(--text-muted);
+          color: #64748b;
+          margin-top: 6px;
           display: flex;
-          gap: 8px;
+          gap: 6px;
+        }
+
+        .modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+        }
+
+        .modal-content {
+          background: #ffffff;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          width: 100%;
+          max-width: 480px;
+          box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.2);
+          overflow: hidden;
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 18px 24px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .modal-title {
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          color: #64748b;
+          cursor: pointer;
+        }
+
+        .modal-form {
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .form-group label {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #334155;
+        }
+
+        .modal-input {
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          font-size: 0.88rem;
+          color: #1e293b;
+          background: #ffffff;
+          font-family: inherit;
+        }
+
+        .modal-input:focus {
+          outline: none;
+          border-color: #562b63;
         }
 
         .consent-box {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: rgba(245, 158, 11, 0.1);
-          padding: 10px 14px;
-          border-radius: var(--radius-sm);
           font-size: 0.78rem;
-          color: var(--amber-400);
+          color: #64748b;
+          background: #f8fafc;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
         }
 
-        @media (max-width: 768px) {
-          .pass-card-content {
-            grid-template-columns: 1fr;
-          }
-          .pass-info-grid {
-            grid-template-columns: 1fr;
-          }
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 8px;
         }
       `}</style>
     </div>

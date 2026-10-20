@@ -13,7 +13,6 @@ import {
   Users,
   LifeBuoy
 } from 'lucide-react';
-import { CURRENT_STUDENT } from '../data/mockData';
 import type { UserSession } from '../api/auth';
 import { NotificationCenter } from './NotificationCenter';
 import { getUnreadNotificationCount } from '../api/notifications';
@@ -36,8 +35,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   userSession,
   onLogout,
 }) => {
-  const studentName = userSession?.name || CURRENT_STUDENT.name;
-  const studentRoll = userSession?.rollNo || (currentRole === 'FACULTY' ? 'FACULTY ID: #DBS-FAC-019' : CURRENT_STUDENT.rollNo);
+  const studentName = userSession?.name || (currentRole === 'FACULTY' ? 'Faculty Member' : 'Authenticated Student');
+  const studentRoll = userSession?.rollNo || (currentRole === 'FACULTY' ? 'FACULTY ID: #DBS-FAC-019' : 'DBS Student');
   const initials = studentName
     .split(' ')
     .map(n => n[0])

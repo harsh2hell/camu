@@ -5,7 +5,6 @@ import {
   CheckCircle2, 
   Clock, 
   FileText, 
-  Download, 
   Award,
   Search,
   Sparkles,
@@ -135,8 +134,28 @@ export const LMSAssignments: React.FC = () => {
     }
   };
 
-  const handleDownloadMaterial = (title: string, size: string) => {
-    showToast(`Downloading repository pack: "${title}" (${size})`);
+  const enrolledCourses = React.useMemo(() => {
+    const map = new Map<string, { code: string; title: string; count: number; attachments: number }>();
+    assignments.forEach((a) => {
+      const existing = map.get(a.courseCode);
+      if (!existing) {
+        map.set(a.courseCode, {
+          code: a.courseCode,
+          title: a.courseTitle,
+          count: 1,
+          attachments: a.attachmentUrl ? 1 : 0,
+        });
+      } else {
+        existing.count += 1;
+        if (a.attachmentUrl) existing.attachments += 1;
+      }
+    });
+    return Array.from(map.values());
+  }, [assignments]);
+
+  const handleFilterCourse = (code: string) => {
+    setSearchQuery(code);
+    showToast(`Filtering assignments for course ${code}`);
   };
 
   // Filter assignments
@@ -190,7 +209,7 @@ export const LMSAssignments: React.FC = () => {
         <div className="lms-header-badges">
           <div className="lms-credit-pill">
             <Award size={15} className="text-amber" />
-            <span>Semester 5 Credits: <strong>24.0</strong></span>
+            <span>Active Courses: <strong>{enrolledCourses.length || 'Enrolled'}</strong></span>
           </div>
           <div className="lms-stat-pill">
             <span className="stat-indicator-dot"></span>
@@ -618,83 +637,39 @@ export const LMSAssignments: React.FC = () => {
       </div>
 
       <div className="materials-list">
-        <div className="material-modern-card">
-          <div className="mat-left">
-            <div className="mat-icon-wrapper icon-blue">
-              <BookOpen size={20} />
-            </div>
-            <div className="mat-text-wrap">
-              <div className="mat-tags">
-                <span className="mat-code-badge">CS302</span>
-                <span className="mat-dept-badge">Core Theory</span>
-              </div>
-              <h4 className="mat-card-title">CS302: Design &amp; Analysis of Algorithms</h4>
-              <p className="mat-card-sub">
-                Module 1 to 4 Complete Slides, Dynamic Programming, Lecture Notes &amp; Practice Sets
-              </p>
-            </div>
+        {enrolledCourses.length === 0 ? (
+          <div className="lms-empty-state" style={{ padding: '24px' }}>
+            <p>No course deliverables or syllabus repositories published yet.</p>
           </div>
-          <button 
-            type="button" 
-            className="mat-download-btn"
-            onClick={() => handleDownloadMaterial("CS302 Lecture Slides Pack", "42 MB PDF")}
-          >
-            <Download size={14} />
-            <span>Download Pack (42 MB)</span>
-          </button>
-        </div>
-
-        <div className="material-modern-card">
-          <div className="mat-left">
-            <div className="mat-icon-wrapper icon-emerald">
-              <BookOpen size={20} />
-            </div>
-            <div className="mat-text-wrap">
-              <div className="mat-tags">
-                <span className="mat-code-badge">CS304</span>
-                <span className="mat-dept-badge">Database Systems</span>
+        ) : (
+          enrolledCourses.map((c) => (
+            <div key={c.code} className="material-modern-card">
+              <div className="mat-left">
+                <div className="mat-icon-wrapper icon-blue">
+                  <BookOpen size={20} />
+                </div>
+                <div className="mat-text-wrap">
+                  <div className="mat-tags">
+                    <span className="mat-code-badge">{c.code}</span>
+                    <span className="mat-dept-badge">{c.count} Active Deliverable{c.count !== 1 ? 's' : ''}</span>
+                  </div>
+                  <h4 className="mat-card-title">{c.code}: {c.title}</h4>
+                  <p className="mat-card-sub">
+                    Course syllabus, continuous assessment rubrics, and {c.attachments} downloadable brief{c.attachments !== 1 ? 's' : ''} attached to assignments.
+                  </p>
+                </div>
               </div>
-              <h4 className="mat-card-title">CS304: Database Management Systems</h4>
-              <p className="mat-card-sub">
-                PostgreSQL Lab Schema, Query Optimization, Normalization (3NF/BCNF) &amp; Transaction Notes
-              </p>
+              <button 
+                type="button" 
+                className="mat-download-btn"
+                onClick={() => handleFilterCourse(c.code)}
+              >
+                <Search size={14} />
+                <span>View Course Tasks</span>
+              </button>
             </div>
-          </div>
-          <button 
-            type="button" 
-            className="mat-download-btn"
-            onClick={() => handleDownloadMaterial("CS304 DBMS Handbook & Lab Files", "28 MB PDF")}
-          >
-            <Download size={14} />
-            <span>Download Pack (28 MB)</span>
-          </button>
-        </div>
-
-        <div className="material-modern-card">
-          <div className="mat-left">
-            <div className="mat-icon-wrapper icon-indigo">
-              <BookOpen size={20} />
-            </div>
-            <div className="mat-text-wrap">
-              <div className="mat-tags">
-                <span className="mat-code-badge">CS310</span>
-                <span className="mat-dept-badge">Systems Architecture</span>
-              </div>
-              <h4 className="mat-card-title">CS310: Cloud Computing &amp; Microservices</h4>
-              <p className="mat-card-sub">
-                Docker Containers, Kubernetes Deployment Manifests &amp; AWS EC2 Architectural Guides
-              </p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            className="mat-download-btn"
-            onClick={() => handleDownloadMaterial("CS310 Cloud Labs & Deployment Manifests", "35 MB PDF")}
-          >
-            <Download size={14} />
-            <span>Download Pack (35 MB)</span>
-          </button>
-        </div>
+          ))
+        )}
       </div>
 
       <style>{`

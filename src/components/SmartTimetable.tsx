@@ -15,7 +15,18 @@ import {
   RefreshCw,
   QrCode
 } from 'lucide-react';
-import { type TimetableClass } from '../data/mockData';
+
+export interface TimetableClass {
+  id: string;
+  time: string;
+  subjectCode: string;
+  subjectTitle: string;
+  faculty: string;
+  room: string;
+  isLab: boolean;
+  note?: string;
+  status: 'completed' | 'ongoing' | 'upcoming';
+}
 import { timetableApi } from '../api/timetable';
 import { attendanceApi } from '../api/attendance';
 import { StudentQrScannerModal } from './StudentQrScannerModal';
